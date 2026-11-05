@@ -3,10 +3,12 @@ from sqlalchemy.orm import declarative_base, sessionmaker, Session
 from typing import Generator
 from app.core.config import settings
 
-# Normalize postgres:// to postgresql:// if provided by hosting providers like Supabase
+# Normalize postgres:// and postgresql:// to postgresql+psycopg2:// if psycopg2 is installed
 db_url = settings.DATABASE_URL
 if db_url.startswith("postgres://"):
-    db_url = db_url.replace("postgres://", "postgresql://", 1)
+    db_url = db_url.replace("postgres://", "postgresql+psycopg2://", 1)
+elif db_url.startswith("postgresql://") and not db_url.startswith("postgresql+"):
+    db_url = db_url.replace("postgresql://", "postgresql+psycopg2://", 1)
 
 engine_kwargs = {}
 if db_url.startswith("sqlite"):
