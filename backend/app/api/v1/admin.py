@@ -10,7 +10,7 @@ from app.schemas.client import ClientCreate, ClientResponse
 from app.schemas.campaign import CampaignCreate, CampaignResponse
 from app.schemas.admin import ApprovalRequest, AssignmentRequest, AdminStatsResponse
 from app.schemas.audit import AuditLogResponse
-from app.services.auth_service import require_admin
+from app.services.auth_service import require_admin, get_current_employee
 from app.services.admin_service import AdminService
 from app.services.account_service import AccountService
 
@@ -103,10 +103,10 @@ def create_client(
 
 @router.get("/clients", response_model=List[ClientResponse])
 def list_clients(
-    admin: Employee = Depends(require_admin),
+    current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Lists all clients in the system."""
+    """Lists all clients in the system (accessible to staff for registration dropdowns)."""
     admin_service = AdminService(db)
     return admin_service.list_clients()
 
@@ -123,10 +123,10 @@ def create_campaign(
 @router.get("/campaigns", response_model=List[CampaignResponse])
 def list_campaigns(
     client_id: Optional[uuid.UUID] = Query(None, description="Filter by client ID"),
-    admin: Employee = Depends(require_admin),
+    current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Lists campaigns, optionally filtered by client."""
+    """Lists campaigns, optionally filtered by client (accessible to staff for registration dropdowns)."""
     admin_service = AdminService(db)
     return admin_service.list_campaigns(client_id=client_id)
 
