@@ -46,9 +46,49 @@ export const StatusBadge = ({ status, size = 'sm' }) => {
       icon: AlertCircle,
     },
     disconnected: {
-      label: 'Disconnected',
+      label: 'Not Connected',
       bg: 'bg-slate-700/50 text-slate-400 border-slate-600/30',
       icon: Link2Off,
+    },
+    not_connected: {
+      label: 'Not Connected',
+      bg: 'bg-slate-700/50 text-slate-400 border-slate-600/30',
+      icon: Link2Off,
+    },
+    authorization_pending: {
+      label: 'Auth Pending',
+      bg: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
+      icon: Clock,
+    },
+    connection_failed: {
+      label: 'Connection Failed',
+      bg: 'bg-rose-500/10 text-rose-400 border-rose-500/20',
+      icon: AlertCircle,
+    },
+    token_expired: {
+      label: 'Token Expired',
+      bg: 'bg-amber-500/15 text-amber-300 border-amber-500/30',
+      icon: RefreshCw,
+    },
+    access_revoked: {
+      label: 'Access Revoked',
+      bg: 'bg-rose-500/15 text-rose-400 border-rose-500/30',
+      icon: XCircle,
+    },
+    reauthorization_required: {
+      label: 'Reauth Required',
+      bg: 'bg-orange-500/15 text-orange-400 border-orange-500/30',
+      icon: RefreshCw,
+    },
+    business: {
+      label: 'Business',
+      bg: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
+      icon: ShieldCheck,
+    },
+    creator: {
+      label: 'Creator',
+      bg: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+      icon: CheckCircle2,
     },
   };
 

@@ -52,7 +52,10 @@ async def handle_oauth_callback(
         message=result["message"],
         account_id=result["account_id"],
         username=result["username"],
-        connection_status=result["connection_status"]
+        connection_status=result["connection_status"],
+        instagram_user_id=result.get("instagram_user_id"),
+        account_type=result.get("account_type"),
+        permissions=result.get("permissions")
     )
 
 @router.post("/disconnect")

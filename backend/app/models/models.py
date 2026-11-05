@@ -81,6 +81,8 @@ class InstagramAccount(Base):
     display_name = Column(String(255), nullable=False)
     instagram_user_id = Column(String(100), unique=True, nullable=True, index=True)
     account_created_date = Column(Date, nullable=False)
+    account_type = Column(String(50), nullable=False, default="BUSINESS")  # BUSINESS, CREATOR, PERSONAL
+    allow_creator = Column(Boolean, nullable=False, default=False)
     niche = Column(String(100), nullable=True)
     client_id = Column(GUID, ForeignKey("clients.id", ondelete="SET NULL"), nullable=True, index=True)
     campaign_id = Column(GUID, ForeignKey("campaigns.id", ondelete="SET NULL"), nullable=True, index=True)
@@ -107,7 +109,7 @@ class AccountConnection(Base):
     encrypted_access_token = Column(Text, nullable=True)
     token_expires_at = Column(DateTime(timezone=True), nullable=True)
     granted_permissions = Column(JSONType, nullable=True)
-    connection_status = Column(String(50), nullable=False, default="disconnected")
+    connection_status = Column(String(50), nullable=False, default="NOT_CONNECTED")
     last_validated_at = Column(DateTime(timezone=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
@@ -156,3 +158,18 @@ class AuditLog(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
 
     actor = relationship("Employee", back_populates="audit_events")
+
+class OAuthState(Base):
+    __tablename__ = "oauth_states"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    state_token = Column(String(255), unique=True, nullable=False, index=True)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    account_id = Column(GUID, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    is_used = Column(Boolean, nullable=False, default=False)
+    used_at = Column(DateTime(timezone=True), nullable=True)
+
+    account = relationship("InstagramAccount")
+    employee = relationship("Employee")

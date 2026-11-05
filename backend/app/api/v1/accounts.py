@@ -75,6 +75,7 @@ def get_account_detail(
     return acc_service.get_account_by_id(account_id, current_employee)
 
 @router.patch("/{account_id}", response_model=AccountResponse)
+@router.put("/{account_id}", response_model=AccountResponse)
 def update_account(
     account_id: uuid.UUID,
     data: AccountUpdate,

@@ -28,6 +28,7 @@ export const RegisterAccountPage = () => {
     profile_url: '',
     display_name: '',
     account_created_date: new Date().toISOString().split('T')[0],
+    account_type: 'BUSINESS',
     niche: '',
     client_id: '',
     campaign_id: '',
@@ -328,6 +329,21 @@ export const RegisterAccountPage = () => {
                 onChange={(e) => setFormData({ ...formData, account_created_date: e.target.value })}
                 className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors"
               />
+            </div>
+
+            {/* Account Type (Professional Eligibility) */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-slate-300">
+                Account Type <span className="text-pink-400">*</span>
+              </label>
+              <select
+                value={formData.account_type || 'BUSINESS'}
+                onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors"
+              >
+                <option value="BUSINESS">Instagram Business (Default / Publishing Eligible)</option>
+                <option value="CREATOR">Instagram Creator (Requires Admin Authorization)</option>
+              </select>
             </div>
 
             {/* Niche / Category */}

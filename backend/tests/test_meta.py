@@ -27,12 +27,12 @@ def test_meta_oauth_flow(client, seed_data):
     assert callback_resp.status_code == 200
     cb_data = callback_resp.json()
     assert cb_data["success"] is True
-    assert cb_data["connection_status"] == "connected"
+    assert cb_data["connection_status"] == "CONNECTED"
 
     # 4. Check account status is now connected
     status_resp = client.get(f"/api/v1/accounts/{account_id}/status", headers=emp_headers)
     assert status_resp.status_code == 200
-    assert status_resp.json()["connection_status"] == "connected"
+    assert status_resp.json()["connection_status"] == "CONNECTED"
 
     # 5. Validate connection
     val_resp = client.post("/api/v1/integrations/instagram/validate", json={"account_id": account_id}, headers=emp_headers)

@@ -221,7 +221,9 @@ export const AccountsListPage = () => {
               </thead>
               <tbody className="divide-y divide-slate-800/60">
                 {accounts.map((acc) => {
-                  const isConnected = acc.connection?.connection_status === 'connected';
+                  const connStatus = (acc.connection?.connection_status || 'NOT_CONNECTED').toUpperCase();
+                  const isConnected = connStatus === 'CONNECTED';
+                  const needsReauth = ['TOKEN_EXPIRED', 'ACCESS_REVOKED', 'REAUTHORIZATION_REQUIRED'].includes(connStatus);
                   return (
                     <tr key={acc.id} className="hover:bg-slate-800/30 transition-colors">
                       {/* Account Info */}
@@ -233,6 +235,13 @@ export const AccountsListPage = () => {
                           <div>
                             <div className="flex items-center gap-2">
                               <span className="font-bold text-white">@{acc.username}</span>
+                              <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${
+                                (acc.account_type || 'BUSINESS') === 'BUSINESS'
+                                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                                  : 'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                              }`}>
+                                {acc.account_type || 'BUSINESS'}
+                              </span>
                               <a
                                 href={acc.profile_url}
                                 target="_blank"
@@ -243,11 +252,18 @@ export const AccountsListPage = () => {
                               </a>
                             </div>
                             <p className="text-xs text-slate-400">{acc.display_name}</p>
-                            {acc.niche && (
-                              <span className="inline-block mt-0.5 text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
-                                {acc.niche}
-                              </span>
-                            )}
+                            <div className="flex items-center gap-2 mt-0.5">
+                              {acc.niche && (
+                                <span className="inline-block text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded">
+                                  {acc.niche}
+                                </span>
+                              )}
+                              {acc.instagram_user_id && (
+                                <span className="text-[10px] text-slate-500 font-mono">
+                                  ID: {acc.instagram_user_id}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </td>
@@ -279,52 +295,60 @@ export const AccountsListPage = () => {
 
                       {/* Meta Connection Info */}
                       <td className="px-6 py-4">
-                        {acc.connection ? (
-                          <div className="text-xs space-y-0.5">
-                            <span
-                              className={`inline-flex items-center gap-1 font-semibold ${
-                                isConnected ? 'text-emerald-400' : 'text-amber-400'
-                              }`}
-                            >
-                              <span
-                                className={`w-1.5 h-1.5 rounded-full ${
-                                  isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-                                }`}
-                              />
-                              {acc.connection.connection_status}
-                            </span>
-                            {acc.connection.token_expires_at && (
-                              <p className="text-[10px] text-slate-500">
-                                Exp: {new Date(acc.connection.token_expires_at).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                        ) : (
-                          <span className="text-xs text-slate-500">No connection</span>
-                        )}
+                        <div className="text-xs space-y-1">
+                          <StatusBadge status={connStatus} />
+                          {acc.connection?.last_validated_at && (
+                            <p className="text-[10px] text-slate-500">
+                              Validated: {new Date(acc.connection.last_validated_at).toLocaleDateString()}
+                            </p>
+                          )}
+                        </div>
                       </td>
 
                       {/* Actions */}
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-2">
-                          {!isConnected ? (
+                          {!isConnected && !needsReauth && (
                             <button
                               onClick={() => handleConnectOAuth(acc)}
                               disabled={actionLoading}
                               className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border border-pink-500/20 text-xs font-semibold transition-colors"
                             >
                               <Zap className="w-3.5 h-3.5" />
-                              <span>Connect Meta</span>
+                              <span>Connect Instagram</span>
                             </button>
-                          ) : (
+                          )}
+
+                          {needsReauth && (
                             <button
-                              onClick={() => handleValidateConnection(acc)}
+                              onClick={() => handleConnectOAuth(acc)}
                               disabled={actionLoading}
-                              title="Test Token Health"
-                              className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 border border-amber-500/20 text-xs font-semibold transition-colors"
                             >
                               <RefreshCw className="w-3.5 h-3.5" />
+                              <span>Reconnect</span>
                             </button>
+                          )}
+
+                          {isConnected && (
+                            <>
+                              <button
+                                onClick={() => handleValidateConnection(acc)}
+                                disabled={actionLoading}
+                                title="Test Token Health"
+                                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 transition-colors"
+                              >
+                                <RefreshCw className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                onClick={() => handleDisconnect(acc)}
+                                disabled={actionLoading}
+                                title="Disconnect Meta OAuth"
+                                className="p-1.5 rounded-lg bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 transition-colors"
+                              >
+                                <Link2Off className="w-3.5 h-3.5" />
+                              </button>
+                            </>
                           )}
 
                           <button
@@ -483,33 +507,51 @@ export const AccountsListPage = () => {
               )}
 
               <div className="pt-2 flex items-center gap-2">
-                {!selectedAccount.connection || selectedAccount.connection.connection_status !== 'connected' ? (
-                  <button
-                    onClick={() => handleConnectOAuth(selectedAccount)}
-                    disabled={actionLoading}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-xs rounded-xl transition-all"
-                  >
-                    <Zap className="w-3.5 h-3.5" />
-                    <span>Authorize Meta OAuth</span>
-                  </button>
-                ) : (
-                  <>
+                {(() => {
+                  const mConn = (selectedAccount.connection?.connection_status || 'NOT_CONNECTED').toUpperCase();
+                  if (mConn === 'CONNECTED') {
+                    return (
+                      <>
+                        <button
+                          onClick={() => handleValidateConnection(selectedAccount)}
+                          disabled={actionLoading}
+                          className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Test Token Health
+                        </button>
+                        <button
+                          onClick={() => handleDisconnect(selectedAccount)}
+                          disabled={actionLoading}
+                          className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold rounded-lg transition-colors"
+                        >
+                          Disconnect Account
+                        </button>
+                      </>
+                    );
+                  }
+                  if (['TOKEN_EXPIRED', 'ACCESS_REVOKED', 'REAUTHORIZATION_REQUIRED'].includes(mConn)) {
+                    return (
+                      <button
+                        onClick={() => handleConnectOAuth(selectedAccount)}
+                        disabled={actionLoading}
+                        className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white font-bold text-xs rounded-xl transition-all"
+                      >
+                        <RefreshCw className="w-3.5 h-3.5" />
+                        <span>Reconnect Instagram</span>
+                      </button>
+                    );
+                  }
+                  return (
                     <button
-                      onClick={() => handleValidateConnection(selectedAccount)}
+                      onClick={() => handleConnectOAuth(selectedAccount)}
                       disabled={actionLoading}
-                      className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-lg transition-colors"
+                      className="flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-xs rounded-xl transition-all"
                     >
-                      Test Token Health
+                      <Zap className="w-3.5 h-3.5" />
+                      <span>Authorize Meta OAuth</span>
                     </button>
-                    <button
-                      onClick={() => handleDisconnect(selectedAccount)}
-                      disabled={actionLoading}
-                      className="px-3 py-1.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/20 text-xs font-semibold rounded-lg transition-colors"
-                    >
-                      Disconnect Account
-                    </button>
-                  </>
-                )}
+                  );
+                })()}
               </div>
             </div>
           </div>

@@ -79,13 +79,23 @@ def seed_data(db_session):
         role="admin",
         is_active=True
     )
-    # Regular Employee
+    # Regular Employee 1
     emp = Employee(
         id=uuid.UUID("00000000-0000-0000-0000-000000000011"),
         auth_user_id=uuid.UUID("00000000-0000-0000-0000-000000000011"),
         employee_code="EMP-0002",
         full_name="Sarah Jenkins",
         email="employee1@company.internal",
+        role="employee",
+        is_active=True
+    )
+    # Regular Employee 2
+    emp2 = Employee(
+        id=uuid.UUID("00000000-0000-0000-0000-000000000012"),
+        auth_user_id=uuid.UUID("00000000-0000-0000-0000-000000000012"),
+        employee_code="EMP-0003",
+        full_name="Alex Rivera",
+        email="employee2@company.internal",
         role="employee",
         is_active=True
     )
@@ -96,7 +106,7 @@ def seed_data(db_session):
         description="Athletic wear and equipment",
         is_active=True
     )
-    db_session.add_all([admin, emp, client])
+    db_session.add_all([admin, emp, emp2, client])
     db_session.flush()
 
     # Campaign
@@ -112,6 +122,7 @@ def seed_data(db_session):
     return {
         "admin": admin,
         "employee": emp,
+        "employee2": emp2,
         "client": client,
         "campaign": campaign
     }

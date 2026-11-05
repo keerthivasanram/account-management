@@ -75,6 +75,8 @@ class AccountService:
             profile_url=data.profile_url,
             display_name=data.display_name,
             account_created_date=data.account_created_date,
+            account_type=data.account_type or "BUSINESS",
+            allow_creator=data.allow_creator or False,
             niche=data.niche,
             client_id=data.client_id,
             campaign_id=data.campaign_id,
@@ -178,6 +180,10 @@ class AccountService:
             account.profile_url = data.profile_url
         if data.niche is not None:
             account.niche = data.niche
+        if data.account_type is not None:
+            account.account_type = data.account_type
+        if data.allow_creator is not None:
+            account.allow_creator = data.allow_creator
         if data.client_id is not None:
             account.client_id = data.client_id
         if data.campaign_id is not None:
@@ -260,6 +266,8 @@ class AccountService:
             display_name=acc.display_name,
             instagram_user_id=acc.instagram_user_id,
             account_created_date=acc.account_created_date,
+            account_type=acc.account_type or "BUSINESS",
+            allow_creator=acc.allow_creator or False,
             niche=acc.niche,
             client_id=acc.client_id,
             client_name=acc.client.name if acc.client else None,

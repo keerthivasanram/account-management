@@ -9,9 +9,21 @@ class AccountBase(BaseModel):
     profile_url: str
     display_name: str
     account_created_date: date
+    account_type: str = "BUSINESS"  # BUSINESS, CREATOR, PERSONAL
+    allow_creator: bool = False
     niche: Optional[str] = None
     client_id: Optional[UUID] = None
     campaign_id: Optional[UUID] = None
+
+    @field_validator("account_type")
+    @classmethod
+    def validate_account_type(cls, v: str) -> str:
+        clean = v.upper().strip()
+        if clean not in ("BUSINESS", "CREATOR", "PERSONAL"):
+            raise ValueError("Account type must be BUSINESS, CREATOR, or PERSONAL.")
+        if clean == "PERSONAL":
+            raise ValueError("Personal Instagram accounts are not eligible for official API publishing. An Instagram Professional account (Business or Creator) is required.")
+        return clean
 
     @field_validator("username")
     @classmethod
@@ -40,6 +52,8 @@ class AccountUpdate(BaseModel):
     display_name: Optional[str] = None
     profile_url: Optional[str] = None
     niche: Optional[str] = None
+    account_type: Optional[str] = None
+    allow_creator: Optional[bool] = None
     client_id: Optional[UUID] = None
     campaign_id: Optional[UUID] = None
 
