@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { CheckCircle2, XCircle, Loader2, Instagram, ArrowRight } from 'lucide-react';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
 
 export const OAuthCallbackPage = () => {
   const [searchParams] = useSearchParams();
@@ -35,10 +37,9 @@ export const OAuthCallbackPage = () => {
         const res = await api.integrations.callback(code, state);
         setResultData(res.data);
         setStatus('success');
-        // Auto-redirect after 3.5 seconds
         setTimeout(() => {
           navigate('/accounts');
-        }, 3500);
+        }, 3000);
       } catch (err) {
         console.error('Callback error:', err);
         setStatus('error');
@@ -50,18 +51,17 @@ export const OAuthCallbackPage = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-full max-w-md bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl space-y-6">
-        {/* Meta / Instagram Branding */}
-        <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-500 via-rose-500 to-purple-600 flex items-center justify-center text-white mx-auto shadow-xl shadow-pink-500/25">
-          <Instagram className="w-8 h-8" />
+    <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center p-6 text-center select-none">
+      <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-lg p-8 shadow-xs space-y-6">
+        <div className="w-12 h-12 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#166534] mx-auto">
+          <Instagram className="w-6 h-6" />
         </div>
 
         {status === 'processing' && (
-          <div className="space-y-4">
-            <Loader2 className="w-8 h-8 text-pink-500 animate-spin mx-auto" />
-            <h2 className="text-xl font-bold text-white">Connecting with Meta...</h2>
-            <p className="text-xs text-slate-400 max-w-xs mx-auto">
+          <div className="space-y-3">
+            <Loader2 className="w-7 h-7 text-[#166534] animate-spin mx-auto" />
+            <h2 className="text-lg font-semibold text-[#172B24]">Connecting with Meta...</h2>
+            <p className="text-xs text-[#64748B] max-w-xs mx-auto">
               Verifying signed state, exchanging long-lived tokens, and establishing official Instagram Graph API connection.
             </p>
           </div>
@@ -69,37 +69,34 @@ export const OAuthCallbackPage = () => {
 
         {status === 'success' && (
           <div className="space-y-4">
-            <div className="w-12 h-12 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center justify-center mx-auto">
-              <CheckCircle2 className="w-7 h-7" />
+            <div className="w-10 h-10 rounded-full bg-[#F0FDF4] text-[#15803D] border border-[#BBF7D0] flex items-center justify-center mx-auto">
+              <CheckCircle2 className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-white">Instagram Connected!</h2>
-            <p className="text-xs text-slate-300">
-              Account <strong className="text-pink-400">@{resultData?.username}</strong> is now securely authorized and linked.
-            </p>
-            <p className="text-[11px] text-slate-500">Redirecting to your accounts in 3 seconds...</p>
-            <Link
-              to="/accounts"
-              className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-xs rounded-xl transition-all"
-            >
-              <span>Go to My Accounts Now</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
+            <div>
+              <h2 className="text-lg font-semibold text-[#172B24]">Instagram Connected!</h2>
+              <p className="text-xs text-[#64748B] mt-1">
+                Account <strong className="text-[#172B24]">@{resultData?.username}</strong> is now securely authorized and linked.
+              </p>
+              <p className="text-[11px] text-[#94A3B8] mt-1">Redirecting to your accounts in 3 seconds...</p>
+            </div>
+            <PrimaryButton onClick={() => navigate('/accounts')} icon={ArrowRight} className="w-full">
+              Go to My Accounts Now
+            </PrimaryButton>
           </div>
         )}
 
         {status === 'error' && (
           <div className="space-y-4">
-            <div className="w-12 h-12 rounded-full bg-rose-500/10 text-rose-400 border border-rose-500/20 flex items-center justify-center mx-auto">
-              <XCircle className="w-7 h-7" />
+            <div className="w-10 h-10 rounded-full bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA] flex items-center justify-center mx-auto">
+              <XCircle className="w-6 h-6" />
             </div>
-            <h2 className="text-xl font-bold text-white">Connection Failed</h2>
-            <p className="text-xs text-rose-400 max-w-xs mx-auto">{errorMessage}</p>
-            <Link
-              to="/accounts"
-              className="inline-flex items-center gap-1.5 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl transition-colors"
-            >
-              <span>Return to Accounts</span>
-            </Link>
+            <div>
+              <h2 className="text-lg font-semibold text-[#172B24]">Connection Failed</h2>
+              <p className="text-xs text-[#DC2626] max-w-xs mx-auto mt-1">{errorMessage}</p>
+            </div>
+            <SecondaryButton onClick={() => navigate('/accounts')} className="w-full">
+              Return to Accounts
+            </SecondaryButton>
           </div>
         )}
       </div>

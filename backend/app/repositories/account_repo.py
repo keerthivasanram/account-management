@@ -35,6 +35,8 @@ class AccountRepository:
     def list(
         self,
         employee_id: Optional[UUID] = None,
+        registered_by: Optional[UUID] = None,
+        assigned_to: Optional[UUID] = None,
         status: Optional[str] = None,
         client_id: Optional[UUID] = None,
         campaign_id: Optional[UUID] = None,
@@ -54,7 +56,14 @@ class AccountRepository:
             )
         )
 
-        if employee_id:
+        if registered_by:
+            query = query.filter(InstagramAccount.registered_by == registered_by)
+        elif assigned_to:
+            query = query.join(
+                AccountAssignment,
+                (AccountAssignment.instagram_account_id == InstagramAccount.id) & (AccountAssignment.is_active == True)
+            ).filter(AccountAssignment.employee_id == assigned_to)
+        elif employee_id:
             # Match if registered by this employee OR currently assigned to this employee
             query = query.outerjoin(
                 AccountAssignment,
@@ -100,7 +109,10 @@ class AccountRepository:
             )
         return query.count()
 
-    def get_status_counts(self, employee_id: Optional[UUID] = None) -> Dict[str, int]:
+    def count_registered(self, employee_id: UUID) -> int:
+        return self.db.query(InstagramAccount).filter(InstagramAccount.registered_by == employee_id).count()
+
+    def get_status_counts(self, employee_id: Optional[UUID] = None, registered_by: Optional[UUID] = None) -> Dict[str, int]:
         counts = {
             "total": 0,
             "connected": 0,
@@ -111,7 +123,9 @@ class AccountRepository:
         }
 
         query = self.db.query(InstagramAccount.status, func.count(InstagramAccount.id))
-        if employee_id:
+        if registered_by:
+            query = query.filter(InstagramAccount.registered_by == registered_by)
+        elif employee_id:
             query = query.outerjoin(
                 AccountAssignment,
                 (AccountAssignment.instagram_account_id == InstagramAccount.id) & (AccountAssignment.is_active == True)

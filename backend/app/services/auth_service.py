@@ -43,13 +43,15 @@ class AuthService:
             elif token.startswith("dev-token-employee"):
                 parts = token.split("-")
                 identifier = parts[-1] if len(parts) > 3 else "1"
+                digits = "".join(filter(str.isdigit, identifier))
+                num = int(digits) if digits else 1
                 # Deterministic UUID for dev employee
-                dev_uuid = f"00000000-0000-0000-0000-0000000000{int(identifier) % 90 + 10:02d}"
+                dev_uuid = f"00000000-0000-0000-0000-0000000000{num % 90 + 10:02d}"
                 return {
                     "sub": dev_uuid,
-                    "email": f"employee{identifier}@company.internal",
+                    "email": f"employee{num}@company.internal",
                     "role": "employee",
-                    "full_name": f"Employee {identifier}",
+                    "full_name": f"Employee {num}",
                     "app_metadata": {"role": "employee"}
                 }
 

@@ -1,12 +1,26 @@
 import uuid
 from datetime import datetime, date
 from sqlalchemy import (
-    Column, String, Text, Boolean, Date, DateTime,
+    Column, String, Text, Boolean, Date, DateTime, Float, Integer,
     ForeignKey, Index, func
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
 from app.models.types import GUID, JSONType
+
+class Department(Base):
+    __tablename__ = "departments"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    name = Column(String(150), unique=True, nullable=False, index=True)
+    code = Column(String(50), unique=True, nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    head_employee_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    head = relationship("Employee", foreign_keys=[head_employee_id], post_update=True)
+    members = relationship("Employee", back_populates="department", foreign_keys="Employee.department_id")
+    projects = relationship("Project", back_populates="department")
 
 class Employee(Base):
     __tablename__ = "employees"
@@ -18,9 +32,16 @@ class Employee(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     role = Column(String(50), nullable=False, default="employee")  # 'employee' or 'admin'
     is_active = Column(Boolean, nullable=False, default=True)
+    department_id = Column(GUID, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
+    department = relationship("Department", back_populates="members", foreign_keys=[department_id])
+    tasks_assigned = relationship("Task", back_populates="assignee", foreign_keys="Task.assigned_to")
+    tasks_created = relationship("Task", back_populates="creator", foreign_keys="Task.created_by")
+    projects_owned = relationship("Project", back_populates="owner", foreign_keys="Project.owner_id")
+    devices = relationship("RegisteredDevice", back_populates="employee", cascade="all, delete-orphan")
+    notifications = relationship("Notification", back_populates="recipient", cascade="all, delete-orphan")
     registered_accounts = relationship(
         "InstagramAccount",
         back_populates="creator",
@@ -173,3 +194,261 @@ class OAuthState(Base):
 
     account = relationship("InstagramAccount")
     employee = relationship("Employee")
+
+class Project(Base):
+    __tablename__ = "projects"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    name = Column(String(255), nullable=False, index=True)
+    description = Column(Text, nullable=True)
+    owner_id = Column(GUID, ForeignKey("employees.id", ondelete="RESTRICT"), nullable=False, index=True)
+    department_id = Column(GUID, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    status = Column(String(50), nullable=False, default="ACTIVE")  # PLANNING, ACTIVE, ON_HOLD, COMPLETED, ARCHIVED
+    priority = Column(String(20), nullable=False, default="MEDIUM")  # LOW, MEDIUM, HIGH, URGENT
+    start_date = Column(Date, nullable=True)
+    end_date = Column(Date, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    owner = relationship("Employee", foreign_keys=[owner_id], back_populates="projects_owned")
+    department = relationship("Department", back_populates="projects")
+    tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
+
+class Task(Base):
+    __tablename__ = "tasks"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    project_id = Column(GUID, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    description = Column(Text, nullable=True)
+    assigned_to = Column(GUID, ForeignKey("employees.id", ondelete="RESTRICT"), nullable=False, index=True)
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="RESTRICT"), nullable=False, index=True)
+    priority = Column(String(20), nullable=False, default="MEDIUM")  # LOW, MEDIUM, HIGH, URGENT
+    status = Column(String(50), nullable=False, default="TODO")  # BACKLOG, TODO, IN_PROGRESS, IN_REVIEW, CHANGES_REQUESTED, APPROVED, COMPLETED, BLOCKED, CANCELLED
+    due_date = Column(Date, nullable=True)
+    estimated_effort_hours = Column(Float, nullable=True)
+    completed_at = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    project = relationship("Project", back_populates="tasks")
+    assignee = relationship("Employee", foreign_keys=[assigned_to], back_populates="tasks_assigned")
+    creator = relationship("Employee", foreign_keys=[created_by], back_populates="tasks_created")
+    activity_events = relationship("TaskActivityEvent", back_populates="task", cascade="all, delete-orphan", order_by="TaskActivityEvent.created_at.desc()")
+
+class TaskActivityEvent(Base):
+    __tablename__ = "task_activity_events"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    task_id = Column(GUID, ForeignKey("tasks.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id = Column(GUID, ForeignKey("employees.id", ondelete="RESTRICT"), nullable=False, index=True)
+    action = Column(String(100), nullable=False)  # CREATED, ASSIGNED, STARTED, SUBMITTED_FOR_REVIEW, CHANGES_REQUESTED, APPROVED, COMPLETED
+    previous_status = Column(String(50), nullable=True)
+    new_status = Column(String(50), nullable=True)
+    remarks = Column(Text, nullable=True)
+    extra_metadata = Column("metadata", JSONType, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    task = relationship("Task", back_populates="activity_events")
+    actor = relationship("Employee")
+
+class Notification(Base):
+    __tablename__ = "notifications"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    recipient_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    title = Column(String(255), nullable=False)
+    message = Column(Text, nullable=False)
+    type = Column(String(50), nullable=False, default="INFO")  # TASK_ASSIGNED, TASK_REVIEW_REQUESTED, TASK_APPROVED, CHANGES_REQUESTED, SECURITY_ALERT
+    link_url = Column(String(255), nullable=True)
+    is_read = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    recipient = relationship("Employee", back_populates="notifications")
+
+class RegisteredDevice(Base):
+    __tablename__ = "registered_devices"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    device_name = Column(String(255), nullable=False)
+    device_fingerprint = Column(String(255), nullable=False, index=True)
+    browser = Column(String(100), nullable=True)
+    os = Column(String(100), nullable=True)
+    ip_address = Column(String(100), nullable=True)
+    status = Column(String(50), nullable=False, default="APPROVED")  # APPROVED, PENDING, REVOKED
+    registered_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    last_seen_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee", back_populates="devices")
+
+class SecurityIncident(Base):
+    __tablename__ = "security_incidents"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    actor_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    event_type = Column(String(100), nullable=False, index=True)  # SCREENSHOT_KEY_DETECTED, FOCUS_LOST_SUSPICIOUS, DEVTOOLS_OPENED, CLIPBOARD_PROTECTION
+    severity = Column(String(20), nullable=False, default="MEDIUM")  # LOW, MEDIUM, HIGH, CRITICAL
+    route = Column(String(255), nullable=False)
+    key_combination = Column(String(100), nullable=True)
+    ip_address = Column(String(100), nullable=True)
+    status = Column(String(50), nullable=False, default="OPEN")  # OPEN, RESOLVED, FALSE_POSITIVE
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    actor = relationship("Employee")
+
+# ==============================================================================
+# MODULE 06 — COMPANY-MANAGED INTERNAL MESSAGING
+# ==============================================================================
+
+class Conversation(Base):
+    __tablename__ = "conversations"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    type = Column(String(50), nullable=False, default="DIRECT")  # DIRECT, DEPARTMENT, PROJECT, ANNOUNCEMENT
+    title = Column(String(255), nullable=True)
+    department_id = Column(GUID, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    department = relationship("Department")
+    creator = relationship("Employee", foreign_keys=[created_by])
+    members = relationship("ConversationMember", back_populates="conversation", cascade="all, delete-orphan")
+    messages = relationship("Message", back_populates="conversation", cascade="all, delete-orphan", order_by="Message.created_at.asc()")
+
+class ConversationMember(Base):
+    __tablename__ = "conversation_members"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(GUID, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    joined_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    conversation = relationship("Conversation", back_populates="members")
+    employee = relationship("Employee")
+
+class Message(Base):
+    __tablename__ = "messages"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    conversation_id = Column(GUID, ForeignKey("conversations.id", ondelete="CASCADE"), nullable=False, index=True)
+    sender_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    content = Column(Text, nullable=False)
+    is_redacted = Column(Boolean, nullable=False, default=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    conversation = relationship("Conversation", back_populates="messages")
+    sender = relationship("Employee")
+
+# ==============================================================================
+# MODULE 07 — ATTENDANCE & LEAVE MANAGEMENT
+# ==============================================================================
+
+class AttendanceRecord(Base):
+    __tablename__ = "attendance_records"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    check_in_at = Column(DateTime(timezone=True), nullable=False)
+    check_out_at = Column(DateTime(timezone=True), nullable=True)
+    total_hours = Column(Float, nullable=True)
+    status = Column(String(50), nullable=False, default="PRESENT")  # PRESENT, HALF_DAY, LATE
+    ip_address = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee")
+
+class LeaveRequest(Base):
+    __tablename__ = "leave_requests"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    leave_type = Column(String(50), nullable=False)  # SICK, CASUAL, ANNUAL, EMERGENCY
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(50), nullable=False, default="PENDING")  # PENDING, APPROVED, REJECTED, CANCELLED
+    reviewed_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    review_remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    reviewer = relationship("Employee", foreign_keys=[reviewed_by])
+
+# ==============================================================================
+# MODULE 01 EXTENSION — LOGIN VERIFICATION & MFA CHALLENGE
+# ==============================================================================
+
+class LoginVerificationCode(Base):
+    __tablename__ = "login_verification_codes"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    code = Column(String(20), nullable=False)
+    purpose = Column(String(50), nullable=False, default="LOGIN_2FA")  # LOGIN_2FA, DEVICE_VERIFY
+    is_used = Column(Boolean, nullable=False, default=False)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee")
+
+# ==============================================================================
+# MODULE 08 — SECURE DOCUMENT MANAGEMENT & S3 REPOSITORY
+# ==============================================================================
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    title = Column(String(255), nullable=False, index=True)
+    category = Column(String(100), nullable=False)  # POLICY, CONTRACT, BRAND_ASSET, FINANCIAL, BRIEF
+    classification = Column(String(50), nullable=False, default="INTERNAL")  # PUBLIC, INTERNAL, CONFIDENTIAL, RESTRICTED
+    file_url = Column(Text, nullable=False)
+    mime_type = Column(String(100), nullable=False, default="application/pdf")
+    file_size_bytes = Column(Integer, nullable=False, default=1024)
+    owner_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    download_count = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    owner = relationship("Employee")
+    access_logs = relationship("DocumentAccessLog", back_populates="document", cascade="all, delete-orphan")
+
+class DocumentAccessLog(Base):
+    __tablename__ = "document_access_logs"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    document_id = Column(GUID, ForeignKey("documents.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    action = Column(String(50), nullable=False)  # VIEWED, DOWNLOADED
+    ip_address = Column(String(100), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    document = relationship("Document", back_populates="access_logs")
+    actor = relationship("Employee")
+
+# ==============================================================================
+# MODULE 09 — SOCIAL MEDIA MANAGEMENT & SCHEDULED CONTENT PUBLISHING
+# ==============================================================================
+
+class ScheduledPost(Base):
+    __tablename__ = "scheduled_posts"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    account_id = Column(GUID, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    campaign_id = Column(GUID, ForeignKey("campaigns.id", ondelete="SET NULL"), nullable=True, index=True)
+    project_id = Column(GUID, ForeignKey("projects.id", ondelete="SET NULL"), nullable=True, index=True)
+    media_type = Column(String(50), nullable=False, default="IMAGE")  # IMAGE, CAROUSEL, REELS, STORY
+    caption = Column(Text, nullable=False)
+    media_url = Column(Text, nullable=False)
+    scheduled_at = Column(DateTime(timezone=True), nullable=False, index=True)
+    status = Column(String(50), nullable=False, default="DRAFT")  # DRAFT, PENDING_APPROVAL, APPROVED, PUBLISHED, FAILED
+    published_at = Column(DateTime(timezone=True), nullable=True)
+    error_message = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    account = relationship("InstagramAccount")
+    creator = relationship("Employee")
+    campaign = relationship("Campaign")
+    project = relationship("Project")

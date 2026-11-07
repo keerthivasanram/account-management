@@ -4,9 +4,13 @@ from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.models.models import Employee, InstagramAccount, Client, Campaign, AccountAssignment, AuditLog
 from app.schemas.employee import EmployeeResponse, EmployeeUpdate
+from app.schemas.account import AccountResponse
 from app.schemas.client import ClientCreate, ClientUpdate, ClientResponse
 from app.schemas.campaign import CampaignCreate, CampaignUpdate, CampaignResponse
-from app.schemas.admin import ApprovalRequest, AssignmentRequest, AdminStatsResponse, EmployeeAssignmentStat
+from app.schemas.admin import (
+    ApprovalRequest, AssignmentRequest, AdminStatsResponse, EmployeeAssignmentStat,
+    EmployeeDetailResponse, EmployeeStatsSummary, EmployeeStatusBreakdown
+)
 from app.schemas.audit import AuditLogResponse
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.account_repo import AccountRepository
@@ -49,7 +53,7 @@ class AdminService:
         results = []
         for emp in employees:
             assigned = self.assignment_repo.count_assigned_accounts(emp.id)
-            registered = self.account_repo.count(employee_id=emp.id)
+            registered = self.account_repo.count_registered(emp.id)
             results.append(
                 EmployeeResponse(
                     id=emp.id,
@@ -89,7 +93,7 @@ class AdminService:
         )
 
         assigned = self.assignment_repo.count_assigned_accounts(emp.id)
-        registered = self.account_repo.count(employee_id=emp.id)
+        registered = self.account_repo.count_registered(emp.id)
         return EmployeeResponse(
             id=emp.id,
             auth_user_id=emp.auth_user_id,
@@ -102,6 +106,93 @@ class AdminService:
             assigned_accounts_count=assigned,
             registered_accounts_count=registered
         )
+
+    def get_employee_details(self, employee_id: uuid.UUID) -> Dict[str, Any]:
+        emp = self.employee_repo.get_by_id(employee_id)
+        if not emp:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
+
+        assigned = self.assignment_repo.count_assigned_accounts(emp.id)
+        registered = self.account_repo.count_registered(emp.id)
+        raw_status_counts = self.account_repo.get_status_counts(registered_by=emp.id)
+
+        status_breakdown = EmployeeStatusBreakdown(
+            total=raw_status_counts.get("total", 0),
+            connected=raw_status_counts.get("connected", 0),
+            pending_connection=raw_status_counts.get("pending_connection", 0),
+            pending_approval=raw_status_counts.get("pending_approval", 0),
+            approved=raw_status_counts.get("approved", 0),
+            rejected=raw_status_counts.get("rejected", 0)
+        )
+
+        target = 60
+        capacity_pct = min(100, round((assigned / target) * 100)) if target > 0 else 0
+
+        emp_response = EmployeeResponse(
+            id=emp.id,
+            auth_user_id=emp.auth_user_id,
+            employee_code=emp.employee_code,
+            full_name=emp.full_name,
+            email=emp.email,
+            role=emp.role,
+            is_active=emp.is_active,
+            created_at=emp.created_at,
+            assigned_accounts_count=assigned,
+            registered_accounts_count=registered
+        )
+
+        return {
+            "employee": emp_response,
+            "stats": {
+                "capacity_target": target,
+                "assigned_count": assigned,
+                "registered_count": registered,
+                "capacity_percentage": capacity_pct,
+                "status_breakdown": status_breakdown
+            }
+        }
+
+    def list_employee_accounts(
+        self,
+        employee_id: uuid.UUID,
+        filter_type: str = "created",
+        status_filter: Optional[str] = None,
+        search: Optional[str] = None,
+        skip: int = 0,
+        limit: int = 100
+    ) -> List[AccountResponse]:
+        emp = self.employee_repo.get_by_id(employee_id)
+        if not emp:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
+
+        if filter_type == "created":
+            accounts = self.account_repo.list(
+                registered_by=employee_id,
+                status=status_filter,
+                search=search,
+                skip=skip,
+                limit=limit
+            )
+        elif filter_type == "assigned":
+            accounts = self.account_repo.list(
+                assigned_to=employee_id,
+                status=status_filter,
+                search=search,
+                skip=skip,
+                limit=limit
+            )
+        else:
+            accounts = self.account_repo.list(
+                employee_id=employee_id,
+                status=status_filter,
+                search=search,
+                skip=skip,
+                limit=limit
+            )
+
+        from app.services.account_service import AccountService
+        acc_service = AccountService(self.db)
+        return [acc_service._build_account_response(acc) for acc in accounts]
 
     def review_account(self, account_id: uuid.UUID, req: ApprovalRequest, admin: Employee) -> Dict[str, Any]:
         account = self.account_repo.get_by_id(account_id)

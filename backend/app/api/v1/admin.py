@@ -8,7 +8,9 @@ from app.schemas.employee import EmployeeResponse, EmployeeUpdate
 from app.schemas.account import AccountResponse
 from app.schemas.client import ClientCreate, ClientResponse
 from app.schemas.campaign import CampaignCreate, CampaignResponse
-from app.schemas.admin import ApprovalRequest, AssignmentRequest, AdminStatsResponse
+from app.schemas.admin import (
+    ApprovalRequest, AssignmentRequest, AdminStatsResponse, EmployeeDetailResponse
+)
 from app.schemas.audit import AuditLogResponse
 from app.services.auth_service import require_admin, get_current_employee
 from app.services.admin_service import AdminService
@@ -33,6 +35,38 @@ def list_all_employees(
     """Lists all employees with their registered and assigned account counts (tracking 50-60 target)."""
     admin_service = AdminService(db)
     return admin_service.list_employees_with_stats()
+
+@router.get("/employees/{employee_id}", response_model=EmployeeDetailResponse)
+def get_employee_details(
+    employee_id: uuid.UUID,
+    admin: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Returns detailed profile and account statistics for a specific employee."""
+    admin_service = AdminService(db)
+    return admin_service.get_employee_details(employee_id)
+
+@router.get("/employees/{employee_id}/accounts", response_model=List[AccountResponse])
+def list_employee_accounts(
+    employee_id: uuid.UUID,
+    filter_type: str = Query("created", description="'created' for accounts registered by employee, 'assigned' for assigned accounts, 'all' for both"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    search: Optional[str] = Query(None, description="Search username or display name"),
+    skip: int = Query(0, ge=0),
+    limit: int = Query(100, ge=1, le=500),
+    admin: Employee = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    """Lists accounts created by or assigned to a specific employee for admin review."""
+    admin_service = AdminService(db)
+    return admin_service.list_employee_accounts(
+        employee_id=employee_id,
+        filter_type=filter_type,
+        status_filter=status,
+        search=search,
+        skip=skip,
+        limit=limit
+    )
 
 @router.patch("/employees/{employee_id}", response_model=EmployeeResponse)
 def update_employee_profile(

@@ -2,20 +2,23 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
+import PageHeader from '../../components/ui/PageHeader';
+import FormSection from '../../components/ui/FormSection';
+import FormField from '../../components/ui/FormField';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
+import StatusBadge from '../../components/ui/StatusBadge';
 import {
   Instagram,
   CheckCircle2,
   XCircle,
   AlertCircle,
-  ArrowRight,
-  ShieldCheck,
   Zap,
   Clock,
-  Sparkles,
-  Link as LinkIcon,
-  HelpCircle,
+  ShieldCheck,
   Building2,
-  FolderGit2
+  FolderGit2,
+  ArrowRight
 } from 'lucide-react';
 
 export const RegisterAccountPage = () => {
@@ -34,30 +37,29 @@ export const RegisterAccountPage = () => {
     campaign_id: '',
   });
 
-  // Dynamic Options
+  const [formErrors, setFormErrors] = useState({});
   const [clients, setClients] = useState([]);
   const [campaigns, setCampaigns] = useState([]);
   const [filteredCampaigns, setFilteredCampaigns] = useState([]);
 
-  // Duplicate Check & Validation State
-  const [duplicateStatus, setDuplicateStatus] = useState(null); // { isChecking, isDuplicate, message }
+  // Duplicate Check & Submission State
+  const [duplicateStatus, setDuplicateStatus] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitSuccess, setSubmitSuccess] = useState(null);
-  const [errorMessage, setErrorMessage] = useState(null);
   const [connectOption, setConnectOption] = useState('connect_later'); // 'connect_now' | 'connect_later'
+  const [submitError, setSubmitError] = useState(null);
 
   // Load clients and campaigns
   useEffect(() => {
     const loadMetadata = async () => {
       try {
         const [clientsRes, campaignsRes] = await Promise.all([
-          api.admin.listClients(),
-          api.admin.listCampaigns(),
+          api.admin.listClients().catch(() => ({ data: [] })),
+          api.admin.listCampaigns().catch(() => ({ data: [] })),
         ]);
         setClients(clientsRes.data || []);
         setCampaigns(campaignsRes.data || []);
       } catch (err) {
-        console.warn('Could not load clients/campaigns metadata:', err);
+        console.warn('Could not load clients/campaigns:', err);
       }
     };
     loadMetadata();
@@ -101,303 +103,242 @@ export const RegisterAccountPage = () => {
     return () => clearTimeout(timer);
   }, [formData.username]);
 
-  // Handle inputs
-  const handleUsernameChange = (e) => {
-    const val = e.target.value;
-    const clean = val.replace(/^@/, '');
-    setFormData((prev) => ({
-      ...prev,
-      username: val,
-      // Auto-suggest profile URL if not manually modified
-      profile_url: clean ? `https://www.instagram.com/${clean}` : '',
-    }));
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    let newFormData = { ...formData, [name]: value };
+
+    // Auto-update profile URL if username is edited
+    if (name === 'username') {
+      const cleanUser = value.trim().replace(/^@/, '');
+      if (cleanUser) {
+        newFormData.profile_url = `https://www.instagram.com/${cleanUser}/`;
+      }
+    }
+
+    setFormData(newFormData);
+
+    // Clear field-specific error
+    if (formErrors[name]) {
+      setFormErrors((prev) => ({ ...prev, [name]: null }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    const cleanUser = formData.username.trim().replace(/^@/, '');
+
+    if (!cleanUser) {
+      errors.username = 'Instagram username is required.';
+    } else if (!/^[a-zA-Z0-9._]+$/.test(cleanUser)) {
+      errors.username = 'Username may only contain letters, numbers, periods, and underscores.';
+    }
+
+    if (duplicateStatus?.isDuplicate) {
+      errors.username = 'This Instagram username is already registered in the platform.';
+    }
+
+    if (!formData.profile_url.trim()) {
+      errors.profile_url = 'Profile URL is required.';
+    } else if (!formData.profile_url.startsWith('http')) {
+      errors.profile_url = 'Must be a valid URL starting with http:// or https://';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setErrorMessage(null);
+    setSubmitError(null);
 
-    if (duplicateStatus?.isDuplicate) {
-      setErrorMessage('Please resolve duplicate username before submitting.');
-      return;
-    }
+    if (!validateForm()) return;
 
     setIsSubmitting(true);
     try {
       const payload = {
         username: formData.username.trim().replace(/^@/, ''),
         profile_url: formData.profile_url.trim(),
-        display_name: formData.display_name.trim(),
+        display_name: formData.display_name.trim() || undefined,
         account_created_date: formData.account_created_date,
-        niche: formData.niche ? formData.niche.trim() : null,
-        client_id: formData.client_id || null,
-        campaign_id: formData.campaign_id || null,
+        account_type: formData.account_type,
+        niche: formData.niche.trim() || undefined,
+        client_id: formData.client_id || undefined,
+        campaign_id: formData.campaign_id || undefined,
       };
 
       const res = await api.accounts.register(payload);
       const createdAccount = res.data;
-      setSubmitSuccess(createdAccount);
 
       if (connectOption === 'connect_now') {
-        // Trigger Meta OAuth authorization
         const authRes = await api.integrations.getAuthorizeUrl(createdAccount.id);
         window.location.href = authRes.data.authorization_url;
+      } else {
+        navigate('/accounts');
       }
     } catch (err) {
       console.error('Registration failed:', err);
-      const detail = err.response?.data?.detail;
-      setErrorMessage(
-        typeof detail === 'string'
-          ? detail
-          : Array.isArray(detail)
-          ? detail.map((d) => d.msg).join(', ')
-          : 'Failed to register Instagram account. Please verify input fields.'
+      setSubmitError(
+        err.response?.data?.detail || 'Failed to register account. Please check input values.'
       );
-    } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-extrabold text-white tracking-tight flex items-center gap-2.5">
-          <span>Register Instagram Account</span>
-          <span className="text-xs font-semibold px-2 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">
-            Form
-          </span>
-        </h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Add an assigned Instagram page to your platform portfolio. Employee identity (<span className="text-slate-200 font-mono">{employee?.employee_code}</span>) is automatically attached.
-        </p>
-      </div>
+    <div className="max-w-3xl mx-auto space-y-6">
+      {/* 1. Page Header */}
+      <PageHeader
+        title="Register Instagram Account"
+        description="Add a new Instagram business or creator account to the organization fleet."
+        breadcrumbs={[
+          { label: 'Overview', to: '/dashboard' },
+          { label: 'Instagram Accounts', to: '/accounts' },
+          { label: 'Register Account' },
+        ]}
+      />
 
-      {/* Success Banner */}
-      {submitSuccess && connectOption === 'connect_later' && (
-        <div className="p-6 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 space-y-3 shadow-xl">
-          <div className="flex items-center gap-3">
-            <CheckCircle2 className="w-6 h-6 text-emerald-400 shrink-0" />
-            <div>
-              <h3 className="font-bold text-white text-base">Account Registered Successfully!</h3>
-              <p className="text-xs text-emerald-400/90">
-                @{submitSuccess.username} is saved with status <span className="font-semibold uppercase">Pending Connection</span>.
-              </p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3 pt-2">
-            <button
-              onClick={() => navigate('/accounts')}
-              className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl transition-colors"
-            >
-              Go to My Accounts
-            </button>
-            <button
-              onClick={() => {
-                setSubmitSuccess(null);
-                setFormData({
-                  username: '',
-                  profile_url: '',
-                  display_name: '',
-                  account_created_date: new Date().toISOString().split('T')[0],
-                  niche: '',
-                  client_id: '',
-                  campaign_id: '',
-                });
-                setDuplicateStatus(null);
-              }}
-              className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors"
-            >
-              + Register Another Account
-            </button>
-          </div>
+      {submitError && (
+        <div className="p-4 rounded-lg bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-between text-xs text-[#DC2626]">
+          <span>{submitError}</span>
+          <button onClick={() => setSubmitError(null)} className="p-1 hover:opacity-75">
+            ✕
+          </button>
         </div>
       )}
 
-      {/* Main Registration Form */}
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {errorMessage && (
-          <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-start gap-3">
-            <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-            <span>{errorMessage}</span>
-          </div>
-        )}
-
-        {/* Section 1: Basic Account Details */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-xl">
-          <div className="border-b border-slate-800 pb-4 flex items-center justify-between">
-            <div>
-              <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-                <span className="w-6 h-6 rounded-lg bg-pink-500/10 text-pink-400 flex items-center justify-center text-xs font-bold border border-pink-500/20">
-                  1
-                </span>
-                <span>Basic Account Details</span>
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5">Core identification and category metadata</p>
-            </div>
-            <span className="text-[11px] text-slate-500 font-medium">* Required fields</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {/* Instagram Username */}
-            <div className="md:col-span-2 space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Instagram Username <span className="text-pink-400">*</span>
-              </label>
+      {/* Main Registration Form Container */}
+      <form onSubmit={handleSubmit} className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs p-6 space-y-6">
+        {/* =========================================================================
+            SECTION 1: BASIC ACCOUNT DETAILS
+        ========================================================================== */}
+        <FormSection
+          title="1. Basic Account Details"
+          description="Enter core identity details for the Instagram profile."
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Username */}
+            <FormField
+              label="Instagram Username"
+              required
+              id="username"
+              error={formErrors.username}
+              helpText={
+                duplicateStatus?.isChecking
+                  ? 'Checking availability...'
+                  : duplicateStatus && !duplicateStatus.isDuplicate
+                  ? '✓ Username is available'
+                  : null
+              }
+            >
               <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-500 font-bold">@</span>
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-[#94A3B8] font-mono">
+                  @
+                </span>
                 <input
                   type="text"
-                  required
+                  id="username"
+                  name="username"
                   value={formData.username}
-                  onChange={handleUsernameChange}
-                  placeholder="brand_page_official"
-                  className={`w-full bg-slate-950 border rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none transition-colors ${
-                    duplicateStatus?.isDuplicate
-                      ? 'border-rose-500'
-                      : duplicateStatus?.isDuplicate === false
-                      ? 'border-emerald-500'
-                      : 'border-slate-800 focus:border-pink-500'
-                  }`}
-                />
-                <div className="absolute right-3.5 top-3">
-                  {duplicateStatus?.isChecking && (
-                    <span className="w-4 h-4 border-2 border-pink-500 border-t-transparent rounded-full animate-spin block"></span>
-                  )}
-                  {!duplicateStatus?.isChecking && duplicateStatus?.isDuplicate === false && (
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                  )}
-                  {!duplicateStatus?.isChecking && duplicateStatus?.isDuplicate === true && (
-                    <XCircle className="w-4 h-4 text-rose-400" />
-                  )}
-                </div>
-              </div>
-              {/* Duplicate check helper text */}
-              {duplicateStatus && !duplicateStatus.isChecking && (
-                <p
-                  className={`text-xs ${
-                    duplicateStatus.isDuplicate ? 'text-rose-400 font-medium' : 'text-emerald-400'
-                  }`}
-                >
-                  {duplicateStatus.message}
-                </p>
-              )}
-            </div>
-
-            {/* Profile URL */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Instagram Profile URL <span className="text-pink-400">*</span>
-              </label>
-              <div className="relative">
-                <LinkIcon className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
-                <input
-                  type="url"
-                  required
-                  value={formData.profile_url}
-                  onChange={(e) => setFormData({ ...formData, profile_url: e.target.value })}
-                  placeholder="https://www.instagram.com/username"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-pink-500 transition-colors"
+                  onChange={handleChange}
+                  placeholder="brand_handle"
+                  className="enterprise-input pl-8 w-full"
                 />
               </div>
-            </div>
+            </FormField>
 
             {/* Display Name */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Display Name <span className="text-pink-400">*</span>
-              </label>
+            <FormField label="Display Name" id="display_name">
               <input
                 type="text"
-                required
+                id="display_name"
+                name="display_name"
                 value={formData.display_name}
-                onChange={(e) => setFormData({ ...formData, display_name: e.target.value })}
-                placeholder="Brand Official Page"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-pink-500 transition-colors"
+                onChange={handleChange}
+                placeholder="Brand Name / Project Title"
+                className="enterprise-input w-full"
               />
-            </div>
+            </FormField>
 
-            {/* Account Creation Date */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Account Creation Date <span className="text-pink-400">*</span>
-              </label>
+            {/* Profile URL */}
+            <FormField
+              label="Profile URL"
+              required
+              id="profile_url"
+              error={formErrors.profile_url}
+              className="md:col-span-2"
+            >
               <input
-                type="date"
-                required
-                value={formData.account_created_date}
-                onChange={(e) => setFormData({ ...formData, account_created_date: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors"
+                type="url"
+                id="profile_url"
+                name="profile_url"
+                value={formData.profile_url}
+                onChange={handleChange}
+                placeholder="https://www.instagram.com/brand_handle/"
+                className="enterprise-input w-full font-mono text-xs"
               />
-            </div>
+            </FormField>
 
-            {/* Account Type (Professional Eligibility) */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Account Type <span className="text-pink-400">*</span>
-              </label>
+            {/* Account Type */}
+            <FormField label="Account Type" required id="account_type">
               <select
-                value={formData.account_type || 'BUSINESS'}
-                onChange={(e) => setFormData({ ...formData, account_type: e.target.value })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors"
+                id="account_type"
+                name="account_type"
+                value={formData.account_type}
+                onChange={handleChange}
+                className="enterprise-input w-full cursor-pointer"
               >
-                <option value="BUSINESS">Instagram Business (Default / Publishing Eligible)</option>
-                <option value="CREATOR">Instagram Creator (Requires Admin Authorization)</option>
+                <option value="BUSINESS">Business Account (Meta Graph API Standard)</option>
+                <option value="CREATOR">Creator Account</option>
               </select>
-            </div>
+            </FormField>
 
-            {/* Niche / Category */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300">
-                Niche / Category
-              </label>
+            {/* Niche / Industry */}
+            <FormField label="Niche / Category" id="niche">
               <input
                 type="text"
+                id="niche"
+                name="niche"
                 value={formData.niche}
-                onChange={(e) => setFormData({ ...formData, niche: e.target.value })}
-                placeholder="e.g. Fashion, Tech, Fitness, Food"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-600 focus:outline-none focus:border-pink-500 transition-colors"
+                onChange={handleChange}
+                placeholder="e.g. Fashion, SaaS, Retail"
+                className="enterprise-input w-full"
               />
-            </div>
+            </FormField>
 
-            {/* Client Dropdown */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-slate-400" />
-                <span>Client (Optional)</span>
-              </label>
+            {/* Client Allocation */}
+            <FormField label="Client (Optional)" id="client_id">
               <select
+                id="client_id"
+                name="client_id"
                 value={formData.client_id}
-                onChange={(e) => setFormData({ ...formData, client_id: e.target.value, campaign_id: '' })}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors"
+                onChange={handleChange}
+                className="enterprise-input w-full cursor-pointer"
               >
-                <option value="">No Client Assigned</option>
+                <option value="">Unassigned Client</option>
                 {clients.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
 
-            {/* Campaign Dropdown */}
-            <div className="space-y-1.5">
-              <label className="block text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                <FolderGit2 className="w-3.5 h-3.5 text-slate-400" />
-                <span>Campaign (Optional)</span>
-              </label>
+            {/* Campaign Allocation */}
+            <FormField label="Campaign (Optional)" id="campaign_id">
               <select
+                id="campaign_id"
+                name="campaign_id"
                 value={formData.campaign_id}
-                onChange={(e) => setFormData({ ...formData, campaign_id: e.target.value })}
+                onChange={handleChange}
                 disabled={!formData.client_id || filteredCampaigns.length === 0}
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white focus:outline-none focus:border-pink-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="enterprise-input w-full cursor-pointer disabled:bg-[#F8FAFC] disabled:text-[#94A3B8]"
               >
                 <option value="">
                   {!formData.client_id
                     ? 'Select a client first'
                     : filteredCampaigns.length === 0
-                    ? 'No campaigns for this client'
-                    : 'No Campaign Assigned'}
+                    ? 'No active campaigns'
+                    : 'Unassigned Campaign'}
                 </option>
                 {filteredCampaigns.map((camp) => (
                   <option key={camp.id} value={camp.id}>
@@ -405,123 +346,112 @@ export const RegisterAccountPage = () => {
                   </option>
                 ))}
               </select>
-            </div>
+            </FormField>
           </div>
-        </div>
+        </FormSection>
 
-        {/* Section 2: Connect Instagram */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-xl">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center text-xs font-bold border border-purple-500/20">
-                2
-              </span>
-              <span>Meta Instagram Authorization</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Official Meta Graph API OAuth connection for insights and account verification
-            </p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div
-              onClick={() => setConnectOption('connect_later')}
-              className={`p-4 rounded-xl border cursor-pointer transition-all ${
+        {/* =========================================================================
+            SECTION 2: INSTAGRAM CONNECTION
+        ========================================================================== */}
+        <FormSection
+          title="2. Instagram Connection & Meta Authorization"
+          description="Choose how to connect official Meta Graph API tokens."
+        >
+          <div className="space-y-3">
+            <label
+              className={`p-4 rounded-lg border flex items-start gap-3 cursor-pointer transition-colors ${
                 connectOption === 'connect_later'
-                  ? 'bg-pink-500/10 border-pink-500/40 text-pink-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                  ? 'bg-[#F0FDF4] border-[#166534]'
+                  : 'bg-white border-[#E5E7EB] hover:bg-[#F9FAFB]'
               }`}
             >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider">Save & Connect Later</span>
-                <Clock className="w-4 h-4 text-pink-400" />
-              </div>
-              <p className="text-xs leading-relaxed opacity-80">
-                Register basic account details now. You or your team can trigger the Meta OAuth flow anytime later from your dashboard.
-              </p>
-            </div>
-
-            <div
-              onClick={() => setConnectOption('connect_now')}
-              className={`p-4 rounded-xl border cursor-pointer transition-all ${
-                connectOption === 'connect_now'
-                  ? 'bg-purple-500/10 border-purple-500/40 text-purple-300'
-                  : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
-                  <Zap className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Connect Instagram Now</span>
+              <input
+                type="radio"
+                name="connectOption"
+                value="connect_later"
+                checked={connectOption === 'connect_later'}
+                onChange={() => setConnectOption('connect_later')}
+                className="mt-0.5 text-[#166534] focus:ring-[#166534]"
+              />
+              <div>
+                <span className="text-sm font-semibold text-[#172B24]">
+                  Register profile and connect later
                 </span>
-                <Instagram className="w-4 h-4 text-purple-400" />
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Creates the account entry in the workspace directory. You or another team member can authorize Meta OAuth at any time from the account list.
+                </p>
               </div>
-              <p className="text-xs leading-relaxed opacity-80">
-                Registers the account and immediately opens the official Meta login dialog to connect and verify ownership.
-              </p>
-            </div>
-          </div>
-        </div>
+            </label>
 
-        {/* Section 3: Verification & Submission */}
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-5 shadow-xl">
-          <div className="border-b border-slate-800 pb-4">
-            <h2 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              <span className="w-6 h-6 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center text-xs font-bold border border-emerald-500/20">
-                3
-              </span>
-              <span>Verification Checklist</span>
-            </h2>
-            <p className="text-xs text-slate-400 mt-0.5">Automated validation status</p>
-          </div>
-
-          <div className="space-y-2.5 text-xs">
-            <div className="flex items-center gap-2.5 text-slate-300">
-              <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>
-                Employee Identity attached: <strong className="text-white">{employee?.full_name}</strong> ({employee?.employee_code})
-              </span>
-            </div>
-            <div className="flex items-center gap-2.5 text-slate-300">
-              {duplicateStatus?.isDuplicate === false ? (
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              ) : duplicateStatus?.isDuplicate === true ? (
-                <XCircle className="w-4 h-4 text-rose-400 shrink-0" />
-              ) : (
-                <Clock className="w-4 h-4 text-slate-500 shrink-0" />
-              )}
-              <span>Duplicate check: {duplicateStatus?.message || 'Awaiting username entry'}</span>
-            </div>
-            <div className="flex items-center gap-2.5 text-slate-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
-              <span>Token security: Backend Fernet symmetric encryption enabled</span>
-            </div>
-          </div>
-
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-between">
-            <button
-              type="button"
-              onClick={() => navigate('/dashboard')}
-              className="px-4 py-2.5 text-xs font-semibold text-slate-400 hover:text-white transition-colors"
+            <label
+              className={`p-4 rounded-lg border flex items-start gap-3 cursor-pointer transition-colors ${
+                connectOption === 'connect_now'
+                  ? 'bg-[#F0FDF4] border-[#166534]'
+                  : 'bg-white border-[#E5E7EB] hover:bg-[#F9FAFB]'
+              }`}
             >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              disabled={isSubmitting || duplicateStatus?.isDuplicate}
-              className="flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-pink-500/25 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <span>
-                {isSubmitting
-                  ? 'Saving Account...'
-                  : connectOption === 'connect_now'
-                  ? 'Save & Authorize via Meta'
-                  : 'Register Account'}
-              </span>
-              <ArrowRight className="w-4 h-4" />
-            </button>
+              <input
+                type="radio"
+                name="connectOption"
+                value="connect_now"
+                checked={connectOption === 'connect_now'}
+                onChange={() => setConnectOption('connect_now')}
+                className="mt-0.5 text-[#166534] focus:ring-[#166534]"
+              />
+              <div>
+                <span className="text-sm font-semibold text-[#172B24]">
+                  Authorize Meta OAuth immediately upon creation
+                </span>
+                <p className="text-xs text-[#64748B] mt-0.5">
+                  Redirects directly to Facebook Login / Meta OAuth to exchange long-lived page tokens with AES-128 Fernet server-side encryption.
+                </p>
+              </div>
+            </label>
           </div>
+        </FormSection>
+
+        {/* =========================================================================
+            SECTION 3: VERIFICATION & SUBMISSION STATUS
+        ========================================================================== */}
+        <FormSection
+          title="3. Verification & Governance"
+          description="Confirm employee assignment and workload threshold."
+        >
+          <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-xs space-y-2">
+            <div className="flex justify-between items-center text-[#172B24]">
+              <span className="text-[#64748B]">Assignee Portfolio</span>
+              <span className="font-semibold">{employee?.full_name} ({employee?.employee_code})</span>
+            </div>
+            <div className="flex justify-between items-center text-[#172B24]">
+              <span className="text-[#64748B]">Capacity Compliance</span>
+              <span className="text-[#15803D] font-medium">Within 60-account threshold</span>
+            </div>
+            <div className="flex justify-between items-center text-[#172B24]">
+              <span className="text-[#64748B]">Token Encryption</span>
+              <span className="font-mono text-[11px] text-[#64748B]">AES-128 Fernet At-Rest</span>
+            </div>
+          </div>
+        </FormSection>
+
+        {/* Consistent Action Buttons (Cancel / Submit) */}
+        <div className="pt-2 flex items-center justify-end gap-3 border-t border-[#E5E7EB]">
+          <SecondaryButton
+            type="button"
+            onClick={() => navigate('/accounts')}
+            disabled={isSubmitting}
+          >
+            Cancel
+          </SecondaryButton>
+
+          <PrimaryButton
+            type="submit"
+            loading={isSubmitting}
+            icon={connectOption === 'connect_now' ? Zap : CheckCircle2}
+          >
+            {connectOption === 'connect_now'
+              ? 'Save & Authorize Meta OAuth'
+              : 'Complete Registration'}
+          </PrimaryButton>
         </div>
       </form>
     </div>

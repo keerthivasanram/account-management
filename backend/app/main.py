@@ -7,7 +7,10 @@ from fastapi.responses import JSONResponse
 from app.core.config import settings
 from app.core.database import engine, Base, SessionLocal
 from app.api.v1.router import api_v1_router
-from app.models.models import Employee, Client, Campaign
+from app.models.models import (
+    Employee, Client, Campaign, Department, Project, Task, TaskActivityEvent,
+    Conversation, ConversationMember, Message
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -83,6 +86,98 @@ async def lifespan(app: FastAPI):
                 )
                 db.add_all([camp_1, camp_2])
 
+            # 4. Seed default Departments & Projects if none exist
+            if db.query(Department).count() == 0:
+                dept_mkt = Department(
+                    id=uuid.UUID("44444444-4444-4444-4444-444444444441"),
+                    name="Marketing & Social Growth",
+                    code="MKT",
+                    description="Manages creator activations, campaigns, and Meta channels"
+                )
+                dept_eng = Department(
+                    id=uuid.UUID("44444444-4444-4444-4444-444444444442"),
+                    name="Engineering & Infrastructure",
+                    code="ENG",
+                    description="Core platform infrastructure, integrations, and tools"
+                )
+                dept_hr = Department(
+                    id=uuid.UUID("44444444-4444-4444-4444-444444444443"),
+                    name="People Operations & HR",
+                    code="HR",
+                    description="Workforce management, compliance, and staff allocation"
+                )
+                db.add_all([dept_mkt, dept_eng, dept_hr])
+                db.flush()
+
+                # Link seeded Sarah Jenkins to Marketing
+                if emp:
+                    emp.department_id = dept_mkt.id
+
+                # Seed sample Project
+                sample_proj = Project(
+                    id=uuid.UUID("55555555-5555-5555-5555-555555555551"),
+                    name="Autumn 2026 Social Expansion",
+                    description="Q4 Creator activations and brand account onboarding",
+                    owner_id=admin.id,
+                    department_id=dept_mkt.id,
+                    status="ACTIVE",
+                    priority="HIGH"
+                )
+                db.add(sample_proj)
+                db.flush()
+
+                # Seed initial task
+                sample_task = Task(
+                    id=uuid.UUID("66666666-6666-6666-6666-666666666661"),
+                    project_id=sample_proj.id,
+                    title="Connect 10 Creator Instagram Accounts via OAuth",
+                    description="Verify Business status and complete Meta OAuth authorization for fashion accounts.",
+                    assigned_to=emp.id if emp else admin.id,
+                    created_by=admin.id,
+                    priority="HIGH",
+                    status="TODO"
+                )
+                db.add(sample_task)
+                db.flush()
+
+                # Seed task activity log
+                task_event = TaskActivityEvent(
+                    id=uuid.uuid4(),
+                    task_id=sample_task.id,
+                    actor_id=admin.id,
+                    action="CREATED",
+                    previous_status=None,
+                    new_status="TODO",
+                    remarks="Initial task created during system provisioning."
+                )
+                db.add(task_event)
+
+            # 5. Seed default company communications channels
+            if db.query(Conversation).count() == 0 and admin:
+                announcement_channel = Conversation(
+                    id=uuid.UUID("77777777-7777-7777-7777-777777777771"),
+                    type="ANNOUNCEMENT",
+                    title="Company Announcements & Updates",
+                    created_by=admin.id
+                )
+                db.add(announcement_channel)
+                db.flush()
+
+                # Add members to general announcement channel
+                db.add(ConversationMember(conversation_id=announcement_channel.id, employee_id=admin.id))
+                if emp:
+                    db.add(ConversationMember(conversation_id=announcement_channel.id, employee_id=emp.id))
+
+                # Post welcome broadcast
+                welcome_msg = Message(
+                    id=uuid.uuid4(),
+                    conversation_id=announcement_channel.id,
+                    sender_id=admin.id,
+                    content="Welcome to SocialHub Enterprise OS. All internal operations, tasks, attendance, and social accounts are securely managed in this hub.",
+                    is_redacted=False
+                )
+                db.add(welcome_msg)
+
             db.commit()
         except Exception as e:
             db.rollback()
@@ -111,6 +206,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    import traceback
+    traceback.print_exc()
+    return JSONResponse(
+        status_code=500,
+        content={"detail": f"Server Error: {str(exc) or 'An unexpected error occurred'}"}
+    )
 
 @app.get("/health", tags=["Health"])
 @app.get("/api/health", tags=["Health"])

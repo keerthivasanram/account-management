@@ -1,40 +1,45 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { api } from '../../services/api';
-import StatCard from '../../components/StatCard';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import PageHeader from '../../components/ui/PageHeader';
+import MetricCard from '../../components/ui/MetricCard';
+import DataTable from '../../components/ui/DataTable';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
+import StatusBadge from '../../components/ui/StatusBadge';
+import LoadingState from '../../components/ui/LoadingState';
+import ErrorState from '../../components/ui/ErrorState';
 import {
-  ShieldCheck,
   Instagram,
   Users,
   Briefcase,
-  Clock,
   CheckCircle2,
-  XCircle,
-  AlertTriangle,
+  Clock,
   Layers,
-  ArrowRight,
-  TrendingUp,
-  HardDrive
+  ArrowRight
 } from 'lucide-react';
 
 export const AdminDashboardPage = () => {
+  const navigate = useNavigate();
   const [stats, setStats] = useState(null);
   const [employees, setEmployees] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
     const loadAdminData = async () => {
       setLoading(true);
+      setError(null);
       try {
         const [statsRes, empsRes] = await Promise.all([
           api.admin.getStats(),
           api.admin.listEmployees(),
         ]);
         setStats(statsRes.data);
-        setEmployees(empsRes.data);
+        setEmployees(empsRes.data || []);
       } catch (err) {
         console.error('Failed to load admin stats:', err);
+        setError('Failed to fetch platform metrics.');
       } finally {
         setLoading(false);
       }
@@ -43,158 +48,181 @@ export const AdminDashboardPage = () => {
   }, []);
 
   if (loading) {
-    return <LoadingSpinner text="Loading system metrics..." size="lg" />;
+    return <LoadingState message="Loading administrative metrics..." />;
   }
 
   const targetSystemCapacity = 5000;
-  const systemCapacityPercent = Math.min(
-    100,
-    Math.round(((stats?.total_accounts || 0) / targetSystemCapacity) * 100)
-  );
+  const totalAcc = stats?.total_accounts || 0;
+  const connectedAcc = stats?.connected_accounts || 0;
+  const scalingPercent = Math.min(100, Math.round((totalAcc / targetSystemCapacity) * 100));
+
+  const employeeColumns = [
+    {
+      header: 'Employee Name',
+      accessor: 'full_name',
+      render: (row) => (
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#166534] font-semibold text-xs">
+            {row.full_name?.charAt(0) || 'U'}
+          </div>
+          <span className="font-semibold text-sm text-[#172B24]">{row.full_name}</span>
+        </div>
+      ),
+    },
+    {
+      header: 'Code',
+      accessor: 'employee_code',
+      render: (row) => (
+        <span className="font-mono text-xs text-[#172B24] bg-[#F1F5F9] px-2 py-0.5 rounded border border-[#E2E8F0]">
+          {row.employee_code}
+        </span>
+      ),
+    },
+    {
+      header: 'Workload (Max 60)',
+      accessor: 'assigned_count',
+      render: (row) => {
+        const count = row.assigned_accounts_count || row.accounts_count || 0;
+        const pct = Math.min(100, Math.round((count / 60) * 100));
+        return (
+          <div className="w-36">
+            <div className="flex justify-between text-xs text-[#172B24] mb-1">
+              <span className="font-medium">{count} / 60</span>
+              <span className="text-[#64748B]">{pct}%</span>
+            </div>
+            <div className="w-full bg-[#F1F5F9] h-1.5 rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full ${pct > 90 ? 'bg-[#DC2626]' : 'bg-[#166534]'}`}
+                style={{ width: `${pct}%` }}
+              />
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      header: 'Status',
+      accessor: 'is_active',
+      render: (row) => <StatusBadge status={row.is_active ? 'ACTIVE' : 'SUSPENDED'} />,
+    },
+    {
+      header: 'Action',
+      align: 'right',
+      render: (row) => (
+        <SecondaryButton
+          size="sm"
+          onClick={() => navigate('/admin/employees')}
+        >
+          Inspect
+        </SecondaryButton>
+      ),
+    },
+  ];
 
   return (
-    <div className="space-y-8">
-      {/* Admin Banner */}
-      <div className="bg-gradient-to-r from-slate-900 via-purple-950/40 to-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              System Administrator Portal
-            </span>
-            <span className="text-xs text-slate-400">Company Capacity & Oversight</span>
-          </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-            Platform Infrastructure Overview
-          </h1>
-          <p className="text-sm text-slate-400 max-w-xl">
-            Monitoring {stats?.total_accounts || 0} registered Instagram accounts across {stats?.total_employees || 0} employees. Target platform scale: 5,000 accounts.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            to="/admin/accounts"
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-500 hover:bg-purple-600 text-white font-bold text-xs shadow-lg shadow-purple-500/25 transition-all"
+    <div className="space-y-6">
+      {/* 1. Page Header */}
+      <PageHeader
+        title="Administration Overview"
+        description="Enterprise platform health, 5,000-account scaling capacity, and employee workload governance."
+        breadcrumbs={[
+          { label: 'Overview', to: '/dashboard' },
+          { label: 'Administration' },
+        ]}
+        actions={
+          <PrimaryButton
+            size="sm"
+            onClick={() => navigate('/admin/accounts')}
+            icon={Layers}
           >
-            <Layers className="w-4 h-4" />
-            <span>Manage All Accounts</span>
-          </Link>
-        </div>
+            Manage Accounts
+          </PrimaryButton>
+        }
+      />
+
+      {error && <ErrorState message={error} />}
+
+      {/* 2. Key Platform Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Total Managed Accounts"
+          value={totalAcc}
+          icon={Instagram}
+          subtext={`Target scaling: 5,000 accounts`}
+          trend={`${scalingPercent}% progress`}
+          trendDirection="neutral"
+        />
+        <MetricCard
+          label="Meta OAuth Connected"
+          value={connectedAcc}
+          icon={CheckCircle2}
+          subtext="Valid Graph API token"
+          trend={`${totalAcc > 0 ? Math.round((connectedAcc / totalAcc) * 100) : 0}% connected`}
+          trendDirection="up"
+        />
+        <MetricCard
+          label="Active Staff Members"
+          value={stats?.total_employees || employees.length}
+          icon={Users}
+          subtext="Workload balanced at ~50/staff"
+          trend="Capacity OK"
+          trendDirection="neutral"
+        />
+        <MetricCard
+          label="Client Accounts"
+          value={stats?.total_clients || 0}
+          icon={Briefcase}
+          subtext="Corporate client portfolios"
+          trend="Enterprise"
+          trendDirection="neutral"
+        />
       </div>
 
-      {/* Target Capacity Tracker Card */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-3">
+      {/* 3. 5,000 Fleet Capacity Scaling Card */}
+      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 shadow-xs space-y-3">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-xl bg-pink-500/10 text-pink-400 border border-pink-500/20">
-              <HardDrive className="w-5 h-5" />
-            </div>
-            <div>
-              <h3 className="text-sm font-bold text-white">5,000 Target Accounts Scaling Progress</h3>
-              <p className="text-xs text-slate-400">Total company Instagram portfolio growth</p>
-            </div>
+          <div>
+            <h3 className="text-sm font-semibold text-[#172B24]">
+              5,000 Target Accounts Scaling Progress
+            </h3>
+            <p className="text-xs text-[#64748B]">
+              Overall enterprise account growth across all departments
+            </p>
           </div>
-          <div className="text-right">
-            <span className="text-xl font-black text-white">{stats?.total_accounts || 0}</span>
-            <span className="text-xs text-slate-500"> / 5,000 accounts ({systemCapacityPercent}%)</span>
+          <div className="text-sm font-medium text-[#172B24]">
+            <span className="text-base font-semibold text-[#166534]">{totalAcc}</span> / 5,000 accounts ({scalingPercent}%)
           </div>
         </div>
 
-        <div className="w-full bg-slate-950 h-3 rounded-full overflow-hidden border border-slate-800">
+        <div className="w-full bg-[#F1F5F9] h-2.5 rounded-full overflow-hidden">
           <div
-            className="h-full bg-gradient-to-r from-pink-500 via-purple-500 to-indigo-500 rounded-full transition-all duration-700"
-            style={{ width: `${Math.max(2, systemCapacityPercent)}%` }}
+            className="bg-[#166534] h-full rounded-full transition-all duration-300"
+            style={{ width: `${scalingPercent}%` }}
           />
         </div>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="Total Registered Accounts"
-          value={stats?.total_accounts || 0}
-          icon={Instagram}
-          color="indigo"
-          subtitle="Across all employees"
-        />
-        <StatCard
-          title="Connected Accounts"
-          value={stats?.connected_accounts || 0}
-          icon={CheckCircle2}
-          color="emerald"
-          subtitle="Valid Meta OAuth tokens"
-        />
-        <StatCard
-          title="Pending Accounts"
-          value={stats?.pending_accounts || 0}
-          icon={Clock}
-          color="amber"
-          subtitle="Connection or approval pending"
-        />
-        <StatCard
-          title="Total Employees"
-          value={stats?.total_employees || 0}
-          icon={Users}
-          color="purple"
-          subtitle="Active workforce"
-        />
-      </div>
-
-      {/* Employee Capacity / Allocation Tracker (50-60 accounts per employee target) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+      {/* 4. Employee Workload Table */}
+      <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs overflow-hidden">
+        <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between">
           <div>
-            <h2 className="text-base font-bold text-white tracking-tight">Employee Workload Distribution</h2>
-            <p className="text-xs text-slate-400">Tracking employee allocation towards the target 50–60 accounts per person</p>
+            <h3 className="text-sm font-semibold text-[#172B24]">Employee Capacity &amp; Roster</h3>
+            <p className="text-xs text-[#64748B]">Active workload distribution per employee</p>
           </div>
-          <Link
-            to="/admin/employees"
-            className="text-xs font-semibold text-purple-400 hover:text-purple-300 flex items-center gap-1"
+          <SecondaryButton
+            size="sm"
+            onClick={() => navigate('/admin/employees')}
           >
-            <span>View All Employees</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
+            View All Employees
+          </SecondaryButton>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {employees.slice(0, 6).map((emp) => {
-            const count = emp.assigned_accounts_count || 0;
-            const percent = Math.min(100, Math.round((count / 60) * 100));
-            return (
-              <div
-                key={emp.id}
-                className="p-4 bg-slate-950/70 border border-slate-800 rounded-xl space-y-2.5"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-xs font-bold text-white truncate">{emp.full_name}</h4>
-                    <p className="text-[10px] text-slate-400 font-mono">{emp.employee_code}</p>
-                  </div>
-                  <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                    emp.role === 'admin' ? 'bg-purple-500/20 text-purple-300' : 'bg-slate-800 text-slate-300'
-                  }`}>
-                    {emp.role}
-                  </span>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between text-xs text-slate-400 mb-1">
-                    <span>Load: <strong className="text-slate-200">{count}</strong> / 60 accounts</span>
-                    <span className="font-mono text-purple-400">{percent}%</span>
-                  </div>
-                  <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                    <div
-                      className={`h-full rounded-full transition-all ${
-                        percent >= 80 ? 'bg-emerald-500' : percent >= 40 ? 'bg-pink-500' : 'bg-purple-500'
-                      }`}
-                      style={{ width: `${Math.max(2, percent)}%` }}
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <DataTable
+          columns={employeeColumns}
+          data={employees.slice(0, 8)}
+          emptyTitle="No employees registered"
+          emptyDescription="Add employee profiles to begin account allocations."
+        />
       </div>
     </div>
   );

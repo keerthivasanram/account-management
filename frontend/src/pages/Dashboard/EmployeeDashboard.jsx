@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
-import StatCard from '../../components/StatCard';
-import StatusBadge from '../../components/StatusBadge';
-import LoadingSpinner from '../../components/LoadingSpinner';
+import PageHeader from '../../components/ui/PageHeader';
+import MetricCard from '../../components/ui/MetricCard';
+import DataTable from '../../components/ui/DataTable';
+import StatusBadge from '../../components/ui/StatusBadge';
+import PrimaryButton from '../../components/ui/PrimaryButton';
+import SecondaryButton from '../../components/ui/SecondaryButton';
+import LoadingState from '../../components/ui/LoadingState';
+import ErrorState from '../../components/ui/ErrorState';
 import {
   Instagram,
   UserPlus,
@@ -14,12 +19,16 @@ import {
   XCircle,
   ExternalLink,
   ChevronRight,
-  TrendingUp,
   RefreshCw,
-  Zap
+  Zap,
+  Share2,
+  CheckSquare,
+  Activity,
+  Layers
 } from 'lucide-react';
 
 export const EmployeeDashboard = () => {
+  const navigate = useNavigate();
   const { employee } = useAuth();
   const [stats, setStats] = useState({
     total: 0,
@@ -30,6 +39,8 @@ export const EmployeeDashboard = () => {
     rejected: 0,
   });
   const [recentAccounts, setRecentAccounts] = useState([]);
+  const [recentPosts, setRecentPosts] = useState([]);
+  const [attendanceSummary, setAttendanceSummary] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -39,13 +50,24 @@ export const EmployeeDashboard = () => {
     try {
       const [statsRes, accountsRes] = await Promise.all([
         api.employees.getMyDashboardStats(),
-        api.employees.getMyAccounts({ limit: 8 }),
+        api.employees.getMyAccounts({ limit: 6 }),
       ]);
       setStats(statsRes.data);
-      setRecentAccounts(accountsRes.data);
+      setRecentAccounts(accountsRes.data || []);
+
+      // Fetch optional publishing and attendance in background
+      try {
+        const postsRes = await api.socialPosts.list({ limit: 5 });
+        setRecentPosts(postsRes.data || []);
+      } catch (_) {}
+
+      try {
+        const attRes = await api.attendance.getSummary();
+        setAttendanceSummary(attRes.data);
+      } catch (_) {}
     } catch (err) {
       console.error('Dashboard load failed:', err);
-      setError('Failed to load dashboard metrics. Please check backend connection.');
+      setError('Failed to load operational metrics. Please verify server connection.');
     } finally {
       setLoading(false);
     }
@@ -57,207 +79,315 @@ export const EmployeeDashboard = () => {
 
   const targetAccounts = 60;
   const capacityPercent = Math.min(100, Math.round(((stats.total || 0) / targetAccounts) * 100));
+  const connectedPercent = stats.total > 0 ? Math.round((stats.connected / stats.total) * 100) : 0;
+
+  const accountColumns = [
+    {
+      header: 'Instagram Account',
+      accessor: 'username',
+      render: (row) => (
+        <div className="flex items-center gap-2.5">
+          <div className="w-7 h-7 rounded-md bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center text-[#172B24] font-medium text-xs shrink-0">
+            @
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-1.5">
+              <span className="font-semibold text-sm text-[#172B24]">@{row.username}</span>
+              {row.profile_url && (
+                <a
+                  href={row.profile_url}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-[#94A3B8] hover:text-[#172B24]"
+                  title="Open profile"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              )}
+            </div>
+            <p className="text-xs text-[#64748B] truncate">{row.display_name || 'No display name'}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      header: 'Client & Campaign',
+      accessor: 'client_name',
+      render: (row) => (
+        <div>
+          <p className="text-xs font-medium text-[#172B24]">{row.client_name || '—'}</p>
+          <p className="text-[11px] text-[#64748B]">{row.campaign_name || 'Unassigned'}</p>
+        </div>
+      ),
+    },
+    {
+      header: 'Connection Status',
+      accessor: 'status',
+      render: (row) => <StatusBadge status={row.status} />,
+    },
+    {
+      header: 'Registered',
+      accessor: 'created_at',
+      render: (row) => (
+        <span className="text-xs text-[#64748B]">
+          {new Date(row.created_at).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+          })}
+        </span>
+      ),
+    },
+    {
+      header: 'Actions',
+      align: 'right',
+      render: (row) => (
+        <div className="flex items-center justify-end gap-1.5">
+          {row.status === 'pending_connection' ? (
+            <SecondaryButton
+              size="sm"
+              onClick={() => navigate(`/accounts?connect=${row.id}`)}
+              icon={Zap}
+              className="text-[#166534] border-[#BBF7D0] hover:bg-[#F0FDF4]"
+            >
+              Connect
+            </SecondaryButton>
+          ) : (
+            <SecondaryButton
+              size="sm"
+              onClick={() => navigate('/accounts')}
+            >
+              View
+            </SecondaryButton>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   if (loading && recentAccounts.length === 0) {
-    return <LoadingSpinner text="Loading dashboard metrics..." size="lg" />;
+    return <LoadingState message="Loading operational dashboard..." />;
   }
 
   return (
-    <div className="space-y-8">
-      {/* Welcome Banner */}
-      <div className="relative bg-gradient-to-r from-slate-900 via-purple-950/40 to-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between gap-6 shadow-xl">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold px-2 py-0.5 rounded bg-pink-500/10 text-pink-400 border border-pink-500/20">
-              Employee Workspace
+    <div className="space-y-6">
+      {/* 1. Page Header */}
+      <PageHeader
+        title="Overview"
+        description="Operational metrics, fleet connection health, and account activity."
+        actions={
+          <div className="flex items-center gap-2.5">
+            <span className="hidden sm:inline-flex items-center px-2.5 py-1 rounded-md bg-white border border-[#E5E7EB] text-xs text-[#64748B]">
+              <Clock className="w-3.5 h-3.5 mr-1.5 text-[#94A3B8]" />
+              {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
             </span>
-            <span className="text-xs text-slate-400 font-mono">{employee?.employee_code}</span>
+            <SecondaryButton
+              size="sm"
+              onClick={fetchDashboardData}
+              icon={RefreshCw}
+              title="Refresh metrics"
+            />
+            <PrimaryButton
+              size="sm"
+              onClick={() => navigate('/register')}
+              icon={UserPlus}
+            >
+              Register Account
+            </PrimaryButton>
           </div>
-          <h1 className="text-2xl md:text-3xl font-extrabold text-white tracking-tight">
-            Welcome back, {employee?.full_name?.split(' ')[0]}!
-          </h1>
-          <p className="text-sm text-slate-400 max-w-xl">
-            Track and manage your assigned Instagram accounts. Register new pages or connect official Meta OAuth authorizations.
-          </p>
-        </div>
+        }
+      />
 
-        <div className="flex items-center gap-3 shrink-0">
-          <button
-            onClick={fetchDashboardData}
-            title="Refresh Data"
-            className="p-3 bg-slate-800/80 hover:bg-slate-700 text-slate-300 rounded-xl border border-slate-700/60 transition-colors"
-          >
-            <RefreshCw className="w-4 h-4" />
-          </button>
-          <Link
-            to="/register"
-            className="flex items-center gap-2 px-5 py-3 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-bold text-sm shadow-lg shadow-pink-500/25 transition-all"
-          >
-            <UserPlus className="w-4 h-4" />
-            <span>+ Register Account</span>
-          </Link>
-        </div>
-      </div>
+      {error && <ErrorState message={error} onRetry={fetchDashboardData} />}
 
-      {error && (
-        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-sm flex items-center justify-between">
-          <span>{error}</span>
-          <button onClick={fetchDashboardData} className="underline text-xs">Retry</button>
-        </div>
-      )}
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-        <StatCard
-          title="Total Accounts"
+      {/* 2. Four Compact Summary Metric Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard
+          label="Total Accounts"
           value={stats.total}
           icon={Instagram}
-          color="indigo"
-          subtitle={`Capacity: ${stats.total}/${targetAccounts} target`}
-          progress={capacityPercent}
-          progressLabel="Account Load"
+          subtext={`Target workload: ${stats.total}/${targetAccounts} accounts`}
+          trend={`${capacityPercent}% capacity`}
+          trendDirection="neutral"
         />
-        <StatCard
-          title="Connected"
+        <MetricCard
+          label="Connected Accounts"
           value={stats.connected}
           icon={CheckCircle2}
-          color="emerald"
-          subtitle="Meta OAuth active"
+          subtext="Meta OAuth token verified"
+          trend={`${connectedPercent}% connected`}
+          trendDirection={connectedPercent >= 80 ? 'up' : 'neutral'}
         />
-        <StatCard
-          title="Pending Connect"
+        <MetricCard
+          label="Pending Connections"
           value={stats.pending_connection}
           icon={Clock}
-          color="amber"
-          subtitle="Awaiting Meta link"
+          subtext="Requires Facebook/Meta auth"
+          trend={stats.pending_approval > 0 ? `${stats.pending_approval} under review` : 'None pending review'}
+          trendDirection={stats.pending_connection > 0 ? 'down' : 'neutral'}
         />
-        <StatCard
-          title="Awaiting Approval"
-          value={stats.pending_approval}
+        <MetricCard
+          label="Publishing Failures"
+          value={stats.rejected || 0}
           icon={AlertTriangle}
-          color="purple"
-          subtitle="Under admin review"
-        />
-        <StatCard
-          title="Rejected"
-          value={stats.rejected}
-          icon={XCircle}
-          color="rose"
-          subtitle="Needs review/remarks"
+          subtext="Requires credential refresh"
+          trend={stats.rejected > 0 ? 'Action needed' : 'All systems clear'}
+          trendDirection={stats.rejected > 0 ? 'down' : 'up'}
         />
       </div>
 
-      {/* Recent Accounts Table Section */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-        <div className="px-6 py-5 border-b border-slate-800 flex items-center justify-between">
-          <div>
-            <h2 className="text-base font-bold text-white tracking-tight">Recent Accounts</h2>
-            <p className="text-xs text-slate-400">Recently registered or assigned Instagram accounts</p>
+      {/* 3. Operational Detail Panels (2x2 Grid) */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left Column: Recent Account Registrations (Takes 2 cols) */}
+        <div className="lg:col-span-2 space-y-4">
+          <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
+              <div>
+                <h3 className="text-sm font-semibold text-[#172B24]">Recent Account Registrations</h3>
+                <p className="text-xs text-[#64748B]">Recently added or allocated Instagram profiles</p>
+              </div>
+              <Link
+                to="/accounts"
+                className="text-xs font-medium text-[#166534] hover:underline inline-flex items-center gap-1"
+              >
+                <span>View all ({stats.total})</span>
+                <ChevronRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <DataTable
+              columns={accountColumns}
+              data={recentAccounts}
+              emptyTitle="No Instagram accounts registered"
+              emptyDescription="You currently have no registered accounts in this workspace. Register your first account to begin operations."
+              emptyAction={
+                <PrimaryButton size="sm" onClick={() => navigate('/register')} icon={UserPlus}>
+                  Register Account
+                </PrimaryButton>
+              }
+            />
           </div>
-          <Link
-            to="/accounts"
-            className="text-xs font-semibold text-pink-400 hover:text-pink-300 flex items-center gap-1 transition-colors"
-          >
-            <span>View All ({stats.total})</span>
-            <ChevronRight className="w-3.5 h-3.5" />
-          </Link>
         </div>
 
-        {recentAccounts.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
-            <Instagram className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-            <h3 className="text-sm font-semibold text-slate-200">No registered accounts yet</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
-              Get started by registering your first assigned Instagram page using the short registration form.
+        {/* Right Column: Connection Status & Workload Overview (Takes 1 col) */}
+        <div className="space-y-6">
+          {/* Account Connection Status */}
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 shadow-xs">
+            <h3 className="text-sm font-semibold text-[#172B24] mb-1">
+              Account Connection Status
+            </h3>
+            <p className="text-xs text-[#64748B] mb-4">
+              Real-time authorization status of your fleet
             </p>
-            <Link
-              to="/register"
-              className="inline-flex items-center gap-1.5 mt-4 px-4 py-2 bg-pink-500/10 text-pink-400 border border-pink-500/20 rounded-xl text-xs font-bold hover:bg-pink-500/20 transition-colors"
-            >
-              <UserPlus className="w-3.5 h-3.5" />
-              <span>Register Account</span>
-            </Link>
+
+            <div className="space-y-3 text-xs">
+              <div>
+                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#15803D]" />
+                    Connected &amp; Active
+                  </span>
+                  <span>{stats.connected} accounts</span>
+                </div>
+                <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#15803D] h-full rounded-full transition-all duration-300"
+                    style={{ width: `${connectedPercent}%` }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#D97706]" />
+                    Pending Connection
+                  </span>
+                  <span>{stats.pending_connection} accounts</span>
+                </div>
+                <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#D97706] h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${stats.total > 0 ? (stats.pending_connection / stats.total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                  <span className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
+                    Pending Approval / Rejected
+                  </span>
+                  <span>{(stats.pending_approval || 0) + (stats.rejected || 0)} accounts</span>
+                </div>
+                <div className="w-full bg-[#F1F5F9] h-2 rounded-full overflow-hidden">
+                  <div
+                    className="bg-[#DC2626] h-full rounded-full transition-all duration-300"
+                    style={{
+                      width: `${stats.total > 0 ? (((stats.pending_approval || 0) + (stats.rejected || 0)) / stats.total) * 100 : 0}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-[#E5E7EB] flex items-center justify-between text-xs text-[#64748B]">
+              <span>Overall Fleet Health</span>
+              <span className="font-semibold text-[#15803D]">
+                {connectedPercent >= 80 ? 'Optimal (80%+)' : 'Attention Recommended'}
+              </span>
+            </div>
           </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950/60 text-[11px] font-semibold text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                <tr>
-                  <th className="px-6 py-3.5">Instagram Account</th>
-                  <th className="px-6 py-3.5">Client & Campaign</th>
-                  <th className="px-6 py-3.5">Status</th>
-                  <th className="px-6 py-3.5">Registered</th>
-                  <th className="px-6 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-800/60">
-                {recentAccounts.map((acc) => (
-                  <tr key={acc.id} className="hover:bg-slate-800/30 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-pink-500/20 to-purple-500/20 border border-pink-500/20 flex items-center justify-center text-pink-400 font-bold shrink-0">
-                          @
-                        </div>
-                        <div>
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-white">@{acc.username}</span>
-                            <a
-                              href={acc.profile_url}
-                              target="_blank"
-                              rel="noreferrer"
-                              className="text-slate-500 hover:text-slate-300"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </a>
-                          </div>
-                          <p className="text-xs text-slate-400">{acc.display_name}</p>
-                        </div>
-                      </div>
-                    </td>
 
-                    <td className="px-6 py-4">
-                      <div>
-                        <p className="font-medium text-slate-200">{acc.client_name || '—'}</p>
-                        <p className="text-xs text-slate-500">{acc.campaign_name || 'No campaign'}</p>
-                      </div>
-                    </td>
+          {/* Employee Workload Summary */}
+          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 shadow-xs">
+            <h3 className="text-sm font-semibold text-[#172B24] mb-1">
+              Employee Workload Summary
+            </h3>
+            <p className="text-xs text-[#64748B] mb-4">
+              Capacity allocation and attendance status
+            </p>
 
-                    <td className="px-6 py-4">
-                      <StatusBadge status={acc.status} />
-                    </td>
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-[#F8FAFC] border border-[#E5E7EB] rounded-md">
+                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                  <span>Assigned Account Load</span>
+                  <span>{stats.total} / {targetAccounts} max</span>
+                </div>
+                <div className="w-full bg-[#E2E8F0] h-2 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${
+                      capacityPercent > 90 ? 'bg-[#DC2626]' : 'bg-[#166534]'
+                    }`}
+                    style={{ width: `${capacityPercent}%` }}
+                  />
+                </div>
+                <p className="text-[11px] text-[#64748B] mt-1.5">
+                  {capacityPercent >= 100
+                    ? 'Maximum capacity reached. Reallocate new accounts.'
+                    : `${targetAccounts - stats.total} account slots remaining.`}
+                </p>
+              </div>
 
-                    <td className="px-6 py-4 text-xs text-slate-400">
-                      {new Date(acc.created_at).toLocaleDateString('en-US', {
-                        month: 'short',
-                        day: 'numeric',
-                        year: 'numeric'
-                      })}
-                    </td>
+              <div className="flex items-center justify-between pt-1 text-xs">
+                <span className="text-[#64748B]">Shift Status</span>
+                <span className="font-medium text-[#15803D] bg-[#F0FDF4] px-2 py-0.5 rounded border border-[#BBF7D0]">
+                  {attendanceSummary?.today_status || 'Active Shift'}
+                </span>
+              </div>
 
-                    <td className="px-6 py-4 text-right">
-                      {acc.status === 'pending_connection' ? (
-                        <Link
-                          to={`/accounts?connect=${acc.id}`}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-pink-500/10 hover:bg-pink-500/20 text-pink-400 border border-pink-500/20 text-xs font-semibold transition-colors"
-                        >
-                          <Zap className="w-3 h-3" />
-                          <span>Connect</span>
-                        </Link>
-                      ) : (
-                        <Link
-                          to="/accounts"
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition-colors"
-                        >
-                          <span>Manage</span>
-                        </Link>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[#64748B]">Employee Code</span>
+                <span className="font-mono text-[#172B24] font-medium">
+                  {employee?.employee_code || 'EMP-XXXX'}
+                </span>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );
