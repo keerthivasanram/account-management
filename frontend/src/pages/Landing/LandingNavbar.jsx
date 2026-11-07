@@ -18,19 +18,13 @@ export const LandingNavbar = () => {
               KLARVES
             </span>
             <span className="text-[10px] text-slate-500 font-medium tracking-wider uppercase">
-              Operations Platform
+              Corporate
             </span>
           </div>
         </div>
 
-        {/* Center Pill: Live Telemetry Status */}
-        <div className="hidden md:flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-[11px] font-medium text-[#166534]">
-          <span className="h-1.5 w-1.5 rounded-full bg-emerald-600 animate-ping" />
-          <span>Meta Graph API v20.0 • All Systems Operational</span>
-        </div>
-
         {/* Employee Login Button */}
-        <div className="flex items-center gap-3">
+        <div>
           <Link
             to="/login"
             className="inline-flex items-center justify-center text-xs sm:text-sm font-semibold text-[#172B24] hover:text-[#166534] bg-white hover:bg-slate-50 border border-slate-300 hover:border-[#166534]/50 px-4 py-2 rounded-lg transition-colors duration-150 shadow-xs"

@@ -12,14 +12,5 @@ export default defineConfig({
         changeOrigin: true,
       }
     }
-  },
-  build: {
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          three: ['three'],
-        }
-      }
-    }
   }
 })
