@@ -1,17 +1,15 @@
 import React from 'react';
 
 export const LandingFooter = () => {
-  const currentYear = new Date().getFullYear();
-
   return (
-    <footer className="w-full bg-white/80 backdrop-blur-sm border-t border-slate-200/90 mt-auto relative z-10">
-      <div className="max-w-[1280px] mx-auto px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-medium">
+    <footer className="w-full bg-white border-t border-[#E5E7EB] relative z-20">
+      <div className="max-w-[1280px] mx-auto px-6 sm:px-8 py-7 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-normal">
         <div>
-          <span>KLARVES Corporate Pvt. Ltd &copy; {currentYear}.</span>
+          <span>KLARVES Corporate Pvt. Ltd. &copy; 2026.</span>
         </div>
-        <div className="flex items-center gap-2 text-center sm:text-right text-slate-400">
+        <div className="flex items-center gap-2 text-center sm:text-right">
           <span>Authorized employees only.</span>
-          <span>•</span>
+          <span className="text-slate-300">&middot;</span>
           <span>Secure company access.</span>
         </div>
       </div>

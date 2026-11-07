@@ -4,30 +4,25 @@ import logoMark from '../../logo-mark.png';
 
 export const LandingNavbar = () => {
   return (
-    <header className="w-full bg-white/95 backdrop-blur-md border-b border-slate-200/90 sticky top-0 z-40">
-      <div className="max-w-[1280px] mx-auto px-6 sm:px-8 h-18 flex items-center justify-between">
-        {/* Company Identity */}
-        <div className="flex items-center gap-3">
+    <header className="w-full bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+      <div className="max-w-[1280px] mx-auto px-6 sm:px-8 h-[88px] flex items-center justify-between">
+        {/* Company Identity: Original Cyan Double-Chevron Logo + Name */}
+        <div className="flex items-center gap-3.5">
           <img
             src={logoMark}
             alt="KLARVES Emblem"
-            className="h-8 w-8 object-contain"
+            className="h-9 w-9 object-contain"
           />
-          <div className="flex flex-col">
-            <span className="font-semibold text-base sm:text-lg text-[#172B24] tracking-tight leading-tight">
-              KLARVES
-            </span>
-            <span className="text-[10px] text-slate-500 font-medium tracking-wider uppercase">
-              Corporate
-            </span>
-          </div>
+          <span className="font-semibold text-lg text-[#172B24] tracking-tight">
+            KLARVES Corporate
+          </span>
         </div>
 
-        {/* Employee Login Button */}
+        {/* Employee Login Button aligned to far right */}
         <div>
           <Link
             to="/login"
-            className="inline-flex items-center justify-center text-xs sm:text-sm font-semibold text-[#172B24] hover:text-[#166534] bg-white hover:bg-slate-50 border border-slate-300 hover:border-[#166534]/50 px-4 py-2 rounded-lg transition-colors duration-150 shadow-xs"
+            className="inline-flex items-center justify-center text-sm font-medium text-[#172B24] hover:text-[#166534] bg-white hover:bg-slate-50 border border-slate-300 hover:border-[#166534]/60 px-4 py-2 rounded-md transition-colors duration-150 shadow-2xs"
           >
             Employee Login
           </Link>
