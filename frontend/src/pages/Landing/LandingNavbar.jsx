@@ -4,7 +4,7 @@ import logoMark from '../../logo-mark.png';
 
 export const LandingNavbar = () => {
   return (
-    <header className="w-full bg-white border-b border-[#E5E7EB] sticky top-0 z-40">
+    <header className="w-full bg-white border-b border-slate-100/90 z-40 m-0 p-0">
       <div className="max-w-[1280px] mx-auto px-6 sm:px-8 h-[88px] flex items-center justify-between">
         {/* Company Identity: Original Cyan Double-Chevron Logo + Brand Name */}
         <div className="flex items-center gap-3">

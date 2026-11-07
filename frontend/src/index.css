@@ -7,10 +7,12 @@
 @layer base {
   html, body {
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    background-color: #F7F8FA;
+    background-color: #FFFFFF;
     color: #172B24;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
   }
 
   code, pre {

@@ -2,7 +2,7 @@ import React from 'react';
 
 export const LandingFooter = () => {
   return (
-    <footer className="w-full bg-white border-t border-[#E5E7EB] relative z-20">
+    <footer className="w-full bg-white border-t border-slate-100/90 relative z-20 m-0">
       <div className="max-w-[1280px] mx-auto px-6 sm:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-slate-500 font-normal">
         <div>
           <span>KLARVES Corporate Pvt. Ltd. &copy; 2026.</span>
