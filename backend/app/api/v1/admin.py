@@ -30,6 +30,15 @@ def get_admin_dashboard_stats(
     admin_service = AdminService(db)
     return admin_service.get_stats()
 
+@router.get("/overview")
+def get_admin_overview(
+    admin: Employee = Depends(require_permission(Perm.ADMIN_PORTAL)),
+    db: Session = Depends(get_db)
+):
+    """Admin dashboard snapshot: people, today's attendance, approvals queue, accounts, workload, Meta token health."""
+    from app.services.admin_overview_service import AdminOverviewService
+    return AdminOverviewService(db).build()
+
 @router.get("/employees", response_model=List[EmployeeResponse])
 def list_all_employees(
     status_filter: Optional[str] = Query(None, alias="status", description="INVITED | ACTIVE | ON_LEAVE | OFFBOARDED"),

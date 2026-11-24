@@ -153,3 +153,31 @@ def test_department_head_counts_as_manager(client, org, db_session):
 
 def test_employees_cannot_open_manager_workspace(client, org):
     assert client.get("/api/v1/manager/overview", headers=login(client, "employee1@company.internal")).status_code == 403
+
+
+# ----------------------------------------------------------------- Phase 4: admin overview
+
+def test_admin_overview_aggregates(client, org, db_session):
+    from datetime import datetime, timedelta, timezone
+    from app.models.models import AccountConnection, InstagramAccount
+    give_account(db_session, org["employee"], 2)
+    acc = db_session.query(InstagramAccount).first()
+    db_session.add(AccountConnection(instagram_account_id=acc.id, connection_status="CONNECTED",
+                                     token_expires_at=datetime.now(timezone.utc) + timedelta(days=3)))
+    db_session.commit()
+    client.post("/api/v1/attendance/check-in", headers=login(client, "employee1@company.internal"))
+
+    ov = client.get("/api/v1/admin/overview", headers=login(client, "admin@company.internal"))
+    assert ov.status_code == 200, ov.text
+    ov = ov.json()
+    assert ov["people"]["active"] >= 4
+    assert ov["attendance_today"]["checked_in"] == 1
+    assert len(ov["attendance_today"]["trend"]) == 14
+    assert ov["accounts"]["total"] == 2 and ov["accounts"]["unassigned"] == 0
+    assert ov["meta_tokens"]["expiring_count"] == 1
+    assert ov["workload"]["under_count"] >= 1
+    assert sum(b["count"] for b in ov["workload"]["distribution"]) == ov["workload"]["staff"]
+
+
+def test_admin_overview_forbidden_for_manager(client, org):
+    assert client.get("/api/v1/admin/overview", headers=login(client, "manager1@company.internal")).status_code == 403
