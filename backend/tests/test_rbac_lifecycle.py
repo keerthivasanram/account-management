@@ -35,8 +35,9 @@ def login(client, email):
 
 def give_account(db, owner, n=1):
     for i in range(n):
-        acc = InstagramAccount(id=uuid.uuid4(), username=f"acct{i}_{owner.employee_code}",
-                               username_normalized=f"acct{i}_{owner.employee_code}".lower(),
+        handle = f"acct{i}_{owner.employee_code}".replace("-", "_")
+        acc = InstagramAccount(id=uuid.uuid4(), username=handle,
+                               username_normalized=handle.lower(),
                                profile_url="https://instagram.com/x", display_name="X",
                                account_created_date=date(2024, 1, 1), registered_by=owner.id)
         db.add(acc)

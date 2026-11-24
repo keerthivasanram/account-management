@@ -306,6 +306,8 @@ class SecurityIncident(Base):
     key_combination = Column(String(100), nullable=True)
     ip_address = Column(String(100), nullable=True)
     status = Column(String(50), nullable=False, default="OPEN")  # OPEN, RESOLVED, FALSE_POSITIVE
+    # Server-side alerts: rule, summary and the affected records (never copied content)
+    details = Column(JSONType, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     actor = relationship("Employee")

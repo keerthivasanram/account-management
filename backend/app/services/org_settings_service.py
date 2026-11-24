@@ -22,6 +22,8 @@ DEFAULTS: Dict[str, Any] = {
     "require_mfa": False,
     "session_ttl_minutes": 480,
     "token_expiry_warning_days": 7,
+    "alert_reassignments_per_hour": 10,
+    "alert_copies_per_10_minutes": 30,
 }
 
 DESCRIPTIONS: Dict[str, str] = {
@@ -32,6 +34,8 @@ DESCRIPTIONS: Dict[str, str] = {
     "require_mfa": "When on, Supabase sessions must be MFA-verified (aal2) or sign-in must use the email code step.",
     "session_ttl_minutes": "Lifetime of backend-issued sessions before re-login is required.",
     "token_expiry_warning_days": "Warn this many days before a Meta access token expires.",
+    "alert_reassignments_per_hour": "Alert founders when one person reassigns more Instagram accounts than this within an hour.",
+    "alert_copies_per_10_minutes": "Alert when one employee copies more protected fields than this within 10 minutes.",
 }
 
 
@@ -76,6 +80,8 @@ VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "require_mfa": _bool,
     "session_ttl_minutes": _int_range(15, 60 * 24 * 7),
     "token_expiry_warning_days": _int_range(1, 60),
+    "alert_reassignments_per_hour": _int_range(1, 10000),
+    "alert_copies_per_10_minutes": _int_range(1, 10000),
 }
 
 

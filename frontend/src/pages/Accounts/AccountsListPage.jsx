@@ -12,6 +12,7 @@ import SecondaryButton from '../../components/ui/SecondaryButton';
 import Modal from '../../components/Modal';
 import ConfirmationDialog from '../../components/ui/ConfirmationDialog';
 import ErrorState from '../../components/ui/ErrorState';
+import Protected from '../../components/ui/Protected';
 import {
   Instagram,
   UserPlus,
@@ -276,7 +277,7 @@ export const AccountsListPage = () => {
       accessor: 'username',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-[#172B24]">@{row.username}</span>
+          <Protected type="instagram_account" id={row.id} field="username" className="font-semibold text-[#172B24]">@{row.username}</Protected>
           {row.profile_url && (
             <a
               href={row.profile_url}
@@ -616,7 +617,7 @@ export const AccountsListPage = () => {
             <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg flex items-center justify-between">
               <div>
                 <h4 className="text-base font-semibold text-[#172B24]">
-                  @{selectedAccount.username}
+                  <Protected type="instagram_account" id={selectedAccount.id} field="username">@{selectedAccount.username}</Protected>
                 </h4>
                 <p className="text-xs text-[#64748B]">{selectedAccount.display_name || 'No display name'}</p>
                 {selectedAccount.profile_url && (

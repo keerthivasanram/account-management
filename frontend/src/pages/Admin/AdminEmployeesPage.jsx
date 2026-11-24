@@ -13,6 +13,7 @@ import FormField from '../../components/ui/FormField';
 import Modal from '../../components/Modal';
 import ConfirmationDialog from '../../components/ui/ConfirmationDialog';
 import ErrorState from '../../components/ui/ErrorState';
+import Protected from '../../components/ui/Protected';
 import { Users, UserPlus, Upload, Download, UserCheck, Mail, LogOut, UserX } from 'lucide-react';
 
 const errText = (err, fallback) => err?.response?.data?.detail || fallback;
@@ -373,6 +374,8 @@ export const AdminEmployeesPage = () => {
           <div className="space-y-5">
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
               {[
+                ['Email', <Protected type="employee" id={selected.id} field="email">{selected.email}</Protected>],
+                ['Phone', selected.phone_number ? <Protected type="employee" id={selected.id} field="phone_number">{selected.phone_number}</Protected> : '—'],
                 ['Employee ID', selected.employee_code],
                 ['Role', selected.role_label],
                 ['Status', selected.status],

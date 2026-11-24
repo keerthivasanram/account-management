@@ -6,6 +6,7 @@ from app.core.database import get_db
 from app.models.models import Employee
 from app.schemas.employee import EmployeeResponse, EmployeeUpdate, EmployeeInvite, OffboardRequest, ImportResult
 from app.services.employee_service import EmployeeService, CSV_COLUMNS
+from app.services.alert_service import AlertService
 from app.repositories.audit_repo import AuditRepository
 from app.schemas.account import AccountResponse
 from app.schemas.client import ClientCreate, ClientResponse
@@ -85,9 +86,13 @@ def export_employees(
     db: Session = Depends(get_db)
 ):
     """Downloads the employee directory as CSV."""
-    AuditRepository(db).log(action="employees_exported", entity_type="employee", actor_id=admin.id)
+    content = EmployeeService(db).export_csv()
+    rows = max(len(content.splitlines()) - 1, 0)
+    AuditRepository(db).log(action="employees_exported", entity_type="employee", actor_id=admin.id,
+                            metadata={"rows": rows})
+    AlertService(db).on_employee_export(admin, rows)
     return Response(
-        content=EmployeeService(db).export_csv(),
+        content=content,
         media_type="text/csv",
         headers={"Content-Disposition": 'attachment; filename="employees.csv"'},
     )
@@ -239,8 +244,9 @@ def assign_account_to_employee(
     db: Session = Depends(get_db)
 ):
     """Assigns or reassigns an Instagram account to a specific employee."""
-    admin_service = AdminService(db)
-    return admin_service.assign_account(account_id, req, admin)
+    result = AdminService(db).assign_account(account_id, req, admin)
+    AlertService(db).on_account_reassigned(admin)
+    return result
 
 # Clients & Campaigns
 @router.post("/clients", response_model=ClientResponse, status_code=status.HTTP_201_CREATED)

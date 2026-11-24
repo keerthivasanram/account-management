@@ -166,6 +166,7 @@ export const api = {
   // Enterprise Security & Anti-Leak Shield
   security: {
     reportIncident: (data) => apiClient.post('/security/incidents', data),
+    reportCopy: (data) => apiClient.post('/security/copy-events', data),
     listIncidents: () => apiClient.get('/security/incidents'),
     updateIncidentStatus: (id, status) => apiClient.patch(`/security/incidents/${id}/status`, { status }),
     getSummary: () => apiClient.get('/security/summary'),
