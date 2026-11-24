@@ -9,6 +9,20 @@
 
 ---
 
+## 0. People & Management Platform (Phases 0–6, Nov 2026)
+
+| Phase | Delivered |
+|---|---|
+| 0. Hardening | Forged-token / self-chosen-role paths closed; signed session JWTs; MFA rate-limited; insecure production config refuses to start; migration 004 for tables that only existed via `create_all` |
+| 1. Roles | `super_admin` > `admin` > `manager` > `employee`, permission-based route guards ([PERMISSION_MATRIX.md](PERMISSION_MATRIX.md)) |
+| 2. Lifecycle | Invite, CSV import/export, edit role/department/manager, offboarding with handover, reactivation, force logout, self-service profile |
+| 3. Managers | `/manager` team roster (attendance, tasks, workload), one approvals inbox, balance-checked leave routed to the employee's manager |
+| 4. Admin dashboard | `/admin` real KPIs: headcount, check-in rate & 14-day trend, approval queue, workload vs targets, Meta tokens expiring |
+| 5. Super admin | `/super-admin`: admins & roles, enforced company policy (targets, leave, MFA, session length), system health, audit search, sign-everyone-out |
+| 6. Ops | Daily Meta token-health job, CI (SQLite + Postgres + migration drift + frontend build), migration 006 fixing OAuth state overflow on Postgres, [OPERATIONS.md](OPERATIONS.md) |
+
+Tests: 91 backend tests, passing on both SQLite and PostgreSQL.
+
 ## 1. Executive Summary of Changes
 
 ### A. Minimal Corporate Landing Page (Employee Portal)

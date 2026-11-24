@@ -21,7 +21,7 @@ from app.services.org_settings_service import OrgSettingsService
 PRIVILEGED_ACTIONS = (
     "employee_profile_updated", "employee_invited", "employee_offboarded", "employee_reactivated",
     "employee_sessions_revoked", "employees_imported", "employees_exported", "org_settings_updated",
-    "super_admin_bootstrapped", "all_sessions_revoked", "employee_identity_linked",
+    "super_admin_bootstrapped", "all_sessions_revoked",
 )
 
 

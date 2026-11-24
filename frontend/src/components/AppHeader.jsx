@@ -80,7 +80,7 @@ export const AppHeader = ({ title = 'Overview' }) => {
 
   // Derive simple breadcrumb
   const pathParts = location.pathname.split('/').filter(Boolean);
-  const breadcrumbSection = pathParts[0] === 'admin' ? 'Administration' : 'Main';
+  const breadcrumbSection = { admin: 'Administration', manager: 'My Team', 'super-admin': 'Super Admin', profile: 'Account' }[pathParts[0]] || 'Main';
 
   return (
     <>

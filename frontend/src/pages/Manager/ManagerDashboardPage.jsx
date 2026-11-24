@@ -19,6 +19,7 @@ const TODAY_LABEL = {
   CHECKED_OUT: { text: 'Checked out', status: 'COMPLETED' },
   ON_LEAVE: { text: 'On leave', status: 'ON_LEAVE' },
   NOT_CHECKED_IN: { text: 'Not checked in', status: 'PENDING' },
+  NOT_STARTED: { text: 'Not started', status: 'INFO' },
 };
 
 const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : '—');

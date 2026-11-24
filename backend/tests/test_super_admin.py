@@ -76,7 +76,7 @@ def test_health(client, org):
     assert r.status_code == 200
     body = r.json()
     assert body["database"]["ok"] is True
-    assert body["database"]["migration_head"] == "005_rbac_lifecycle_org_settings"
+    assert body["database"]["migration_head"] == "006_widen_oauth_state_token"
 
 
 def test_revoke_all_sessions_spares_caller(client, org):

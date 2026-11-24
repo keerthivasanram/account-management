@@ -42,6 +42,9 @@ export const AppLayout = () => {
   else if (path.startsWith('/admin/clients')) title = 'Clients & Campaigns';
   else if (path.startsWith('/admin/audit-logs')) title = 'Activity Logs';
   else if (path.startsWith('/admin')) title = 'Administrator Overview';
+  else if (path.startsWith('/manager')) title = 'My Team';
+  else if (path.startsWith('/super-admin')) title = 'Super Admin Control Center';
+  else if (path.startsWith('/profile')) title = 'My Profile';
 
   return (
     <SecurityShield>

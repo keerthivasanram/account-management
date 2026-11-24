@@ -15,7 +15,7 @@ class Department(Base):
     name = Column(String(150), unique=True, nullable=False, index=True)
     code = Column(String(50), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    head_employee_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
+    head_employee_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True, name="fk_departments_head_employee_id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     head = relationship("Employee", foreign_keys=[head_employee_id], post_update=True)
@@ -198,7 +198,7 @@ class OAuthState(Base):
     __tablename__ = "oauth_states"
 
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    state_token = Column(String(255), unique=True, nullable=False, index=True)
+    state_token = Column(String(1024), unique=True, nullable=False, index=True)  # signed state is ~300 chars
     employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
     account_id = Column(GUID, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)

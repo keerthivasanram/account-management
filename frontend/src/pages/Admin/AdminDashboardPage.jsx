@@ -88,7 +88,7 @@ export const AdminDashboardPage = () => {
           subtext={`${approvals.accounts} accounts · ${approvals.leave} leave · ${approvals.tasks} tasks`} />
         <MetricCard label="Instagram accounts" value={accounts.total.toLocaleString()} icon={Instagram}
           subtext={`${accounts.unassigned} unassigned`} />
-        <MetricCard label="Meta tokens expiring" value={tokens.expiring_count} icon={KeyRound}
+        <MetricCard label="Token expiries" value={tokens.expiring_count} icon={KeyRound}
           subtext={`within ${tokens.warning_days} days · ${tokens.expired_count} already expired`} />
       </div>
 

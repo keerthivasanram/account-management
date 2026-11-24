@@ -59,7 +59,10 @@ class ManagerService:
         members = []
         for e in team:
             assigned = counts.get(e.id, (0, 0))[0]
-            today_status = "ON_LEAVE" if e.id in on_leave else attendance.get(e.id, "NOT_CHECKED_IN")
+            if e.status == "INVITED":
+                today_status = "NOT_STARTED"
+            else:
+                today_status = "ON_LEAVE" if e.id in on_leave else attendance.get(e.id, "NOT_CHECKED_IN")
             members.append({
                 "id": str(e.id), "full_name": e.full_name, "employee_code": e.employee_code,
                 "job_title": e.job_title, "role": e.role, "role_label": ROLE_LABELS.get(e.role, e.role),
@@ -67,7 +70,8 @@ class ManagerService:
                 "reports_directly": e.manager_id == manager.id,
                 "today": today_status,
                 "open_tasks": open_tasks[e.id], "overdue_tasks": overdue[e.id],
-                "assigned_accounts": assigned, "workload": workload_flag(e.role, assigned, lo, hi),
+                "assigned_accounts": assigned,
+                "workload": "N/A" if e.status != "ACTIVE" else workload_flag(e.role, assigned, lo, hi),
             })
 
         approvals = self.approvals(manager)
