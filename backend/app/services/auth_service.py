@@ -204,9 +204,24 @@ def get_current_employee(
         )
 
     auth_service = AuthService(db)
-    claims = auth_service.decode_token(credentials.credentials)
+    token = credentials.credentials
+    claims = auth_service.decode_token(token)
+    if not token.startswith("dev-token-"):
+        _enforce_mfa_policy(db, claims)
     employee = auth_service.get_or_create_employee_profile(claims)
     return employee
+
+def _enforce_mfa_policy(db: Session, claims: Dict[str, Any]) -> None:
+    """When org policy requires MFA: Supabase sessions need aal2, app sessions must come from the email-code step."""
+    from app.services.org_settings_service import OrgSettingsService
+    if not OrgSettingsService(db).get("require_mfa"):
+        return
+    verified = claims.get("amr") == "mfa_email" if claims.get("_app_token") else claims.get("aal") == "aal2"
+    if not verified:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Multi-factor authentication is required. Please sign in with your verification code.",
+        )
 
 def require_admin(
     current_employee: Employee = Depends(get_current_employee)

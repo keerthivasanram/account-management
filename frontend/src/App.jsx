@@ -25,6 +25,7 @@ import AdminSecurityPage from './pages/Admin/AdminSecurityPage';
 import OAuthCallbackPage from './pages/OAuthCallback/OAuthCallbackPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import ManagerDashboardPage from './pages/Manager/ManagerDashboardPage';
+import SuperAdminConsolePage from './pages/SuperAdmin/SuperAdminConsolePage';
 import RequirePermission from './layouts/RequirePermission';
 
 function App() {
@@ -53,6 +54,11 @@ function App() {
             {/* Manager workspace (managers, admins, super admins) */}
             <Route element={<RequirePermission perm="manager:portal" />}>
               <Route path="/manager" element={<ManagerDashboardPage />} />
+            </Route>
+
+            {/* Super admin console */}
+            <Route element={<RequirePermission perm="settings:manage" />}>
+              <Route path="/super-admin" element={<SuperAdminConsolePage />} />
             </Route>
 
             {/* Protected Admin Portal */}

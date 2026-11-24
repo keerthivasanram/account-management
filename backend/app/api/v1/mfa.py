@@ -77,7 +77,7 @@ def verify_mfa_code(
             ip_address=client_ip
         )
 
-    token = issue_session(db, employee)
+    token = issue_session(db, employee, amr="mfa_email")
 
     return MFAVerifyResponse(
         access_token=token,

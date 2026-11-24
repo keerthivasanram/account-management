@@ -76,6 +76,7 @@ export const AppSidebar = () => {
     { to: '/super-admin?tab=admins', label: 'Admins & Roles', icon: Users },
     { to: '/super-admin?tab=settings', label: 'Company Policy', icon: Settings2 },
     { to: '/super-admin?tab=health', label: 'System Health', icon: Activity },
+    { to: '/super-admin?tab=audit', label: 'Audit Search', icon: History },
   ];
 
   // Administration navigation items (admin only)
@@ -96,7 +97,9 @@ export const AppSidebar = () => {
 
   const renderNavLink = (item) => {
     const Icon = item.icon;
-    const isActive = location.pathname === item.to || (item.to.includes('?') && location.pathname + location.search === item.to);
+    const isActive = item.to.includes('?')
+      ? location.pathname + location.search === item.to
+      : location.pathname === item.to && !location.search.includes('tab=');
 
     return (
       <NavLink

@@ -15,7 +15,7 @@ from fastapi import HTTPException, status
 from app.core.config import settings
 
 
-def create_access_token(employee) -> str:
+def create_access_token(employee, ttl_minutes: int = None, amr: str = "pwd") -> str:
     secret = settings.jwt_signing_secret
     if not secret:
         raise HTTPException(
@@ -29,7 +29,8 @@ def create_access_token(employee) -> str:
         "eid": str(employee.id),
         "tv": int(getattr(employee, "token_version", 0) or 0),
         "iat": int(now.timestamp()),
-        "exp": int((now + timedelta(minutes=settings.ACCESS_TOKEN_TTL_MINUTES)).timestamp()),
+        "exp": int((now + timedelta(minutes=ttl_minutes or settings.ACCESS_TOKEN_TTL_MINUTES)).timestamp()),
+        "amr": amr,  # how the session was authenticated: "mfa_email" | "dev"
         "jti": uuid.uuid4().hex,
     }
     return jwt.encode(payload, secret, algorithm="HS256")
@@ -62,8 +63,9 @@ def decode_app_token(token: str) -> Dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session token.")
 
 
-def issue_session(db, employee) -> str:
-    """Mint a session token and record the login time."""
+def issue_session(db, employee, amr: str) -> str:
+    """Mint a session token (lifetime from org policy) and record the login time."""
+    from app.services.org_settings_service import OrgSettingsService
     employee.last_login_at = datetime.now(timezone.utc)
     db.commit()
-    return create_access_token(employee)
+    return create_access_token(employee, OrgSettingsService(db).get("session_ttl_minutes"), amr)

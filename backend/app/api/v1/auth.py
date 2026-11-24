@@ -51,7 +51,7 @@ def dev_login(req: DevLoginRequest, db: Session = Depends(get_db)):
     }
     employee = auth_service.get_or_create_employee_profile(claims)
     return {
-        "access_token": issue_session(db, employee),
+        "access_token": issue_session(db, employee, amr="dev"),
         "token_type": "bearer",
         "employee": {
             "id": employee.id,
