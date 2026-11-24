@@ -4,7 +4,6 @@ from uuid import UUID
 
 class DevLoginRequest(BaseModel):
     email: EmailStr
-    role: Optional[str] = "employee"
     full_name: Optional[str] = "Test Employee"
 
 class UserProfileResponse(BaseModel):

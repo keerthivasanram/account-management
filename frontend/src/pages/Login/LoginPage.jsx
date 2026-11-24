@@ -18,6 +18,29 @@ import {
   ArrowLeft
 } from 'lucide-react';
 
+// Dev shortcuts are compiled out of production builds unless explicitly enabled.
+const DEV_LOGIN_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV_LOGIN === 'true';
+
+const DEV_ACCOUNTS = [
+  { email: 'superadmin@company.internal', name: 'Founder (Super Admin)', label: 'Super Admin' },
+  { email: 'admin@company.internal', name: 'System Administrator', label: 'Admin (HR / Ops)' },
+  { email: 'manager1@company.internal', name: 'Priya Nair', label: 'Manager (Marketing)' },
+  { email: 'employee1@company.internal', name: 'Sarah Jenkins', label: 'Employee' },
+];
+
+const getDeviceFingerprint = () => {
+  try {
+    let fp = localStorage.getItem('device_fp');
+    if (!fp) {
+      fp = (crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random().toString(16).slice(2));
+      localStorage.setItem('device_fp', fp);
+    }
+    return fp;
+  } catch {
+    return 'unknown-device';
+  }
+};
+
 export const LoginPage = () => {
   const navigate = useNavigate();
   const { loginWithSupabase, loginWithDev, loginWithMfa, isSupabaseConfigured, error: authError } = useAuth();
@@ -40,19 +63,18 @@ export const LoginPage = () => {
     setIsLoading(true);
     try {
       if (!isSupabaseConfigured) {
-        const cleanEmail = email.trim().toLowerCase();
-        if (cleanEmail.includes('admin')) {
-          await loginWithDev(cleanEmail, 'admin', 'System Administrator');
-          navigate('/dashboard');
-          return;
-        } else if (cleanEmail) {
-          const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
-          const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-          await loginWithDev(cleanEmail, 'employee', formattedName);
-          navigate('/dashboard');
-          return;
+        if (!DEV_LOGIN_ENABLED) {
+          throw new Error('Sign-in is not configured. Please contact your administrator.');
         }
-        throw new Error('Please enter a work email or select an Instant Development Login.');
+        const cleanEmail = email.trim().toLowerCase();
+        if (!cleanEmail) {
+          throw new Error('Please enter a work email or select an Instant Development Login.');
+        }
+        const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
+        const formattedName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
+        await loginWithDev(cleanEmail, formattedName);
+        navigate('/dashboard');
+        return;
       }
       await loginWithSupabase(email, password);
       navigate('/dashboard');
@@ -84,7 +106,7 @@ export const LoginPage = () => {
     try {
       const res = await api.mfa.requestChallenge(email.trim());
       setMfaChallengeId(res.data.challenge_id);
-      setMfaHint(res.data.sample_code_for_demo);
+      setMfaHint(res.data.hint);
       setMfaMessage(res.data.message);
     } catch (err) {
       setError(err.response?.data?.detail || 'Failed to dispatch MFA security challenge.');
@@ -102,7 +124,15 @@ export const LoginPage = () => {
     setError(null);
     setIsLoading(true);
     try {
-      await loginWithMfa(email.trim(), mfaCode.trim(), mfaChallengeId);
+      await loginWithMfa({
+        email: email.trim(),
+        code: mfaCode.trim(),
+        challenge_id: mfaChallengeId,
+        device_fingerprint: getDeviceFingerprint(),
+        device_name: 'Browser Workstation',
+        browser: navigator.userAgent.slice(0, 100),
+        os: navigator.platform || 'unknown'
+      });
       navigate('/dashboard');
     } catch (err) {
       setError(err.response?.data?.detail || 'Invalid or expired 2FA code.');
@@ -111,11 +141,11 @@ export const LoginPage = () => {
     }
   };
 
-  const handleDevLogin = async (devEmail, role, name) => {
+  const handleDevLogin = async (devEmail, name) => {
     setError(null);
     setIsLoading(true);
     try {
-      await loginWithDev(devEmail, role, name);
+      await loginWithDev(devEmail, name);
       navigate('/dashboard');
     } catch (err) {
       setError('Development authentication failed. Verify backend API is running.');
@@ -295,40 +325,34 @@ export const LoginPage = () => {
             </div>
           )}
 
-          {/* Instant Development Login Shortcuts */}
-          <div className="pt-4 border-t border-[#E5E7EB] space-y-2.5">
-            <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider block text-center">
-              Instant Development Roles
-            </span>
+          {/* Instant Development Login Shortcuts (dev builds only) */}
+          {DEV_LOGIN_ENABLED && (
+            <div className="pt-4 border-t border-[#E5E7EB] space-y-2.5">
+              <span className="text-[11px] font-semibold text-[#64748B] uppercase tracking-wider block text-center">
+                Instant Development Roles
+              </span>
 
-            <div className="grid grid-cols-1 gap-2">
-              <button
-                type="button"
-                onClick={() => handleDevLogin('admin@company.internal', 'admin', 'System Administrator')}
-                disabled={isLoading}
-                className="w-full flex items-center justify-between p-2.5 rounded-md bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E5E7EB] text-xs text-[#172B24] transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-[#166534]" />
-                  <span className="font-semibold">Administrator (Global Access)</span>
-                </div>
-                <span className="text-[10px] font-mono text-[#64748B]">admin@company.internal</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => handleDevLogin('employee1@company.internal', 'employee', 'Elena Rossi')}
-                disabled={isLoading}
-                className="w-full flex items-center justify-between p-2.5 rounded-md bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E5E7EB] text-xs text-[#172B24] transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2">
-                  <UserCheck className="w-4 h-4 text-[#2563EB]" />
-                  <span className="font-semibold">Elena Rossi (Staff Portfolio 1)</span>
-                </div>
-                <span className="text-[10px] font-mono text-[#64748B]">employee1@company.internal</span>
-              </button>
+              <div className="grid grid-cols-1 gap-2">
+                {DEV_ACCOUNTS.map((acc) => (
+                  <button
+                    key={acc.email}
+                    type="button"
+                    onClick={() => handleDevLogin(acc.email, acc.name)}
+                    disabled={isLoading}
+                    className="w-full flex items-center justify-between p-2.5 rounded-md bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E5E7EB] text-xs text-[#172B24] transition-colors cursor-pointer"
+                  >
+                    <div className="flex items-center gap-2">
+                      {acc.label === 'Employee'
+                        ? <UserCheck className="w-4 h-4 text-[#2563EB]" />
+                        : <ShieldCheck className="w-4 h-4 text-[#166534]" />}
+                      <span className="font-semibold">{acc.label}</span>
+                    </div>
+                    <span className="text-[10px] font-mono text-[#64748B]">{acc.email}</span>
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         <p className="text-center text-xs text-[#64748B]">

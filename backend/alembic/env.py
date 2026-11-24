@@ -39,6 +39,19 @@ def run_migrations_offline() -> None:
     with context.begin_transaction():
         context.run_migrations()
 
+def _ensure_wide_version_table(connection) -> None:
+    """Our revision ids are descriptive (> 32 chars); Alembic's default column is VARCHAR(32)."""
+    if connection.dialect.name != "postgresql":
+        return
+    from sqlalchemy import text
+    connection.execute(text(
+        "CREATE TABLE IF NOT EXISTS alembic_version ("
+        "version_num VARCHAR(64) NOT NULL, "
+        "CONSTRAINT alembic_version_pkc PRIMARY KEY (version_num))"
+    ))
+    connection.execute(text("ALTER TABLE alembic_version ALTER COLUMN version_num TYPE VARCHAR(64)"))
+    connection.commit()
+
 def run_migrations_online() -> None:
     configuration = config.get_section(config.config_ini_section)
     configuration["sqlalchemy.url"] = get_url()
@@ -49,6 +62,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
+        _ensure_wide_version_table(connection)
         context.configure(
             connection=connection, target_metadata=target_metadata
         )

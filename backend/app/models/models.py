@@ -33,6 +33,10 @@ class Employee(Base):
     role = Column(String(50), nullable=False, default="employee")  # 'employee' or 'admin'
     is_active = Column(Boolean, nullable=False, default=True)
     department_id = Column(GUID, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    phone_number = Column(String(50), nullable=True)
+    job_title = Column(String(100), nullable=True)
+    bio = Column(Text, nullable=True)
+    emergency_contact = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
@@ -388,6 +392,7 @@ class LoginVerificationCode(Base):
     code = Column(String(20), nullable=False)
     purpose = Column(String(50), nullable=False, default="LOGIN_2FA")  # LOGIN_2FA, DEVICE_VERIFY
     is_used = Column(Boolean, nullable=False, default=False)
+    failed_attempts = Column(Integer, nullable=False, default=0, server_default="0")
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 

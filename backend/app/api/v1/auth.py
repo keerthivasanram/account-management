@@ -1,9 +1,12 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
 from app.models.models import Employee
 from app.schemas.auth import UserProfileResponse, DevLoginRequest
 from app.services.auth_service import get_current_employee, AuthService
+from app.security.tokens import create_access_token
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -17,21 +20,23 @@ def get_current_user_profile(
 @router.post("/dev-login")
 def dev_login(req: DevLoginRequest, db: Session = Depends(get_db)):
     """
-    Development endpoint for quick employee/admin authentication without live Supabase credentials.
-    Returns a test Bearer token that can be passed in Authorization headers.
+    Development-only shortcut login (disabled unless ENVIRONMENT=development and DEV_AUTH_BYPASS=true).
+    The role is always the one stored in the database; it can never be chosen by the caller.
+    Unknown emails are provisioned as regular employees.
     """
+    if not settings.dev_auth_enabled:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Not Found")
+
     auth_service = AuthService(db)
+    email = req.email.lower().strip()
     claims = {
-        "sub": f"00000000-0000-0000-0000-{abs(hash(req.email)) % 900000000000 + 100000000000}",
-        "email": req.email,
-        "role": req.role or "employee",
+        "sub": str(uuid.uuid5(uuid.NAMESPACE_URL, f"dev-login:{email}")),
+        "email": email,
         "full_name": req.full_name or "Test User",
-        "app_metadata": {"role": req.role or "employee"}
     }
     employee = auth_service.get_or_create_employee_profile(claims)
-    token = f"dev-token-{req.role}-{employee.employee_code}"
     return {
-        "access_token": token,
+        "access_token": create_access_token(employee),
         "token_type": "bearer",
         "employee": {
             "id": employee.id,

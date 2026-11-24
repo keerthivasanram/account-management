@@ -13,6 +13,7 @@ from app.repositories.project_repo import ProjectRepository
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.notification_repo import NotificationRepository
 from app.repositories.audit_repo import AuditRepository
+from app.core.permissions import is_admin, can_review_task
 
 class TaskService:
     def __init__(self, db: Session):
@@ -182,7 +183,7 @@ class TaskService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
         # Employee can only submit their own assigned task
-        if employee.role != "admin" and task.assigned_to != employee.id:
+        if not is_admin(employee) and task.assigned_to != employee.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only submit tasks assigned to you.")
 
         updated = self.update_task_status(
@@ -205,14 +206,21 @@ class TaskService:
 
         return updated
 
+    def _ensure_can_review(self, task: Task, reviewer: Employee) -> None:
+        """Only an authorised reviewer may approve / request changes, never the assignee."""
+        if task.assigned_to == reviewer.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Separation of duties required: you cannot review your own task.")
+        if not can_review_task(reviewer, task):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorised to review this task.")
+        if task.status != "IN_REVIEW":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Only tasks in review can be reviewed (current status: {task.status}).")
+
     def approve_task(self, task_id: uuid.UUID, req: TaskApprovalRequest, manager: Employee) -> TaskResponse:
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-        # Separation of duties: Cannot self-approve own restricted task unless admin
-        if manager.role != "admin" and task.assigned_to == manager.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Separation of duties required: you cannot approve your own task.")
+        self._ensure_can_review(task, manager)
 
         updated = self.update_task_status(
             task_id=task_id,
@@ -237,6 +245,8 @@ class TaskService:
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+        self._ensure_can_review(task, manager)
 
         updated = self.update_task_status(
             task_id=task_id,
