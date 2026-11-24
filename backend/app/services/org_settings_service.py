@@ -22,7 +22,6 @@ DEFAULTS: Dict[str, Any] = {
     "require_mfa": False,
     "session_ttl_minutes": 480,
     "token_expiry_warning_days": 7,
-    "work_day_start": "09:30",
 }
 
 DESCRIPTIONS: Dict[str, str] = {
@@ -30,10 +29,9 @@ DESCRIPTIONS: Dict[str, str] = {
     "account_target_min": "Lower bound of Instagram accounts per employee before they are flagged as under-allocated.",
     "account_target_max": "Upper bound of Instagram accounts per employee before they are flagged as overloaded.",
     "leave_allowance_days": "Yearly leave allowance per leave type.",
-    "require_mfa": "When on, password-only sign-in is refused; employees must complete the email code step.",
+    "require_mfa": "When on, Supabase sessions must be MFA-verified (aal2) or sign-in must use the email code step.",
     "session_ttl_minutes": "Lifetime of backend-issued sessions before re-login is required.",
     "token_expiry_warning_days": "Warn this many days before a Meta access token expires.",
-    "work_day_start": "Check-ins after this local time (HH:MM) are marked LATE.",
 }
 
 
@@ -59,15 +57,6 @@ def _str(maxlen: int):
     return v
 
 
-def _hhmm(x):
-    if not isinstance(x, str) or len(x) != 5 or x[2] != ":":
-        raise ValueError("must be HH:MM")
-    h, m = x.split(":")
-    if not (h.isdigit() and m.isdigit() and 0 <= int(h) < 24 and 0 <= int(m) < 60):
-        raise ValueError("must be HH:MM")
-    return x
-
-
 def _leave(x):
     if not isinstance(x, dict):
         raise ValueError("must be an object of leave type -> days")
@@ -87,7 +76,6 @@ VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "require_mfa": _bool,
     "session_ttl_minutes": _int_range(15, 60 * 24 * 7),
     "token_expiry_warning_days": _int_range(1, 60),
-    "work_day_start": _hhmm,
 }
 
 

@@ -25,6 +25,7 @@ export const AttendancePage = () => {
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -44,14 +45,16 @@ export const AttendancePage = () => {
     try {
       setLoading(true);
       setError(null);
-      const [sumRes, histRes, leavesRes] = await Promise.all([
+      const [sumRes, histRes, leavesRes, balRes] = await Promise.all([
         api.attendance.getSummary(),
         api.attendance.getHistory(),
-        api.attendance.listLeaves(),
+        api.attendance.listLeaves({ scope: 'mine' }),
+        api.attendance.getLeaveBalance().catch(() => ({ data: null })),
       ]);
       setSummary(sumRes.data);
       setHistory(histRes.data || []);
       setLeaves(leavesRes.data || []);
+      setBalance(balRes.data);
     } catch (err) {
       console.error('Failed to load attendance:', err);
       setError('Failed to fetch attendance data.');
@@ -90,6 +93,17 @@ export const AttendancePage = () => {
     }
   };
 
+  const handleCancelLeave = async (row) => {
+    if (!window.confirm(`Cancel your ${row.leave_type.toLowerCase()} leave (${row.start_date} to ${row.end_date})?`)) return;
+    try {
+      await api.attendance.cancelLeave(row.id);
+      setFeedback({ type: 'success', text: 'Leave request cancelled.' });
+      fetchData();
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Could not cancel leave.' });
+    }
+  };
+
   const handleRequestLeave = async (e) => {
     e.preventDefault();
     if (!leaveForm.start_date || !leaveForm.end_date || !leaveForm.reason.trim()) {
@@ -105,7 +119,8 @@ export const AttendancePage = () => {
       setLeaveForm({ leave_type: 'CASUAL', start_date: '', end_date: '', reason: '' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to request leave.');
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Failed to request leave.' });
+      setIsLeaveModalOpen(false);
     } finally {
       setActionLoading(false);
     }
@@ -190,9 +205,30 @@ export const AttendancePage = () => {
     {
       header: 'Status',
       accessor: 'status',
-      render: (row) => <StatusBadge status={row.status} />,
+      render: (row) => (
+        <div>
+          <StatusBadge status={row.status} />
+          {row.reviewer_name && (
+            <p className="text-[11px] text-[#64748B] mt-1">
+              by {row.reviewer_name}{row.review_remarks ? ` · ${row.review_remarks}` : ''}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: '',
+      align: 'right',
+      render: (row) => {
+        const cancellable = row.status === 'PENDING' || (row.status === 'APPROVED' && row.start_date > new Date().toISOString().slice(0, 10));
+        return cancellable ? (
+          <SecondaryButton size="sm" onClick={() => handleCancelLeave(row)}>Cancel</SecondaryButton>
+        ) : null;
+      },
     },
   ];
+
+  const annual = balance?.balances?.find((b) => b.leave_type === 'ANNUAL');
 
   return (
     <div className="space-y-6">
@@ -267,19 +303,15 @@ export const AttendancePage = () => {
         />
         <MetricCard
           label="Total Hours This Month"
-          value={`${summary?.total_hours_this_month || 0} hrs`}
+          value={`${summary?.current_month_total_hours ?? 0} hrs`}
           icon={Calendar}
-          subtext="Target: 160 hrs"
-          trend="On Track"
-          trendDirection="up"
+          subtext={`${summary?.current_month_present_days ?? 0} day(s) logged`}
         />
         <MetricCard
-          label="Remaining Leave Balance"
-          value={`${summary?.remaining_leaves || 14} days`}
+          label="Annual Leave Remaining"
+          value={annual ? `${annual.remaining} days` : '—'}
           icon={CheckCircle2}
-          subtext="Annual paid leave quota"
-          trend="Available"
-          trendDirection="neutral"
+          subtext={annual ? `${annual.used} used · ${annual.pending} pending of ${annual.allowance}` : 'Balance unavailable'}
         />
       </div>
 

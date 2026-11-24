@@ -24,6 +24,8 @@ import AdminAuditLogsPage from './pages/Admin/AdminAuditLogsPage';
 import AdminSecurityPage from './pages/Admin/AdminSecurityPage';
 import OAuthCallbackPage from './pages/OAuthCallback/OAuthCallbackPage';
 import ProfilePage from './pages/Profile/ProfilePage';
+import ManagerDashboardPage from './pages/Manager/ManagerDashboardPage';
+import RequirePermission from './layouts/RequirePermission';
 
 function App() {
   return (
@@ -47,6 +49,11 @@ function App() {
             <Route path="/register" element={<RegisterAccountPage />} />
             <Route path="/accounts" element={<AccountsListPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+
+            {/* Manager workspace (managers, admins, super admins) */}
+            <Route element={<RequirePermission perm="manager:portal" />}>
+              <Route path="/manager" element={<ManagerDashboardPage />} />
+            </Route>
 
             {/* Protected Admin Portal */}
             <Route element={<AdminRoute />}>

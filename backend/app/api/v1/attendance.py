@@ -1,13 +1,14 @@
 from app.core.permissions import is_admin
 import uuid
-from typing import List
+from typing import List, Optional
 from datetime import date
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Employee
 from app.services.auth_service import get_current_employee, require_admin
 from app.repositories.attendance_repo import AttendanceRepository
+from app.services.leave_service import LeaveService
 from app.schemas.attendance import (
     AttendanceRecordResponse, AttendanceSummary,
     LeaveRequestCreate, LeaveReviewRequest, LeaveRequestResponse
@@ -122,96 +123,70 @@ def get_attendance_history(
     ]
 
 # Leave Management
+def _leave_response(l) -> LeaveRequestResponse:
+    return LeaveRequestResponse(
+        id=l.id,
+        employee_id=l.employee_id,
+        employee_name=l.employee.full_name if l.employee else "Unknown",
+        employee_code=l.employee.employee_code if l.employee else "N/A",
+        leave_type=l.leave_type,
+        start_date=l.start_date,
+        end_date=l.end_date,
+        reason=l.reason,
+        status=l.status,
+        reviewed_by=l.reviewed_by,
+        reviewer_name=l.reviewer.full_name if l.reviewer else None,
+        review_remarks=l.review_remarks,
+        created_at=l.created_at,
+        reviewed_at=l.reviewed_at
+    )
+
 @router.post("/leaves", response_model=LeaveRequestResponse, status_code=status.HTTP_201_CREATED)
 def request_leave(
     payload: LeaveRequestCreate,
     current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Submits a formal leave request for management approval."""
-    if payload.end_date < payload.start_date:
-        raise HTTPException(status_code=400, detail="End date cannot be earlier than start date.")
-
-    repo = AttendanceRepository(db)
-    leave = repo.create_leave_request(
-        employee_id=current_employee.id,
-        leave_type=payload.leave_type.upper(),
-        start_date=payload.start_date,
-        end_date=payload.end_date,
-        reason=payload.reason
-    )
-    return LeaveRequestResponse(
-        id=leave.id,
-        employee_id=leave.employee_id,
-        employee_name=current_employee.full_name,
-        employee_code=current_employee.employee_code,
-        leave_type=leave.leave_type,
-        start_date=leave.start_date,
-        end_date=leave.end_date,
-        reason=leave.reason,
-        status=leave.status,
-        created_at=leave.created_at
-    )
+    """Submits a leave request. Checked against balance and overlaps; routed to the employee's manager."""
+    leave = LeaveService(db).request(current_employee, payload.leave_type, payload.start_date,
+                                     payload.end_date, payload.reason)
+    return _leave_response(leave)
 
 @router.get("/leaves", response_model=List[LeaveRequestResponse])
 def list_leaves(
+    scope: str = Query("auto", pattern="^(auto|mine|team|team_and_mine|all)$"),
+    status_filter: Optional[str] = Query(None, alias="status"),
     current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Lists leave requests (Admins see all organization requests; Employees see their own)."""
-    repo = AttendanceRepository(db)
-    emp_filter = None if is_admin(current_employee) else current_employee.id
-    leaves = repo.list_leave_requests(employee_id=emp_filter)
-    
-    return [
-        LeaveRequestResponse(
-            id=l.id,
-            employee_id=l.employee_id,
-            employee_name=l.employee.full_name if l.employee else "Unknown",
-            employee_code=l.employee.employee_code if l.employee else "N/A",
-            leave_type=l.leave_type,
-            start_date=l.start_date,
-            end_date=l.end_date,
-            reason=l.reason,
-            status=l.status,
-            reviewed_by=l.reviewed_by,
-            reviewer_name=l.reviewer.full_name if l.reviewer else None,
-            review_remarks=l.review_remarks,
-            created_at=l.created_at,
-            reviewed_at=l.reviewed_at
-        )
-        for l in leaves
-    ]
+    """Leave requests visible to the caller: own, team (managers) or company-wide (admins)."""
+    return [_leave_response(l) for l in LeaveService(db).list(current_employee, scope, status_filter)]
+
+@router.get("/leave-balance")
+def get_leave_balance(
+    year: Optional[int] = Query(None, ge=2000, le=2100),
+    current_employee: Employee = Depends(get_current_employee),
+    db: Session = Depends(get_db)
+):
+    """Allowance, used, pending and remaining days per leave type for the calendar year."""
+    return LeaveService(db).balance(current_employee, year)
 
 @router.patch("/leaves/{leave_id}/review", response_model=LeaveRequestResponse)
 def review_leave(
     leave_id: uuid.UUID,
     payload: LeaveReviewRequest,
-    admin: Employee = Depends(require_admin),
+    current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Manager/Admin action: approves or rejects an employee's leave request."""
-    if payload.status not in ["APPROVED", "REJECTED"]:
-        raise HTTPException(status_code=400, detail="Status must be either APPROVED or REJECTED.")
+    """Approve / reject. Managers may review their team; admins anyone; never your own."""
+    leave = LeaveService(db).review(leave_id, current_employee, payload.status, payload.remarks)
+    return _leave_response(leave)
 
-    repo = AttendanceRepository(db)
-    leave = repo.review_leave_request(leave_id, admin.id, payload.status, payload.remarks)
-    if not leave:
-        raise HTTPException(status_code=404, detail="Leave request not found.")
-
-    return LeaveRequestResponse(
-        id=leave.id,
-        employee_id=leave.employee_id,
-        employee_name=leave.employee.full_name if leave.employee else "Unknown",
-        employee_code=leave.employee.employee_code if leave.employee else "N/A",
-        leave_type=leave.leave_type,
-        start_date=leave.start_date,
-        end_date=leave.end_date,
-        reason=leave.reason,
-        status=leave.status,
-        reviewed_by=leave.reviewed_by,
-        reviewer_name=admin.full_name,
-        review_remarks=leave.review_remarks,
-        created_at=leave.created_at,
-        reviewed_at=leave.reviewed_at
-    )
+@router.post("/leaves/{leave_id}/cancel", response_model=LeaveRequestResponse)
+def cancel_leave(
+    leave_id: uuid.UUID,
+    current_employee: Employee = Depends(get_current_employee),
+    db: Session = Depends(get_db)
+):
+    """Employee withdraws a pending (or future approved) request."""
+    return _leave_response(LeaveService(db).cancel(leave_id, current_employee))

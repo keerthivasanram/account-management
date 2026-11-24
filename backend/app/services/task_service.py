@@ -100,6 +100,8 @@ class TaskService:
         assignee = self.emp_repo.get_by_id(data.assigned_to)
         if not assignee:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assigned employee does not exist")
+        if not assignee.is_active:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot assign work to an inactive employee")
 
         task = Task(
             id=uuid.uuid4(),

@@ -136,6 +136,7 @@ export const api = {
     listLeaves: (params) => apiClient.get('/attendance/leaves', { params }),
     getLeaveBalance: () => apiClient.get('/attendance/leave-balance'),
     reviewLeave: (id, data) => apiClient.patch(`/attendance/leaves/${id}/review`, data),
+    cancelLeave: (id) => apiClient.post(`/attendance/leaves/${id}/cancel`),
   },
 
   // Secure Document Management
