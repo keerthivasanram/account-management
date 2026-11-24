@@ -67,6 +67,14 @@ class Settings(BaseSettings):
     # Optional comma-separated allowlist of email domains for auto-provisioning, e.g. "klarves.com"
     ALLOWED_EMAIL_DOMAINS: str = ""
 
+    # Outbound email (login codes, invitations). Any SMTP provider.
+    SMTP_HOST: str = ""
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM: str = ""
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # MFA brute-force protection
     MFA_MAX_ATTEMPTS: int = 5
 

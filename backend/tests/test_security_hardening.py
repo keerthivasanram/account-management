@@ -108,11 +108,23 @@ def test_mfa_challenge_burns_after_max_attempts(client, seed_data, db_session):
     assert r.status_code == 400
 
 
-def test_mfa_challenge_does_not_enumerate_or_leak_code_in_production(client, seed_data, production_mode):
+def test_mfa_challenge_unavailable_without_smtp_in_production(client, seed_data, production_mode):
+    known = client.post("/api/v1/auth/mfa/challenge", json={"email": "employee1@company.internal"})
+    unknown = client.post("/api/v1/auth/mfa/challenge", json={"email": "nobody@company.internal"})
+    assert known.status_code == unknown.status_code == 503
+    assert known.json() == unknown.json()
+
+
+def test_mfa_challenge_does_not_enumerate_or_leak_code_in_production(client, seed_data, production_mode, monkeypatch):
+    sent = []
+    monkeypatch.setattr(settings, "SMTP_HOST", "smtp.test")
+    monkeypatch.setattr(settings, "SMTP_FROM", "noreply@company.internal")
+    monkeypatch.setattr("app.api.v1.mfa.send_login_code", lambda to, name, code: sent.append((to, code)) or True)
     known = client.post("/api/v1/auth/mfa/challenge", json={"email": "employee1@company.internal"}).json()
     unknown = client.post("/api/v1/auth/mfa/challenge", json={"email": "nobody@company.internal"}).json()
     assert known["hint"] is None and unknown["hint"] is None
     assert known["message"] == unknown["message"]
+    assert [to for to, _ in sent] == ["employee1@company.internal"]  # only real employees get a code
 
 
 def test_mfa_code_cannot_be_used_for_another_email(client, seed_data):

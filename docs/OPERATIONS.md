@@ -42,6 +42,9 @@ Recommended:
 
 ## 3. Migrations
 
+**Supabase:** see [`supabase/README.md`](../supabase/README.md). Run `01_upgrade_to_007.sql` (or `alembic upgrade head`), then **always** run `02_lock_down_data_api.sql`, which keeps the public anon key from reaching any table through Supabase's Data API.
+
+
 - Production schema changes go through Alembic only. `create_all` and demo seeding run **only** in development.
 - Revisions `004`–`006` are idempotent where it matters: `004` creates tables only if missing, so it is safe on databases where development servers already created them.
 - `alembic/env.py` widens `alembic_version.version_num` to 64 chars, because our revision ids are longer than Alembic's default 32. This replaces the old `fix_alembic.py` script.
@@ -60,7 +63,7 @@ python -m app.jobs.token_health             # apply
 - Marks expired `CONNECTED` tokens as `TOKEN_EXPIRED` and notifies the account owner(s) and admins.
 - Warns owners `token_expiry_warning_days` ahead (a company-policy setting), at most once per account per 24 hours.
 
-Schedule it with cron, Windows Task Scheduler or your platform's scheduler, e.g. `0 6 * * *`.
+Scheduled by `.github/workflows/token-health.yml` (00:30 UTC daily). Add a `DATABASE_URL` repository secret; run it manually from the Actions tab with *dry run* first. Cron or Task Scheduler work too.
 
 ---
 
@@ -74,7 +77,7 @@ Schedule it with cron, Windows Task Scheduler or your platform's scheduler, e.g.
 
 - **Force logout:** incrementing `employees.token_version` (Employees → force logout, offboarding, or Super Admin → *Sign everyone out*) kills app sessions immediately. Supabase sessions last until their JWT expires; for an instant global sign-out, also revoke them in Supabase.
 - **`require_mfa` policy:** Supabase sessions must be `aal2` (Supabase MFA). App sessions must come from the email-code step.
-- **Email delivery for codes is not wired yet.** `/auth/mfa/challenge` generates the code, but in production nothing sends it. Connect an email/SMS provider at the `TODO(delivery)` marker in `backend/app/api/v1/mfa.py` before relying on code sign-in or turning on `require_mfa` without Supabase MFA.
+- **Email delivery** uses SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`). Sign-in codes and invitation emails are sent through it. In production without SMTP, `/auth/mfa/challenge` returns 503 for every address, so it can't reveal who has an account. Super Admin → Overview warns while SMTP is missing.
 
 ---
 

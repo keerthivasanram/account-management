@@ -227,8 +227,11 @@ class EmployeeService:
             job_title=data.job_title, joined_on=data.joined_on,
         )
         self.repo.create(emp)
+        from app.core.permissions import ROLE_LABELS
+        from app.services.email_service import send_invitation
+        emailed = send_invitation(email, emp.full_name, actor.full_name, ROLE_LABELS.get(data.role, data.role))
         self.audit.log(action="employee_invited", entity_type="employee", entity_id=emp.id, actor_id=actor.id,
-                       metadata={"email": email, "role": data.role, "employee_code": code})
+                       metadata={"email": email, "role": data.role, "employee_code": code, "emailed": emailed})
         if notify and mgr_id:
             self.notifications.create(recipient_id=mgr_id, title="New team member invited",
                                       message=f"{emp.full_name} ({code}) will join your team.",

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
 from app.security.tokens import issue_session
+from app.services.email_service import email_configured, send_login_code
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.mfa_repo import MFARepository
 from app.repositories.security_repo import SecurityRepository
@@ -20,6 +21,11 @@ def create_mfa_challenge(
     Generates an atomic 2FA verification challenge for employee authentication.
     In development mode, returns the code hint directly for testing.
     """
+    if not email_configured() and not settings.dev_auth_enabled:
+        # Checked before any lookup, so the answer is the same for every email address.
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Email sign-in codes are not available yet. Please contact your administrator.")
+
     emp_repo = EmployeeRepository(db)
     mfa_repo = MFARepository(db)
 
@@ -36,8 +42,9 @@ def create_mfa_challenge(
         )
 
     challenge_id, code = mfa_repo.generate_challenge(employee.id, purpose="LOGIN_2FA")
-    # TODO(delivery): send `code` via the company email/SMS provider. Until then it is only
-    # surfaced in development so the flow can be exercised locally.
+    # Delivery failures are logged by the email service; the response stays identical
+    # for known and unknown emails so it can't be used to discover accounts.
+    send_login_code(employee.email, employee.full_name, code)
 
     return MFAChallengeResponse(
         verification_required=True,

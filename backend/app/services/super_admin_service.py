@@ -49,6 +49,9 @@ class SuperAdminService:
             w.append({"level": "info", "text": "SUPER_ADMIN_EMAILS is empty; super admins cannot be re-bootstrapped if locked out."})
         if not settings.META_APP_ID or not settings.META_APP_SECRET:
             w.append({"level": "info", "text": "Meta app credentials are not configured; Instagram connections will fail."})
+        from app.services.email_service import email_configured
+        if not email_configured():
+            w.append({"level": "warning", "text": "SMTP is not configured, so sign-in codes and invitation emails cannot be delivered."})
         if not OrgSettingsService(self.db).get("require_mfa"):
             w.append({"level": "info", "text": "Multi-factor authentication is optional for all employees."})
         return w
@@ -131,6 +134,7 @@ class SuperAdminService:
             "integrations": {
                 "supabase_auth": bool(settings.SUPABASE_URL and settings.SUPABASE_JWT_SECRET),
                 "meta_oauth": bool(settings.META_APP_ID and settings.META_APP_SECRET),
+                "email_smtp": bool(settings.SMTP_HOST and settings.SMTP_FROM),
             },
             "auth": {
                 "dev_shortcuts_enabled": settings.dev_auth_enabled,

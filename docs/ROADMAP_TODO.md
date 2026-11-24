@@ -11,11 +11,12 @@ Owner: **You** means a deployment/account/legal action only you can take. **Code
 |---|---|---|---|
 | A1 | Set `ENVIRONMENT=production` on Vercel (default `development` leaves dev login shortcuts on) | You | ☐ |
 | A2 | Set secrets: `APP_JWT_SECRET`, a unique `TOKEN_ENCRYPTION_KEY`, `SUPER_ADMIN_EMAILS`; choose `AUTO_PROVISION_EMPLOYEES=false` or `ALLOWED_EMAIL_DOMAINS` | You | ☐ |
-| A3 | Run `alembic upgrade head` against Supabase (004–006 are safe on an existing DB) | You | ☐ |
-| A4 | Connect an email/SMS provider for login codes (`TODO(delivery)` in `backend/app/api/v1/mfa.py`); until then code sign-in only works in development | Code + You (provider account) | ☐ |
-| A5 | Schedule `python -m app.jobs.token_health` daily | You | ☐ |
-| A6 | Delete obsolete `backend/fix_alembic.py` | You | ☐ |
+| A3 | Database: run `supabase/01_upgrade_to_007.sql` then `supabase/02_lock_down_data_api.sql` in the Supabase SQL Editor (see `supabase/README.md`), or `alembic upgrade head` + file 02 | You | ☐ |
+| A4 | Email delivery: SMTP sender built for sign-in codes and invitations. **You:** create an SMTP account (Workspace / M365 / SES / Resend / Brevo) and set `SMTP_*`, `FRONTEND_URL` | Code ☑ · You ☐ | ◐ |
+| A5 | Daily token check: GitHub Actions workflow `token-health.yml` built. **You:** add the `DATABASE_URL` repository secret | Code ☑ · You ☐ | ◐ |
+| A6 | Delete obsolete `backend/fix_alembic.py` (untracked; superseded by `alembic/env.py`) | You | ☐ |
 | A7 | Push branch `feat/rbac-and-management-dashboards`, open PR, let CI run | You / Code | ☐ |
+| A8 | Supabase Data API lockdown: RLS on every table + revoke `anon`/`authenticated` (`supabase/02_lock_down_data_api.sql`) | You | ☐ |
 
 ## B. Security features (from the monitoring plan)
 
@@ -25,13 +26,13 @@ Owner: **You** means a deployment/account/legal action only you can take. **Code
 | B2 | **Protected-field copy events:** log employee, record ID, field, time and action when someone copies a protected field inside Klarves. Never log the copied text | Code | ☑ |
 | B3 | **Loss alerts:** bulk employee exports, many account reassignments in a short window, unusual copy volume, and later screenshot downloads. Each alert lists the affected records | Code | ☑ |
 | B4 | De-duplicate screenshot-key incident alerts (today every key press notifies every admin) | Code | ☑ |
-| B5 | Require MFA for screen viewers and screenshot access (depends on A4 or Supabase MFA) | Code | ☐ |
+| B5 | Require MFA for screen viewers and screenshot access | Code | ⏸ on hold with C |
 
 Implementation notes (B2–B4): mark a value with `<Protected type id field>` (frontend) to make copies auditable. Thresholds live in Company policy (`alert_copies_per_10_minutes`, `alert_reassignments_per_hour`). Alerts appear under Security with the affected records attached. Exports and reassignments alert founders only.
 
 ## C. Screen sharing & screenshots (Windows + macOS)
 
-Order: C1 → C2 → C3 → C4 → C5. Nothing in C ships before A1–A4.
+**⏸ On hold** until the local network is set up. Order when resumed: C1 → C2 → C3 → C4 → C5. Nothing in C ships before A1–A4. Recommended approach: browser-based sharing first (OS picker, no installer), desktop client only if needed.
 
 | # | Item | Owner | Status |
 |---|---|---|---|
