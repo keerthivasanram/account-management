@@ -2,6 +2,7 @@ import uuid
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
 from app.models.models import Document, DocumentAccessLog, Employee
+from app.core.permissions import is_admin
 
 class DocumentRepository:
     def __init__(self, db: Session):
@@ -9,7 +10,7 @@ class DocumentRepository:
 
     def list_accessible_documents(self, current_employee: Employee) -> List[Document]:
         query = self.db.query(Document).options(joinedload(Document.owner))
-        if current_employee.role != "admin":
+        if not is_admin(current_employee):
             # Non-admins can access PUBLIC, INTERNAL, CONFIDENTIAL, or RESTRICTED owned by them
             query = query.filter(
                 (Document.classification.in_(["PUBLIC", "INTERNAL", "CONFIDENTIAL"])) |

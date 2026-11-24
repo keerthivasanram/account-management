@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, ConfigDict
-from typing import Optional
+from typing import Optional, List
 from uuid import UUID
 
 class DevLoginRequest(BaseModel):
@@ -15,4 +15,7 @@ class UserProfileResponse(BaseModel):
     full_name: str
     email: str
     role: str
+    role_label: Optional[str] = None
     is_active: bool
+    status: Optional[str] = None
+    permissions: List[str] = []

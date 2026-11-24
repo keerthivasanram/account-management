@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Employee
+from app.core.permissions import Perm, require_permission
 from app.services.auth_service import get_current_employee, require_admin
 from app.repositories.social_post_repo import SocialPostRepository
 from app.repositories.account_repo import AccountRepository
@@ -87,7 +88,7 @@ def create_scheduled_post(
 def review_post(
     post_id: uuid.UUID,
     payload: PostReviewRequest,
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.ACCOUNTS_MANAGE_ALL)),
     db: Session = Depends(get_db)
 ):
     """Admin action: approves or rejects a scheduled social media post."""
@@ -121,7 +122,7 @@ def review_post(
 @router.post("/{post_id}/publish-now", response_model=ScheduledPostResponse)
 def publish_now(
     post_id: uuid.UUID,
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.ACCOUNTS_MANAGE_ALL)),
     db: Session = Depends(get_db)
 ):
     """Executes immediate publication of an approved post to Meta Graph API."""

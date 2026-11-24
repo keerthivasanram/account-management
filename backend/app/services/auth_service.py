@@ -10,6 +10,8 @@ from app.core.database import get_db
 from app.models.models import Employee
 from app.repositories.employee_repo import EmployeeRepository
 from app.security.tokens import is_app_token, decode_app_token
+from app.core.permissions import is_admin
+from app.repositories.audit_repo import AuditRepository
 
 security_scheme = HTTPBearer(auto_error=False)
 
@@ -78,6 +80,14 @@ class AuthService:
             detail="Invalid authentication token."
         )
 
+    def _activate_if_invited(self, employee: Employee) -> Employee:
+        if employee.status == "INVITED":
+            employee.status = "ACTIVE"
+            if not employee.joined_on:
+                employee.joined_on = datetime.now(timezone.utc).date()
+            self.employee_repo.update(employee)
+        return employee
+
     def get_or_create_employee_profile(self, claims: Dict[str, Any]) -> Employee:
         """
         Resolves the employee record from the authenticated auth_user_id.
@@ -103,7 +113,12 @@ class AuthService:
                     status_code=status.HTTP_403_FORBIDDEN,
                     detail="Employee profile is deactivated"
                 )
-            return employee
+            if claims.get("_app_token"):
+                if claims.get("eid") and claims["eid"] != str(employee.id):
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session token.")
+                if int(claims.get("tv", 0)) != int(employee.token_version or 0):
+                    raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session was revoked. Please sign in again.")
+            return self._activate_if_invited(employee)
 
         # If not found by auth_user_id, check by email
         email = claims.get("email", "").lower().strip()
@@ -116,8 +131,15 @@ class AuthService:
                         detail="Employee profile is deactivated"
                     )
                 # Link existing (e.g. invited) profile with the identity provider's user id
+                previous_identity = employee.auth_user_id
                 employee.auth_user_id = auth_user_id
-                return self.employee_repo.update(employee)
+                self.employee_repo.update(employee)
+                AuditRepository(self.db).log(
+                    action="employee_identity_linked", entity_type="employee", entity_id=employee.id,
+                    actor_id=employee.id,
+                    metadata={"was_invited": employee.status == "INVITED", "previous_identity": str(previous_identity)},
+                )
+                return self._activate_if_invited(employee)
 
         # App-issued tokens are only minted for existing employees; never auto-provision from them.
         if claims.get("_app_token"):
@@ -127,7 +149,21 @@ class AuthService:
         # is user-editable). Everyone starts as 'employee'; super admins are bootstrapped from
         # the SUPER_ADMIN_EMAILS setting and admins are promoted in-app.
         user_meta = claims.get("user_metadata", {}) or {}
-        role = "super_admin" if email and email in settings.super_admin_emails else "employee"
+        is_bootstrap_super_admin = bool(email) and email in settings.super_admin_emails
+        role = "super_admin" if is_bootstrap_super_admin else "employee"
+
+        if not is_bootstrap_super_admin:
+            if not settings.AUTO_PROVISION_EMPLOYEES:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="No employee profile exists for this account. Ask an administrator to invite you."
+                )
+            domains = settings.allowed_email_domains
+            if domains and (not email or email.rsplit("@", 1)[-1] not in domains):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="This email domain is not permitted to access the workspace."
+                )
 
         full_name = (
             user_meta.get("full_name")
@@ -149,7 +185,9 @@ class AuthService:
             full_name=full_name,
             email=email or f"user_{auth_user_id.hex[:8]}@company.internal",
             role=role,
-            is_active=True
+            is_active=True,
+            status="ACTIVE",
+            joined_on=datetime.now(timezone.utc).date(),
         )
         return self.employee_repo.create(new_employee)
 
@@ -174,7 +212,7 @@ def require_admin(
     current_employee: Employee = Depends(get_current_employee)
 ) -> Employee:
     """FastAPI Dependency: restricts endpoint to admins and super admins."""
-    if current_employee.role not in ("admin", "super_admin"):
+    if not is_admin(current_employee):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access restricted to administrators only."

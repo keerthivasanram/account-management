@@ -11,6 +11,7 @@ from app.repositories.verification_repo import VerificationRepository
 from app.repositories.audit_repo import AuditRepository
 from app.models.models import Employee, InstagramAccount, AccountConnection, OAuthState
 from app.schemas.connection import ConnectionStatus
+from app.core.permissions import is_admin
 
 class MetaIntegrationService:
     def __init__(self, db: Session):
@@ -33,7 +34,7 @@ class MetaIntegrationService:
         # Check employee authorization: must be creator/registrar, assigned employee, or admin
         is_owner = (account.registered_by == employee.id)
         is_assigned = any(a.employee_id == employee.id and a.is_active for a in account.assignments)
-        if not (is_owner or is_assigned or employee.role == "admin"):
+        if not (is_owner or is_assigned or is_admin(employee)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="You are not authorized to connect or manage this Instagram account."
@@ -303,7 +304,7 @@ class MetaIntegrationService:
         # Check authorization
         is_owner = (account.registered_by == employee.id)
         is_assigned = any(a.employee_id == employee.id and a.is_active for a in account.assignments)
-        if not (is_owner or is_assigned or employee.role == "admin"):
+        if not (is_owner or is_assigned or is_admin(employee)):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Not authorized to disconnect this account."

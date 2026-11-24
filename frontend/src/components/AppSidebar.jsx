@@ -22,11 +22,16 @@ import {
   Building2,
   ChevronDown,
   LogOut,
-  ExternalLink
+  ExternalLink,
+  UsersRound,
+  Inbox,
+  Crown,
+  Settings2,
+  Activity
 } from 'lucide-react';
 
 export const AppSidebar = () => {
-  const { employee, isAdmin, logout } = useAuth();
+  const { employee, isAdmin, isManager, can, logout } = useAuth();
   const location = useLocation();
   const [openIncidentsCount, setOpenIncidentsCount] = useState(0);
   const [collaborationOpen, setCollaborationOpen] = useState(true);
@@ -57,6 +62,20 @@ export const AppSidebar = () => {
     { to: '/admin/employees', label: 'Employees', icon: Users, adminOnly: true },
     { to: '/admin/accounts', label: 'Assignments', icon: Layers, adminOnly: true },
     { to: '/admin/clients', label: 'Clients & Campaigns', icon: Briefcase, adminOnly: true },
+  ];
+
+  // Manager workspace (managers, admins, super admins)
+  const teamLinks = [
+    { to: '/manager', label: 'My Team', icon: UsersRound },
+    { to: '/manager?tab=approvals', label: 'Approvals Inbox', icon: Inbox },
+  ];
+
+  // Super admin console
+  const superAdminLinks = [
+    { to: '/super-admin', label: 'Control Center', icon: Crown },
+    { to: '/super-admin?tab=admins', label: 'Admins & Roles', icon: Users },
+    { to: '/super-admin?tab=settings', label: 'Company Policy', icon: Settings2 },
+    { to: '/super-admin?tab=health', label: 'System Health', icon: Activity },
   ];
 
   // Administration navigation items (admin only)
@@ -130,6 +149,18 @@ export const AppSidebar = () => {
           </nav>
         </div>
 
+        {/* MY TEAM */}
+        {isManager && (
+          <div>
+            <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
+              My Team
+            </div>
+            <nav className="space-y-0.5">
+              {teamLinks.map(renderNavLink)}
+            </nav>
+          </div>
+        )}
+
         {/* MANAGEMENT */}
         {isAdmin && (
           <div>
@@ -150,6 +181,18 @@ export const AppSidebar = () => {
             </div>
             <nav className="space-y-0.5">
               {administrationLinks.map(renderNavLink)}
+            </nav>
+          </div>
+        )}
+
+        {/* SUPER ADMIN */}
+        {can('settings:manage') && (
+          <div>
+            <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
+              Super Admin
+            </div>
+            <nav className="space-y-0.5">
+              {superAdminLinks.map(renderNavLink)}
             </nav>
           </div>
         )}
@@ -188,7 +231,7 @@ export const AppSidebar = () => {
                 {employee?.full_name || 'Authenticated User'}
               </p>
               <p className="text-[11px] text-[#64748B] font-mono truncate">
-                {employee?.employee_code || (isAdmin ? 'ADMIN' : 'STAFF')}
+                {employee?.employee_code || 'STAFF'}{employee?.role_label ? ` · ${employee.role_label}` : ''}
               </p>
             </div>
           </div>

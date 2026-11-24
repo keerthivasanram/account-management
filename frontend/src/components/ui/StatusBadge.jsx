@@ -14,13 +14,13 @@ export const StatusBadge = ({ status = 'ACTIVE', variant, text, className = '' }
   if (['CONNECTED', 'ACTIVE', 'APPROVED', 'RESOLVED', 'COMPLETED', 'PUBLISHED', 'SYNCED', 'ONLINE'].includes(normalized)) {
     colorStyles = 'text-[#15803D] bg-[#F0FDF4] border-[#BBF7D0]';
     dotColor = 'bg-[#15803D]';
-  } else if (['PENDING', 'PENDING_APPROVAL', 'IN_REVIEW', 'SUBMITTED', 'IN_PROGRESS', 'SCHEDULED', 'AWAITING'].includes(normalized)) {
+  } else if (['PENDING', 'PENDING_APPROVAL', 'INVITED', 'CHANGES_REQUESTED', 'IN_REVIEW', 'SUBMITTED', 'IN_PROGRESS', 'SCHEDULED', 'AWAITING'].includes(normalized)) {
     colorStyles = 'text-[#D97706] bg-[#FFFBEB] border-[#FDE68A]';
     dotColor = 'bg-[#D97706]';
-  } else if (['DISCONNECTED', 'REJECTED', 'FAILED', 'SUSPENDED', 'BLOCKED', 'ERROR', 'CRITICAL', 'OPEN'].includes(normalized)) {
+  } else if (['DISCONNECTED', 'REJECTED', 'FAILED', 'SUSPENDED', 'OFFBOARDED', 'OVERLOADED', 'BLOCKED', 'ERROR', 'CRITICAL', 'OPEN'].includes(normalized)) {
     colorStyles = 'text-[#DC2626] bg-[#FEF2F2] border-[#FECACA]';
     dotColor = 'bg-[#DC2626]';
-  } else if (['INFO', 'CREATOR', 'BUSINESS', 'EMPLOYEE', 'ADMIN', 'STAFF'].includes(normalized)) {
+  } else if (['INFO', 'CREATOR', 'BUSINESS', 'EMPLOYEE', 'ADMIN', 'SUPER_ADMIN', 'MANAGER', 'STAFF', 'ON_LEAVE', 'UNDER'].includes(normalized)) {
     colorStyles = 'text-[#2563EB] bg-[#EFF6FF] border-[#BFDBFE]';
     dotColor = 'bg-[#2563EB]';
   }

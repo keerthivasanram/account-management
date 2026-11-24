@@ -147,7 +147,13 @@ export const AuthProvider = ({ children }) => {
     setEmployee(null);
   };
 
-  const isAdmin = employee?.role === 'admin';
+  // Permissions come from the backend (/employees/me). UI checks are cosmetic;
+  // the API enforces every permission server-side.
+  const permissions = employee?.permissions || [];
+  const can = (perm) => permissions.includes(perm);
+  const isSuperAdmin = employee?.role === 'super_admin';
+  const isAdmin = can('admin:portal');
+  const isManager = can('manager:portal');
 
   return (
     <AuthContext.Provider
@@ -157,6 +163,10 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         isAdmin,
+        isSuperAdmin,
+        isManager,
+        permissions,
+        can,
         isSupabaseConfigured,
         loginWithSupabase,
         loginWithDev,

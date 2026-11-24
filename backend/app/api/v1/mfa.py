@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
 from app.core.config import settings
 from app.core.database import get_db
-from app.security.tokens import create_access_token
+from app.security.tokens import issue_session
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.mfa_repo import MFARepository
 from app.repositories.security_repo import SecurityRepository
@@ -77,7 +77,7 @@ def verify_mfa_code(
             ip_address=client_ip
         )
 
-    token = create_access_token(employee)
+    token = issue_session(db, employee)
 
     return MFAVerifyResponse(
         access_token=token,

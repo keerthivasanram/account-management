@@ -1,3 +1,4 @@
+from app.core.permissions import is_admin
 import uuid
 from typing import List
 from datetime import date
@@ -159,7 +160,7 @@ def list_leaves(
 ):
     """Lists leave requests (Admins see all organization requests; Employees see their own)."""
     repo = AttendanceRepository(db)
-    emp_filter = None if current_employee.role == "admin" else current_employee.id
+    emp_filter = None if is_admin(current_employee) else current_employee.id
     leaves = repo.list_leave_requests(employee_id=emp_filter)
     
     return [

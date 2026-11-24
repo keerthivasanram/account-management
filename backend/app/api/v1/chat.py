@@ -1,3 +1,4 @@
+from app.core.permissions import is_admin
 import uuid
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -129,7 +130,7 @@ def get_messages(
 
     # Membership authorization check
     is_member = any(m.employee_id == current_employee.id for m in conv.members)
-    if not is_member and current_employee.role != "admin":
+    if not is_member and not is_admin(current_employee):
         raise HTTPException(status_code=403, detail="Not authorized to view this conversation.")
 
     messages = repo.list_messages(conversation_id)
@@ -167,7 +168,7 @@ def send_message(
         raise HTTPException(status_code=404, detail="Conversation not found.")
 
     is_member = any(m.employee_id == current_employee.id for m in conv.members)
-    if not is_member and current_employee.role != "admin":
+    if not is_member and not is_admin(current_employee):
         raise HTTPException(status_code=403, detail="Not authorized to post in this conversation.")
 
     msg = repo.post_message(conversation_id, current_employee.id, payload.content)

@@ -6,7 +6,8 @@ from app.core.database import get_db
 from app.models.models import Employee
 from app.schemas.auth import UserProfileResponse, DevLoginRequest
 from app.services.auth_service import get_current_employee, AuthService
-from app.security.tokens import create_access_token
+from app.security.tokens import issue_session
+from app.core.permissions import ROLE_LABELS, serialize_permissions
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -14,8 +15,19 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 def get_current_user_profile(
     current_employee: Employee = Depends(get_current_employee)
 ):
-    """Returns the authenticated employee's profile."""
-    return current_employee
+    """Returns the authenticated employee's identity, role and effective permissions."""
+    return UserProfileResponse(
+        id=current_employee.id,
+        auth_user_id=current_employee.auth_user_id,
+        employee_code=current_employee.employee_code,
+        full_name=current_employee.full_name,
+        email=current_employee.email,
+        role=current_employee.role,
+        role_label=ROLE_LABELS.get(current_employee.role, current_employee.role),
+        is_active=current_employee.is_active,
+        status=current_employee.status,
+        permissions=serialize_permissions(current_employee),
+    )
 
 @router.post("/dev-login")
 def dev_login(req: DevLoginRequest, db: Session = Depends(get_db)):
@@ -29,14 +41,17 @@ def dev_login(req: DevLoginRequest, db: Session = Depends(get_db)):
 
     auth_service = AuthService(db)
     email = req.email.lower().strip()
+    existing = auth_service.employee_repo.get_by_email(email)
     claims = {
-        "sub": str(uuid.uuid5(uuid.NAMESPACE_URL, f"dev-login:{email}")),
+        # Reuse the stored identity so dev logins never re-link an existing profile
+        "sub": str(existing.auth_user_id) if existing and existing.status != "INVITED"
+               else str(uuid.uuid5(uuid.NAMESPACE_URL, f"dev-login:{email}")),
         "email": email,
         "full_name": req.full_name or "Test User",
     }
     employee = auth_service.get_or_create_employee_profile(claims)
     return {
-        "access_token": create_access_token(employee),
+        "access_token": issue_session(db, employee),
         "token_type": "bearer",
         "employee": {
             "id": employee.id,

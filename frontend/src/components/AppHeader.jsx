@@ -278,6 +278,16 @@ export const AppHeader = ({ title = 'Overview' }) => {
                   <User className="w-3.5 h-3.5 text-[#64748B]" />
                   <span>Dashboard Overview</span>
                 </button>
+                <button
+                  onClick={() => {
+                    setShowProfileMenu(false);
+                    navigate('/profile');
+                  }}
+                  className="w-full text-left px-3 py-2 hover:bg-[#F8FAFC] flex items-center gap-2"
+                >
+                  <User className="w-3.5 h-3.5 text-[#64748B]" />
+                  <span>My Profile</span>
+                </button>
                 {isAdmin && (
                   <button
                     onClick={() => {

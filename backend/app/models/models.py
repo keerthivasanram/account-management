@@ -30,9 +30,17 @@ class Employee(Base):
     employee_code = Column(String(50), unique=True, nullable=False, index=True)
     full_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    role = Column(String(50), nullable=False, default="employee")  # 'employee' or 'admin'
+    role = Column(String(50), nullable=False, default="employee")  # see app.core.permissions.Role
     is_active = Column(Boolean, nullable=False, default=True)
+    # Lifecycle: INVITED -> ACTIVE -> (ON_LEAVE) -> OFFBOARDED. is_active mirrors status != OFFBOARDED.
+    status = Column(String(30), nullable=False, default="ACTIVE", server_default="ACTIVE", index=True)
     department_id = Column(GUID, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    manager_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    joined_on = Column(Date, nullable=True)
+    offboarded_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    # Bumped to invalidate every backend-issued session for this employee (force logout / offboarding)
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
     phone_number = Column(String(50), nullable=True)
     job_title = Column(String(100), nullable=True)
     bio = Column(Text, nullable=True)
@@ -41,6 +49,8 @@ class Employee(Base):
 
     # Relationships
     department = relationship("Department", back_populates="members", foreign_keys=[department_id])
+    manager = relationship("Employee", remote_side="Employee.id", foreign_keys=[manager_id], back_populates="direct_reports")
+    direct_reports = relationship("Employee", foreign_keys=[manager_id], back_populates="manager")
     tasks_assigned = relationship("Task", back_populates="assignee", foreign_keys="Task.assigned_to")
     tasks_created = relationship("Task", back_populates="creator", foreign_keys="Task.created_by")
     projects_owned = relationship("Project", back_populates="owner", foreign_keys="Project.owner_id")
@@ -457,3 +467,17 @@ class ScheduledPost(Base):
     creator = relationship("Employee")
     campaign = relationship("Campaign")
     project = relationship("Project")
+
+# ==============================================================================
+# MODULE 10 — ORGANISATION SETTINGS (super admin policy store)
+# ==============================================================================
+
+class OrgSetting(Base):
+    __tablename__ = "org_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(JSONType, nullable=True)
+    updated_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    updater = relationship("Employee")

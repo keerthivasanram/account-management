@@ -23,6 +23,7 @@ import AdminClientsCampaignsPage from './pages/Admin/AdminClientsCampaignsPage';
 import AdminAuditLogsPage from './pages/Admin/AdminAuditLogsPage';
 import AdminSecurityPage from './pages/Admin/AdminSecurityPage';
 import OAuthCallbackPage from './pages/OAuthCallback/OAuthCallbackPage';
+import ProfilePage from './pages/Profile/ProfilePage';
 
 function App() {
   return (
@@ -45,6 +46,7 @@ function App() {
             <Route path="/departments" element={<DepartmentsPage />} />
             <Route path="/register" element={<RegisterAccountPage />} />
             <Route path="/accounts" element={<AccountsListPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
 
             {/* Protected Admin Portal */}
             <Route element={<AdminRoute />}>

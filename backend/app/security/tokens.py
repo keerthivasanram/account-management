@@ -60,3 +60,10 @@ def decode_app_token(token: str) -> Dict[str, Any]:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired. Please sign in again.")
     except jwt.PyJWTError:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid session token.")
+
+
+def issue_session(db, employee) -> str:
+    """Mint a session token and record the login time."""
+    employee.last_login_at = datetime.now(timezone.utc)
+    db.commit()
+    return create_access_token(employee)

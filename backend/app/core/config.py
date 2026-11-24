@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     # and re-asserted on every startup. This is the only way to bootstrap a super admin.
     SUPER_ADMIN_EMAILS: str = ""
 
+    # Onboarding policy. When False, only invited employees (or SUPER_ADMIN_EMAILS) can sign in.
+    AUTO_PROVISION_EMPLOYEES: bool = True
+    # Optional comma-separated allowlist of email domains for auto-provisioning, e.g. "klarves.com"
+    ALLOWED_EMAIL_DOMAINS: str = ""
+
     # MFA brute-force protection
     MFA_MAX_ATTEMPTS: int = 5
 
@@ -94,6 +99,10 @@ class Settings(BaseSettings):
     @property
     def super_admin_emails(self) -> List[str]:
         return [e.strip().lower() for e in self.SUPER_ADMIN_EMAILS.split(",") if e.strip()]
+
+    @property
+    def allowed_email_domains(self) -> List[str]:
+        return [d.strip().lower().lstrip("@") for d in self.ALLOWED_EMAIL_DOMAINS.split(",") if d.strip()]
 
     def validate_for_production(self) -> List[str]:
         """Returns a list of fatal misconfigurations. Empty list == safe to start."""

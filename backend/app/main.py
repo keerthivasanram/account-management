@@ -26,6 +26,7 @@ async def lifespan(app: FastAPI):
 
     if not settings.is_development:
         # Production schema is owned by Alembic (`alembic upgrade head`); no demo data.
+        _run_bootstrap(dev=False)
         yield
         return
 
@@ -198,7 +199,22 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"Database connection or startup initialization skipped: {e}")
 
+    _run_bootstrap(dev=True)
     yield
+
+
+def _run_bootstrap(dev: bool) -> None:
+    from app.services.bootstrap import ensure_super_admins, seed_dev_role_fixtures
+    db = SessionLocal()
+    try:
+        if dev:
+            seed_dev_role_fixtures(db)
+        ensure_super_admins(db)
+    except Exception as e:
+        db.rollback()
+        print(f"Startup bootstrap skipped: {e}")
+    finally:
+        db.close()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

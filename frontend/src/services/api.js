@@ -54,6 +54,23 @@ export const api = {
     getMyProfile: () => apiClient.get('/employees/me'),
     getMyAccounts: (params) => apiClient.get('/employees/me/accounts', { params }),
     getMyDashboardStats: () => apiClient.get('/employees/me/stats'),
+    updateMyProfile: (data) => apiClient.patch('/employees/me', data),
+  },
+
+  // Manager workspace (team, approvals)
+  manager: {
+    getOverview: () => apiClient.get('/manager/overview'),
+    getApprovals: () => apiClient.get('/manager/approvals'),
+  },
+
+  // Super admin console
+  superAdmin: {
+    getOverview: () => apiClient.get('/super-admin/overview'),
+    getSettings: () => apiClient.get('/super-admin/settings'),
+    updateSettings: (changes) => apiClient.put('/super-admin/settings', changes),
+    getHealth: () => apiClient.get('/super-admin/health'),
+    searchAudit: (params) => apiClient.get('/super-admin/audit', { params }),
+    revokeAllSessions: () => apiClient.post('/super-admin/sessions/revoke-all'),
   },
 
   // Instagram Accounts
@@ -116,14 +133,9 @@ export const api = {
     checkOut: () => apiClient.post('/attendance/check-out'),
     getHistory: () => apiClient.get('/attendance/history'),
     requestLeave: (data) => apiClient.post('/attendance/leaves', data),
-    listLeaves: () => apiClient.get('/attendance/leaves'),
+    listLeaves: (params) => apiClient.get('/attendance/leaves', { params }),
+    getLeaveBalance: () => apiClient.get('/attendance/leave-balance'),
     reviewLeave: (id, data) => apiClient.patch(`/attendance/leaves/${id}/review`, data),
-  },
-
-  // MFA & Unique Login Verification
-  mfa: {
-    requestChallenge: (email) => apiClient.post('/auth/mfa/challenge', { email }),
-    verifyChallenge: (data) => apiClient.post('/auth/mfa/verify', data),
   },
 
   // Secure Document Management
@@ -164,7 +176,20 @@ export const api = {
   // Admin Operations
   admin: {
     getStats: () => apiClient.get('/admin/stats'),
-    listEmployees: () => apiClient.get('/admin/employees'),
+    getOverview: () => apiClient.get('/admin/overview'),
+    listEmployees: (params) => apiClient.get('/admin/employees', { params }),
+    inviteEmployee: (data) => apiClient.post('/admin/employees', data),
+    importEmployees: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/admin/employees/import', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
+    exportEmployees: () => apiClient.get('/admin/employees/export', { responseType: 'blob' }),
+    offboardEmployee: (id, data) => apiClient.post(`/admin/employees/${id}/offboard`, data),
+    reactivateEmployee: (id) => apiClient.post(`/admin/employees/${id}/reactivate`),
+    revokeSessions: (id) => apiClient.post(`/admin/employees/${id}/revoke-sessions`),
+    listRoles: () => apiClient.get('/admin/roles'),
+    getPeopleMeta: () => apiClient.get('/admin/meta'),
     getEmployee: (id) => apiClient.get(`/admin/employees/${id}`),
     getEmployeeAccounts: (id, params) => apiClient.get(`/admin/employees/${id}/accounts`, { params }),
     updateEmployee: (id, data) => apiClient.patch(`/admin/employees/${id}`, data),
