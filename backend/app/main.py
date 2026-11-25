@@ -30,6 +30,12 @@ async def lifespan(app: FastAPI):
         yield
         return
 
+    if not settings.SEED_DEMO_DATA:
+        # Development against a real database (e.g. Supabase): schema from Alembic, no demo people
+        _run_bootstrap(dev=False)
+        yield
+        return
+
     # Development only: create tables and seed demo data
     try:
         Base.metadata.create_all(bind=engine)

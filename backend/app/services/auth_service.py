@@ -15,6 +15,18 @@ from app.repositories.audit_repo import AuditRepository
 
 security_scheme = HTTPBearer(auto_error=False)
 
+SUPABASE_ASYMMETRIC_ALGS = ("ES256", "RS256")
+_jwks_client = None
+
+
+def supabase_signing_key(token: str):
+    """Public key for a Supabase-issued JWT, from the project's JWKS (cached by PyJWKClient)."""
+    global _jwks_client
+    url = f"{settings.SUPABASE_URL.rstrip('/')}/auth/v1/.well-known/jwks.json"
+    if _jwks_client is None or _jwks_client.uri != url:
+        _jwks_client = jwt.PyJWKClient(url, cache_keys=True, lifespan=3600, timeout=10)
+    return _jwks_client.get_signing_key_from_jwt(token).key
+
 class AuthService:
     def __init__(self, db: Session):
         self.db = db
@@ -62,18 +74,25 @@ class AuthService:
             claims["_app_token"] = True
             return claims
 
-        if settings.SUPABASE_JWT_SECRET:
-            try:
-                return jwt.decode(
-                    token,
-                    settings.SUPABASE_JWT_SECRET,
-                    algorithms=["HS256"],
-                    options={"verify_aud": False}
-                )
-            except jwt.ExpiredSignatureError:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired. Please sign in again.")
-            except jwt.PyJWTError:
-                raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token.")
+        try:
+            alg = jwt.get_unverified_header(token).get("alg")
+        except jwt.PyJWTError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token.")
+
+        try:
+            if alg == "HS256" and settings.SUPABASE_JWT_SECRET:
+                # Legacy Supabase projects: shared JWT secret
+                return jwt.decode(token, settings.SUPABASE_JWT_SECRET, algorithms=["HS256"],
+                                  options={"verify_aud": False})
+            if alg in SUPABASE_ASYMMETRIC_ALGS and settings.SUPABASE_URL:
+                # Current Supabase projects: asymmetric signing keys published at the project's JWKS URL
+                return jwt.decode(token, supabase_signing_key(token), algorithms=list(SUPABASE_ASYMMETRIC_ALGS),
+                                  issuer=f"{settings.SUPABASE_URL.rstrip('/')}/auth/v1",
+                                  options={"verify_aud": False, "require": ["exp", "sub"]})
+        except jwt.ExpiredSignatureError:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Session expired. Please sign in again.")
+        except (jwt.PyJWTError, jwt.PyJWKClientError):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid authentication token.")
 
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,

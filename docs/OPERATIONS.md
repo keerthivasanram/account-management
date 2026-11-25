@@ -20,7 +20,7 @@ Recommended:
 
 | Variable | Purpose |
 |---|---|
-| `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_JWT_SECRET` | Password sign-in. Without the JWT secret, Supabase tokens are rejected |
+| `SUPABASE_URL`, `SUPABASE_ANON_KEY` | Password sign-in. Tokens from projects using signing keys (ES256/RS256) are verified against `SUPABASE_URL/auth/v1/.well-known/jwks.json`. Set `SUPABASE_JWT_SECRET` only for legacy HS256 projects |
 | `SUPER_ADMIN_EMAILS` | Comma-separated founder emails. The only way to bootstrap a super admin |
 | `AUTO_PROVISION_EMPLOYEES=false` | Invite-only: unknown sign-ins get a 403 until an admin invites them |
 | `ALLOWED_EMAIL_DOMAINS` | If you keep auto-provisioning on, restrict it to your domain(s) |

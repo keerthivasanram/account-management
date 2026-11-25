@@ -41,8 +41,8 @@ class SuperAdminService:
         w = []
         if settings.dev_auth_enabled:
             w.append({"level": "warning", "text": "Development login shortcuts are enabled (ENVIRONMENT=development, DEV_AUTH_BYPASS=true)."})
-        if not settings.SUPABASE_JWT_SECRET:
-            w.append({"level": "warning", "text": "SUPABASE_JWT_SECRET is not set, so Supabase password sign-in cannot be verified."})
+        if not settings.SUPABASE_URL and not settings.SUPABASE_JWT_SECRET:
+            w.append({"level": "warning", "text": "Neither SUPABASE_URL (signing keys) nor SUPABASE_JWT_SECRET is set, so Supabase password sign-in cannot be verified."})
         if settings.AUTO_PROVISION_EMPLOYEES and not settings.allowed_email_domains:
             w.append({"level": "warning", "text": "Anyone who can sign in to Supabase gets an employee profile. Set ALLOWED_EMAIL_DOMAINS or turn off AUTO_PROVISION_EMPLOYEES."})
         if not settings.super_admin_emails:
@@ -132,7 +132,7 @@ class SuperAdminService:
                 "migrations_up_to_date": (current_rev in heads) if heads and current_rev else None,
             },
             "integrations": {
-                "supabase_auth": bool(settings.SUPABASE_URL and settings.SUPABASE_JWT_SECRET),
+                "supabase_auth": bool(settings.SUPABASE_URL or settings.SUPABASE_JWT_SECRET),
                 "meta_oauth": bool(settings.META_APP_ID and settings.META_APP_SECRET),
                 "email_smtp": bool(settings.SMTP_HOST and settings.SMTP_FROM),
             },

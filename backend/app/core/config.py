@@ -52,6 +52,9 @@ class Settings(BaseSettings):
     # Dev/Mock Auth mode when Supabase is not configured.
     # Only honoured when ENVIRONMENT == "development"; production startup refuses it.
     DEV_AUTH_BYPASS: bool = True
+    # Development only: create tables + seed demo employees/clients on startup. Turn off when
+    # pointing a dev server at a real database.
+    SEED_DEMO_DATA: bool = True
 
     # Backend-issued session tokens (MFA login, dev login). HS256 signing secret.
     APP_JWT_SECRET: str = ""
