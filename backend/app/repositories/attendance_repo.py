@@ -52,6 +52,16 @@ class AttendanceRepository:
         self.db.refresh(record)
         return record
 
+    def list_month(self, employee_id: uuid.UUID, month_start: date) -> List[AttendanceRecord]:
+        """Shifts in the calendar month starting at month_start."""
+        nxt = date(month_start.year + (month_start.month == 12), month_start.month % 12 + 1, 1)
+        return (
+            self.db.query(AttendanceRecord)
+            .filter(AttendanceRecord.employee_id == employee_id,
+                    AttendanceRecord.date >= month_start, AttendanceRecord.date < nxt)
+            .all()
+        )
+
     def list_employee_attendance(self, employee_id: uuid.UUID, limit: int = 30) -> List[AttendanceRecord]:
         return (
             self.db.query(AttendanceRecord)

@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, File, HTTPException, Query, Response, UploadFile, status
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Employee
@@ -11,6 +11,7 @@ from app.schemas.account import (
 )
 from app.services.auth_service import get_current_employee
 from app.services.account_service import AccountService
+from app.services.account_import_service import AccountImportService, TEMPLATE_CSV
 
 router = APIRouter(prefix="/accounts", tags=["Instagram Accounts"])
 
@@ -27,6 +28,30 @@ def register_account(
     """
     acc_service = AccountService(db)
     return acc_service.register_account(data, current_employee)
+
+@router.get("/import/template")
+def import_template(current_employee: Employee = Depends(get_current_employee)):
+    """CSV template for "Import accounts"."""
+    return Response(content=TEMPLATE_CSV, media_type="text/csv",
+                    headers={"Content-Disposition": 'attachment; filename="klarves-accounts-template.csv"'})
+
+@router.post("/import")
+async def import_accounts(
+    file: UploadFile = File(..., description="CSV: username (required), account_type, niche, client, campaign, display_name"),
+    dry_run: bool = Query(True, description="true = preview only; false = add the valid rows"),
+    current_employee: Employee = Depends(get_current_employee),
+    db: Session = Depends(get_db)
+):
+    """Imports Instagram accounts from CSV using the same rules as "Add account" (max 500 rows, 1 MB).
+    Each added account is registered by, and assigned to, the importing employee."""
+    raw = await file.read(1_048_577)
+    if len(raw) > 1_048_576:
+        raise HTTPException(status_code=413, detail="The file must be 1 MB or smaller.")
+    try:
+        content = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        raise HTTPException(status_code=400, detail="Save the file as CSV (UTF-8) and try again.")
+    return AccountImportService(db).run(content, current_employee, dry_run=dry_run)
 
 @router.post("/check-duplicate", response_model=AccountCheckDuplicateResponse)
 def check_duplicate_username(

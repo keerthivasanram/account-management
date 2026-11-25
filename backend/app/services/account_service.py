@@ -15,6 +15,7 @@ from app.repositories.connection_repo import ConnectionRepository
 from app.repositories.client_repo import ClientRepository
 from app.repositories.campaign_repo import CampaignRepository
 from app.repositories.audit_repo import AuditRepository
+from app.core.permissions import is_admin
 
 class AccountService:
     def __init__(self, db: Session):
@@ -129,7 +130,7 @@ class AccountService:
         limit: int = 100
     ) -> List[AccountResponse]:
         # Regular employees can only see their registered or assigned accounts
-        target_employee_id = None if employee.role == "admin" else employee.id
+        target_employee_id = None if is_admin(employee) else employee.id
 
         accounts = self.account_repo.list(
             employee_id=target_employee_id,
@@ -148,7 +149,7 @@ class AccountService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
 
         # Authorization check: employee must be owner/assigned or admin
-        if employee.role != "admin":
+        if not is_admin(employee):
             is_owner = (account.registered_by == employee.id)
             is_assigned = any(a.employee_id == employee.id and a.is_active for a in account.assignments)
             if not (is_owner or is_assigned):
@@ -165,7 +166,7 @@ class AccountService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
 
         # Authorization check
-        if employee.role != "admin":
+        if not is_admin(employee):
             is_owner = (account.registered_by == employee.id)
             is_assigned = any(a.employee_id == employee.id and a.is_active for a in account.assignments)
             if not (is_owner or is_assigned):
@@ -220,7 +221,7 @@ class AccountService:
         )
 
     def get_dashboard_counts(self, employee: Employee) -> Dict[str, int]:
-        target_employee_id = None if employee.role == "admin" else employee.id
+        target_employee_id = None if is_admin(employee) else employee.id
         return self.account_repo.get_status_counts(target_employee_id)
 
     def _build_account_response(self, acc: InstagramAccount) -> AccountResponse:

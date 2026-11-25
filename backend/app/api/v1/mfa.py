@@ -1,6 +1,10 @@
+import uuid
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.orm import Session
+from app.core.config import settings
 from app.core.database import get_db
+from app.security.tokens import issue_session
+from app.services.email_service import email_configured, send_login_code
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.mfa_repo import MFARepository
 from app.repositories.security_repo import SecurityRepository
@@ -17,24 +21,36 @@ def create_mfa_challenge(
     Generates an atomic 2FA verification challenge for employee authentication.
     In development mode, returns the code hint directly for testing.
     """
+    if not email_configured() and not settings.dev_auth_enabled:
+        # Checked before any lookup, so the answer is the same for every email address.
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                            detail="Email sign-in codes are not available yet. Please contact your administrator.")
+
     emp_repo = EmployeeRepository(db)
     mfa_repo = MFARepository(db)
 
     clean_email = req.email.strip().lower()
     employee = emp_repo.get_by_email(clean_email)
-    if not employee:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No employee account associated with this email address."
+    generic_message = "If this email belongs to an active employee, a 6-digit verification code has been sent."
+    if not employee or not employee.is_active:
+        # Same response shape for unknown emails to avoid account enumeration.
+        return MFAChallengeResponse(
+            verification_required=True,
+            challenge_id=str(uuid.uuid4()),
+            message=generic_message,
+            hint=None
         )
 
     challenge_id, code = mfa_repo.generate_challenge(employee.id, purpose="LOGIN_2FA")
+    # Delivery failures are logged by the email service; the response stays identical
+    # for known and unknown emails so it can't be used to discover accounts.
+    send_login_code(employee.email, employee.full_name, code)
 
     return MFAChallengeResponse(
         verification_required=True,
         challenge_id=challenge_id,
-        message=f"A 6-digit verification code has been dispatched for {employee.full_name}.",
-        hint=f"Dev Verification Code: {code}"
+        message=generic_message,
+        hint=f"Dev Verification Code: {code}" if settings.dev_auth_enabled else None
     )
 
 @router.post("/verify", response_model=MFAVerifyResponse)
@@ -50,7 +66,7 @@ def verify_mfa_code(
     sec_repo = SecurityRepository(db)
 
     employee = mfa_repo.verify_code(req.challenge_id, req.code)
-    if not employee:
+    if not employee or not employee.is_active or employee.email.lower() != req.email.strip().lower():
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid or expired verification code. Please request a new challenge."
@@ -68,7 +84,7 @@ def verify_mfa_code(
             ip_address=client_ip
         )
 
-    token = f"dev-token-{employee.role}-{employee.employee_code}"
+    token = issue_session(db, employee, amr="mfa_email")
 
     return MFAVerifyResponse(
         access_token=token,

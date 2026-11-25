@@ -1,13 +1,14 @@
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, Request, status, HTTPException
+from fastapi import APIRouter, Depends, Request, Response, status, HTTPException
 from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Employee
 from app.schemas.security import (
-    SecurityIncidentReport, SecurityIncidentResponse,
+    SecurityIncidentReport, SecurityIncidentResponse, ProtectedCopyEvent,
     DeviceRegisterRequest, DeviceResponse
 )
+from app.core.permissions import Perm, require_permission
 from app.services.auth_service import get_current_employee, require_admin
 from app.repositories.security_repo import SecurityRepository
 from app.repositories.audit_repo import AuditRepository
@@ -56,8 +57,16 @@ def report_security_incident(
         }
     )
 
-    # Dispatch high-priority in-app notification to all administrators
-    admins = emp_repo.list(role="admin")
+    # Notify administrators, at most once per employee per event type every 10 minutes
+    from datetime import datetime, timedelta, timezone
+    from app.models.models import SecurityIncident
+    recent = db.query(SecurityIncident.id).filter(
+        SecurityIncident.actor_id == current_employee.id,
+        SecurityIncident.event_type == incident.event_type,
+        SecurityIncident.id != incident.id,
+        SecurityIncident.created_at >= datetime.now(timezone.utc) - timedelta(minutes=10),
+    ).first()
+    admins = [] if recent else emp_repo.list(roles=["admin", "super_admin"], is_active=True)
     key_info = f" ({report.key_combination})" if report.key_combination else ""
     for adm in admins:
         notif_repo.create(
@@ -75,9 +84,28 @@ def report_security_incident(
         "message": "Incident logged to system security audit and dispatched to administrators."
     }
 
+@router.post("/copy-events", status_code=status.HTTP_204_NO_CONTENT)
+def report_protected_copy(
+    event: ProtectedCopyEvent,
+    current_employee: Employee = Depends(get_current_employee),
+    db: Session = Depends(get_db)
+):
+    """
+    Audit signal: the employee copied a protected field inside Klarves.
+    Logs who, which record, which field and when, never the copied text.
+    Raises a COPY_VOLUME alert on unusual bursts.
+    """
+    AuditRepository(db).log(
+        action="protected_copy", entity_type=event.resource_type, actor_id=current_employee.id,
+        metadata={"resource_id": event.resource_id, "field": event.field, "route": event.route},
+    )
+    from app.services.alert_service import AlertService
+    AlertService(db).on_protected_copy(current_employee)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 @router.get("/summary")
 def get_security_summary(
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.SECURITY_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Returns security metrics including open incident counts for admin badges."""
@@ -94,7 +122,7 @@ def get_security_summary(
 def update_incident_status(
     incident_id: uuid.UUID,
     status_update: dict,
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.SECURITY_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Admin endpoint: marks an incident as RESOLVED or FALSE_POSITIVE."""
@@ -116,7 +144,7 @@ def update_incident_status(
 
 @router.get("/incidents", response_model=List[SecurityIncidentResponse])
 def list_security_incidents(
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.SECURITY_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Admin endpoint: lists all recorded security incidents and capture alerts."""
@@ -136,6 +164,7 @@ def list_security_incidents(
                 key_combination=inc.key_combination,
                 ip_address=inc.ip_address,
                 status=inc.status,
+                details=inc.details,
                 created_at=inc.created_at
             )
         )
@@ -176,7 +205,7 @@ def register_device(
 
 @router.get("/devices", response_model=List[DeviceResponse])
 def list_registered_devices(
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.SECURITY_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Admin endpoint: lists all enrolled employee devices with revocation status."""
@@ -204,7 +233,7 @@ def list_registered_devices(
 @router.post("/devices/{device_id}/revoke")
 def revoke_device(
     device_id: uuid.UUID,
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.SECURITY_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Emergency Admin Action: revokes a device's trust certificate immediately."""

@@ -11,8 +11,14 @@ if str(backend_dir) not in sys.path:
 # Set test environment
 os.environ["TESTING"] = "true"
 os.environ["ENVIRONMENT"] = "development"
-os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+# Set TEST_DATABASE_URL (e.g. a disposable Postgres in CI) to run the suite on Postgres.
+TEST_SQLALCHEMY_DATABASE_URL = os.environ.get("TEST_DATABASE_URL", "sqlite:///:memory:")
+if TEST_SQLALCHEMY_DATABASE_URL.startswith("postgres"):
+    TEST_SQLALCHEMY_DATABASE_URL = TEST_SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1).replace("postgres://", "postgresql+psycopg2://", 1)
+os.environ["DATABASE_URL"] = TEST_SQLALCHEMY_DATABASE_URL
 os.environ["DEV_AUTH_BYPASS"] = "true"
+os.environ["AUTO_PROVISION_EMPLOYEES"] = "true"  # tests assume the default; a local .env may switch it off
+os.environ["SUPABASE_SERVICE_ROLE_KEY"] = ""  # never call real Supabase admin APIs (e.g. Storage) from tests
 os.environ["TOKEN_ENCRYPTION_KEY"] = "v7yv-Xz6V_wZJ39gQ5t0Q8_1Jz9r-3m3e91uGz_lZpY="
 
 import pytest
@@ -22,14 +28,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
-# Use SQLite in-memory with StaticPool for tests
-TEST_SQLALCHEMY_DATABASE_URL = "sqlite:///:memory:"
-
-engine = create_engine(
-    TEST_SQLALCHEMY_DATABASE_URL,
-    connect_args={"check_same_thread": False},
-    poolclass=StaticPool,
-)
+if TEST_SQLALCHEMY_DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(
+        TEST_SQLALCHEMY_DATABASE_URL,
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+else:
+    engine = create_engine(TEST_SQLALCHEMY_DATABASE_URL, poolclass=StaticPool)
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 import app.core.database

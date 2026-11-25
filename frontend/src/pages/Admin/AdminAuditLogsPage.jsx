@@ -62,7 +62,7 @@ export const AdminAuditLogsPage = () => {
       header: 'Action',
       accessor: 'action',
       render: (row) => (
-        <span className="font-mono text-xs font-medium text-[#172B24] uppercase">
+        <span className="font-mono text-xs font-medium text-slate-900 uppercase">
           {row.action?.replace(/_/g, ' ')}
         </span>
       ),
@@ -71,7 +71,7 @@ export const AdminAuditLogsPage = () => {
       header: 'Performed By',
       accessor: 'employee_name',
       render: (row) => (
-        <span className="text-xs font-medium text-[#172B24]">
+        <span className="text-xs font-medium text-slate-900">
           {row.employee_name || 'System Actor'}
         </span>
       ),
@@ -120,7 +120,7 @@ export const AdminAuditLogsPage = () => {
       {error && <ErrorState message={error} onRetry={fetchLogs} />}
 
       {/* Filter Tabs */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 shadow-xs flex items-center justify-between">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3 flex items-center justify-between">
         <FilterDropdown
           value={actionFilter}
           onChange={(e) => setActionFilter(e.target.value)}

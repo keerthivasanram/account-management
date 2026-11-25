@@ -23,7 +23,7 @@ export const PrimaryButton = ({
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-md font-medium text-white bg-[#166534] hover:bg-[#14532D] active:bg-[#0f3d1f] border border-[#166534] shadow-xs transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-[#166534] focus:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${sizeStyles} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium text-white bg-brand-700 hover:bg-brand-800 active:bg-brand-900 border border-brand-700 shadow-sm shadow-brand-900/10 transition-colors duration-150 focus:outline-none focus:ring-4 focus:ring-brand-200 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${sizeStyles} ${className}`}
       {...props}
     >
       {loading ? (

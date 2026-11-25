@@ -1,3 +1,4 @@
+from app.core.permissions import is_admin
 import uuid
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,6 +8,8 @@ from app.models.models import Employee
 from app.services.auth_service import get_current_employee
 from app.repositories.chat_repo import ChatRepository
 from app.repositories.employee_repo import EmployeeRepository
+from app.services.chat_contacts import contacts_for
+from app.core.permissions import Perm, has_permission
 from app.schemas.chat import (
     ConversationResponse, ConversationCreate, ConversationMemberResponse,
     MessageResponse, MessageCreate, MessageSender
@@ -55,7 +58,8 @@ def list_conversations(
             ConversationResponse(
                 id=c.id,
                 type=c.type,
-                title=c.title or (members[0].full_name if members else "Conversation"),
+                title=(next((m.full_name for m in members if m.employee_id != current_employee.id), None) or "Direct message")
+                if c.type == "DIRECT" else (c.title or "Conversation"),
                 department_id=c.department_id,
                 created_by=c.created_by,
                 created_at=c.created_at,
@@ -66,6 +70,13 @@ def list_conversations(
         )
     return result
 
+@router.get("/contacts")
+def list_contacts(current_employee: Employee = Depends(get_current_employee), db: Session = Depends(get_db)):
+    """People you may start a conversation with."""
+    return [{"id": e.id, "full_name": e.full_name, "employee_code": e.employee_code, "job_title": e.job_title,
+             "is_manager": e.id == current_employee.manager_id}
+            for e in contacts_for(db, current_employee)]
+
 @router.post("/conversations", response_model=ConversationResponse, status_code=status.HTTP_201_CREATED)
 def create_conversation(
     payload: ConversationCreate,
@@ -75,6 +86,20 @@ def create_conversation(
     """Creates a new 1:1 direct chat or team channel."""
     repo = ChatRepository(db)
     emp_repo = EmployeeRepository(db)
+    allowed_ids = {e.id for e in contacts_for(db, current_employee)}
+    if payload.type == "DIRECT":
+        if payload.member_ids and payload.member_ids[0] not in allowed_ids:
+            raise HTTPException(status_code=403, detail="You can message your team lead, your department and your team.")
+    else:
+        if payload.type not in ("PROJECT", "DEPARTMENT", "ANNOUNCEMENT"):
+            raise HTTPException(status_code=400, detail="Group type must be PROJECT, DEPARTMENT or ANNOUNCEMENT.")
+        if payload.type == "ANNOUNCEMENT" and not has_permission(current_employee, Perm.ADMIN_PORTAL):
+            raise HTTPException(status_code=403, detail="Only administrators can create announcement channels.")
+        if not has_permission(current_employee, Perm.MANAGER_PORTAL):
+            raise HTTPException(status_code=403, detail="Ask your team lead to create a group.")
+        outside = [m for m in payload.member_ids if m not in allowed_ids and m != current_employee.id]
+        if outside:
+            raise HTTPException(status_code=403, detail="Groups can only include people you work with.")
 
     if payload.type == "DIRECT":
         if not payload.member_ids or len(payload.member_ids) < 1:
@@ -129,7 +154,7 @@ def get_messages(
 
     # Membership authorization check
     is_member = any(m.employee_id == current_employee.id for m in conv.members)
-    if not is_member and current_employee.role != "admin":
+    if not is_member and not is_admin(current_employee):
         raise HTTPException(status_code=403, detail="Not authorized to view this conversation.")
 
     messages = repo.list_messages(conversation_id)
@@ -167,7 +192,7 @@ def send_message(
         raise HTTPException(status_code=404, detail="Conversation not found.")
 
     is_member = any(m.employee_id == current_employee.id for m in conv.members)
-    if not is_member and current_employee.role != "admin":
+    if not is_member and not is_admin(current_employee):
         raise HTTPException(status_code=403, detail="Not authorized to post in this conversation.")
 
     msg = repo.post_message(conversation_id, current_employee.id, payload.content)

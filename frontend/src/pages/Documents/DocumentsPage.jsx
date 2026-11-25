@@ -115,8 +115,8 @@ export const DocumentsPage = () => {
       accessor: 'title',
       render: (row) => (
         <div className="flex items-center gap-2.5">
-          <FileText className="w-4 h-4 text-[#166534] shrink-0" />
-          <span className="font-semibold text-sm text-[#172B24]">{row.title}</span>
+          <FileText className="w-4 h-4 text-brand-700 shrink-0" />
+          <span className="font-semibold text-sm text-slate-900">{row.title}</span>
         </div>
       ),
     },
@@ -207,7 +207,7 @@ export const DocumentsPage = () => {
       {error && <ErrorState message={error} onRetry={fetchDocuments} />}
 
       {/* Filter Bar */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="w-full sm:w-72">
           <SearchInput
             value={searchQuery}
@@ -329,15 +329,15 @@ export const DocumentsPage = () => {
             <div className="p-3 bg-[#F8FAFC] border border-[#E5E7EB] rounded-md space-y-1.5">
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Classification:</span>
-                <span className="font-semibold text-[#172B24]">{viewingDoc.classification}</span>
+                <span className="font-semibold text-slate-900">{viewingDoc.classification}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Category:</span>
-                <span className="text-[#172B24]">{viewingDoc.category}</span>
+                <span className="text-slate-900">{viewingDoc.category}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-[#64748B]">Uploaded:</span>
-                <span className="text-[#172B24]">{new Date(viewingDoc.created_at).toLocaleString()}</span>
+                <span className="text-slate-900">{new Date(viewingDoc.created_at).toLocaleString()}</span>
               </div>
             </div>
 

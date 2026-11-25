@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import CorrectionModal from '../../components/attendance/CorrectionModal';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/ui/PageHeader';
@@ -25,14 +27,18 @@ export const AttendancePage = () => {
   const [summary, setSummary] = useState(null);
   const [history, setHistory] = useState([]);
   const [leaves, setLeaves] = useState([]);
+  const [balance, setBalance] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' | 'leaves'
+  // Deep links from the dashboard: ?tab=leaves opens the leave tab, ?request=leave opens the request form.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'leaves' ? 'leaves' : 'attendance'); // 'attendance' | 'leaves'
   const [feedback, setFeedback] = useState(null);
 
   // Leave Request Modal State
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(searchParams.get('request') === 'leave');
+  const [fixingDay, setFixingDay] = useState(false);
   const [leaveForm, setLeaveForm] = useState({
     leave_type: 'CASUAL',
     start_date: '',
@@ -44,14 +50,16 @@ export const AttendancePage = () => {
     try {
       setLoading(true);
       setError(null);
-      const [sumRes, histRes, leavesRes] = await Promise.all([
+      const [sumRes, histRes, leavesRes, balRes] = await Promise.all([
         api.attendance.getSummary(),
         api.attendance.getHistory(),
-        api.attendance.listLeaves(),
+        api.attendance.listLeaves({ scope: 'mine' }),
+        api.attendance.getLeaveBalance().catch(() => ({ data: null })),
       ]);
       setSummary(sumRes.data);
       setHistory(histRes.data || []);
       setLeaves(leavesRes.data || []);
+      setBalance(balRes.data);
     } catch (err) {
       console.error('Failed to load attendance:', err);
       setError('Failed to fetch attendance data.');
@@ -71,7 +79,7 @@ export const AttendancePage = () => {
       setFeedback({ type: 'success', text: 'Clocked in successfully for today\'s shift.' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to check in.');
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Clock-in failed. Try again.' });
     } finally {
       setActionLoading(false);
     }
@@ -84,28 +92,40 @@ export const AttendancePage = () => {
       setFeedback({ type: 'success', text: 'Clocked out successfully.' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to check out.');
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Clock-out failed. Try again.' });
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleCancelLeave = async (row) => {
+    if (!window.confirm(`Cancel your ${row.leave_type.toLowerCase()} leave (${row.start_date} to ${row.end_date})?`)) return;
+    try {
+      await api.attendance.cancelLeave(row.id);
+      setFeedback({ type: 'success', text: 'Leave request cancelled.' });
+      fetchData();
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Could not cancel leave.' });
     }
   };
 
   const handleRequestLeave = async (e) => {
     e.preventDefault();
     if (!leaveForm.start_date || !leaveForm.end_date || !leaveForm.reason.trim()) {
-      alert('Please fill out all required fields.');
+      setFeedback({ type: 'error', text: 'Choose a leave type, both dates and a reason.' });
       return;
     }
 
     try {
       setActionLoading(true);
       await api.attendance.requestLeave(leaveForm);
-      setFeedback({ type: 'success', text: 'Leave request submitted for manager review.' });
+      setFeedback({ type: 'success', text: 'Leave request sent to your team lead for review.' });
       setIsLeaveModalOpen(false);
       setLeaveForm({ leave_type: 'CASUAL', start_date: '', end_date: '', reason: '' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to request leave.');
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Failed to request leave.' });
+      setIsLeaveModalOpen(false);
     } finally {
       setActionLoading(false);
     }
@@ -116,7 +136,7 @@ export const AttendancePage = () => {
       header: 'Shift Date',
       accessor: 'date',
       render: (row) => (
-        <span className="font-semibold text-xs text-[#172B24]">
+        <span className="font-semibold text-xs text-slate-900">
           {new Date(row.date).toLocaleDateString('en-US', {
             weekday: 'short',
             month: 'short',
@@ -129,7 +149,7 @@ export const AttendancePage = () => {
       header: 'Check In',
       accessor: 'check_in_time',
       render: (row) => (
-        <span className="font-mono text-xs text-[#172B24]">
+        <span className="font-mono text-xs text-slate-900">
           {row.check_in_time
             ? new Date(row.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '—'}
@@ -151,7 +171,7 @@ export const AttendancePage = () => {
       header: 'Logged Hours',
       accessor: 'hours_worked',
       render: (row) => (
-        <span className="font-mono text-xs font-medium text-[#172B24]">
+        <span className="font-mono text-xs font-medium text-slate-900">
           {row.hours_worked ? `${row.hours_worked.toFixed(1)} hrs` : 'In Progress'}
         </span>
       ),
@@ -168,7 +188,7 @@ export const AttendancePage = () => {
       header: 'Leave Type',
       accessor: 'leave_type',
       render: (row) => (
-        <span className="font-semibold text-xs text-[#172B24]">{row.leave_type}</span>
+        <span className="font-semibold text-xs text-slate-900">{row.leave_type}</span>
       ),
     },
     {
@@ -184,22 +204,43 @@ export const AttendancePage = () => {
       header: 'Reason',
       accessor: 'reason',
       render: (row) => (
-        <span className="text-xs text-[#172B24] truncate max-w-xs block">{row.reason}</span>
+        <span className="text-xs text-slate-900 truncate max-w-xs block">{row.reason}</span>
       ),
     },
     {
       header: 'Status',
       accessor: 'status',
-      render: (row) => <StatusBadge status={row.status} />,
+      render: (row) => (
+        <div>
+          <StatusBadge status={row.status} />
+          {row.reviewer_name && (
+            <p className="text-[11px] text-[#64748B] mt-1">
+              by {row.reviewer_name}{row.review_remarks ? ` · ${row.review_remarks}` : ''}
+            </p>
+          )}
+        </div>
+      ),
+    },
+    {
+      header: '',
+      align: 'right',
+      render: (row) => {
+        const cancellable = row.status === 'PENDING' || (row.status === 'APPROVED' && row.start_date > new Date().toISOString().slice(0, 10));
+        return cancellable ? (
+          <SecondaryButton size="sm" onClick={() => handleCancelLeave(row)}>Cancel</SecondaryButton>
+        ) : null;
+      },
     },
   ];
+
+  const annual = balance?.balances?.find((b) => b.leave_type === 'ANNUAL');
 
   return (
     <div className="space-y-6">
       {/* 1. Page Header */}
       <PageHeader
-        title="Attendance & Leave Management"
-        description="Shift tracking, biometric verification logs, and self-service time-off approvals."
+        title="Attendance & leave"
+        description="Clock in and out, see your hours, and request time off."
         breadcrumbs={[
           { label: 'Overview', to: '/dashboard' },
           { label: 'Workspace' },
@@ -215,7 +256,7 @@ export const AttendancePage = () => {
                 disabled={actionLoading}
                 icon={LogOut}
               >
-                Clock Out
+                Clock out
               </SecondaryButton>
             ) : (
               <PrimaryButton
@@ -224,7 +265,7 @@ export const AttendancePage = () => {
                 disabled={actionLoading}
                 icon={LogIn}
               >
-                Clock In (Shift Start)
+                Clock in
               </PrimaryButton>
             )}
             <SecondaryButton
@@ -232,7 +273,7 @@ export const AttendancePage = () => {
               onClick={() => setIsLeaveModalOpen(true)}
               icon={Plus}
             >
-              Request Leave
+              Request leave
             </SecondaryButton>
           </div>
         }
@@ -256,7 +297,7 @@ export const AttendancePage = () => {
       {error && <ErrorState message={error} onRetry={fetchData} />}
 
       {/* 2. Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="stat-group grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard
           label="Today's Shift Status"
           value={summary?.today_status === 'CHECKED_IN' ? 'Clocked In' : 'Not Checked In'}
@@ -267,19 +308,15 @@ export const AttendancePage = () => {
         />
         <MetricCard
           label="Total Hours This Month"
-          value={`${summary?.total_hours_this_month || 0} hrs`}
+          value={`${summary?.current_month_total_hours ?? 0} hrs`}
           icon={Calendar}
-          subtext="Target: 160 hrs"
-          trend="On Track"
-          trendDirection="up"
+          subtext={`${summary?.current_month_present_days ?? 0} day(s) logged`}
         />
         <MetricCard
-          label="Remaining Leave Balance"
-          value={`${summary?.remaining_leaves || 14} days`}
+          label="Annual Leave Remaining"
+          value={annual ? `${annual.remaining} days` : '—'}
           icon={CheckCircle2}
-          subtext="Annual paid leave quota"
-          trend="Available"
-          trendDirection="neutral"
+          subtext={annual ? `${annual.used} used · ${annual.pending} pending of ${annual.allowance}` : 'Balance unavailable'}
         />
       </div>
 
@@ -289,8 +326,8 @@ export const AttendancePage = () => {
           onClick={() => setActiveTab('attendance')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'attendance'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Attendance History ({history.length})
@@ -299,8 +336,8 @@ export const AttendancePage = () => {
           onClick={() => setActiveTab('leaves')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'leaves'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Leave Requests ({leaves.length})
@@ -323,6 +360,15 @@ export const AttendancePage = () => {
           emptyTitle="No leave requests submitted"
           emptyDescription="Submit time-off requests using the Request Leave button."
         />
+      )}
+
+      <p className="text-sm text-slate-600 -mt-2">
+        Forgot to clock in or out?{' '}
+        <button type="button" onClick={() => setFixingDay(true)} className="font-medium text-brand-700 hover:underline">Fix a day</button>
+        {' '}· <Link to="/attendance/register" className="font-medium text-brand-700 hover:underline">See my month</Link>
+      </p>
+      {fixingDay && (
+        <CorrectionModal onClose={() => setFixingDay(false)} onSent={(t) => { setFixingDay(false); setFeedback({ type: 'success', text: t }); }} />
       )}
 
       {/* Request Leave Modal */}
@@ -379,7 +425,7 @@ export const AttendancePage = () => {
                 placeholder="Reason for leave request..."
                 rows={3}
                 required
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 

@@ -118,7 +118,7 @@ export const AdminSecurityPage = () => {
       accessor: 'event_type',
       render: (row) => (
         <div className="flex items-center gap-1.5">
-          <span className="font-mono text-xs font-semibold text-[#172B24]">
+          <span className="font-mono text-xs font-semibold text-slate-900">
             {row.event_type}
           </span>
           {row.key_combination && (
@@ -134,7 +134,7 @@ export const AdminSecurityPage = () => {
       accessor: 'actor_name',
       render: (row) => (
         <div>
-          <p className="text-xs font-medium text-[#172B24]">{row.actor_name || 'Unknown User'}</p>
+          <p className="text-xs font-medium text-slate-900">{row.actor_name || 'Unknown User'}</p>
           <p className="text-[10px] text-[#64748B] font-mono">{row.actor_code}</p>
         </div>
       ),
@@ -186,14 +186,14 @@ export const AdminSecurityPage = () => {
       header: 'Device Name',
       accessor: 'device_name',
       render: (row) => (
-        <span className="font-semibold text-sm text-[#172B24]">{row.device_name || 'Workstation'}</span>
+        <span className="font-semibold text-sm text-slate-900">{row.device_name || 'Workstation'}</span>
       ),
     },
     {
       header: 'Bound Employee',
       accessor: 'employee_name',
       render: (row) => (
-        <span className="text-xs font-medium text-[#172B24]">{row.employee_name || 'Staff'}</span>
+        <span className="text-xs font-medium text-slate-900">{row.employee_name || 'Staff'}</span>
       ),
     },
     {
@@ -265,7 +265,7 @@ export const AdminSecurityPage = () => {
       {error && <ErrorState message={error} onRetry={fetchSecurityData} />}
 
       {/* 2. Compact Security Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="stat-group grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard
           label="Total Intercepted Incidents"
           value={incidents.length}
@@ -298,8 +298,8 @@ export const AdminSecurityPage = () => {
           onClick={() => setActiveTab('incidents')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'incidents'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Security Incidents ({incidents.length})
@@ -308,8 +308,8 @@ export const AdminSecurityPage = () => {
           onClick={() => setActiveTab('devices')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'devices'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Trusted Devices ({devices.length})
@@ -319,7 +319,7 @@ export const AdminSecurityPage = () => {
       {/* Tab Content */}
       {activeTab === 'incidents' ? (
         <div className="space-y-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+          <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
             <div className="w-full sm:w-72">
               <SearchInput
                 value={searchQuery}

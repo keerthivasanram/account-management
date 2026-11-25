@@ -1,4 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, Hash, Link2, MessageSquare, PartyPopper, Plus, Send, Users, X } from 'lucide-react';
+import GiveKudos from '../../components/community/GiveKudos';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/ui/PageHeader';
@@ -6,379 +9,334 @@ import PrimaryButton from '../../components/ui/PrimaryButton';
 import SecondaryButton from '../../components/ui/SecondaryButton';
 import Modal from '../../components/Modal';
 import FormField from '../../components/ui/FormField';
-import LoadingState from '../../components/ui/LoadingState';
-import {
-  MessageSquare,
-  Send,
-  Plus,
-  Users,
-  Hash,
-  RefreshCw,
-  ShieldCheck,
-  Lock
-} from 'lucide-react';
+import ErrorState from '../../components/ui/ErrorState';
+import { linkLabel, shareText, splitLinks } from './chatModel';
+import { mailTime } from '../Mail/mailModel';
 
-export const ChatPage = () => {
-  const { employee } = useAuth();
-  const [conversations, setConversations] = useState([]);
-  const [activeConv, setActiveConv] = useState(null);
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadingMessages, setLoadingMessages] = useState(false);
-  const [inputText, setInputText] = useState('');
-  const [sending, setSending] = useState(false);
-  const [employeesList, setEmployeesList] = useState([]);
+const errText = (err, fallback) => err?.response?.data?.detail || fallback;
+const initials = (name = '') => name.split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('') || '?';
 
-  // Modal State
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState('DIRECT'); // 'DIRECT' | 'CHANNEL'
-  const [selectedTargetEmp, setSelectedTargetEmp] = useState('');
-  const [channelTitle, setChannelTitle] = useState('');
-  const [creating, setCreating] = useState(false);
+const MessageText = ({ text, mine }) => (
+  <>
+    {splitLinks(text).map((seg, i) => (seg.to ? (
+      <Link key={i} to={seg.to} className={`inline-flex items-center gap-1 underline underline-offset-2 font-medium ${mine ? 'text-white' : 'text-brand-700'}`}>
+        <Link2 className="w-3 h-3" aria-hidden="true" />{linkLabel(seg.to)}
+      </Link>
+    ) : <span key={i}>{seg.text}</span>))}
+  </>
+);
 
-  const messagesEndRef = useRef(null);
+// ---------------------------------------------------------------- new conversation
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
-
-  const fetchConversations = async (maintainActive = true) => {
-    try {
-      const res = await api.chat.listConversations();
-      const list = res.data || [];
-      setConversations(list);
-      if (list.length > 0) {
-        if (!maintainActive || !activeConv) {
-          setActiveConv(list[0]);
-        } else {
-          const updated = list.find((c) => c.id === activeConv.id);
-          if (updated) setActiveConv(updated);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to load conversations:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchMessages = async (convId) => {
-    try {
-      setLoadingMessages(true);
-      const res = await api.chat.getMessages(convId);
-      setMessages(res.data || []);
-      setTimeout(scrollToBottom, 50);
-    } catch (err) {
-      console.error('Failed to load messages:', err);
-    } finally {
-      setLoadingMessages(false);
-    }
-  };
+const NewConversation = ({ canGroup, isAdmin, onClose, onCreated }) => {
+  const [mode, setMode] = useState('DIRECT');
+  const [contacts, setContacts] = useState(null);
+  const [target, setTarget] = useState('');
+  const [title, setTitle] = useState('');
+  const [groupType, setGroupType] = useState('PROJECT');
+  const [members, setMembers] = useState([]);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchConversations(false);
-    api.admin.listEmployees().then((res) => setEmployeesList(res.data || [])).catch(() => {});
+    api.chat.contacts().then((r) => setContacts(r.data || [])).catch((err) => { setContacts([]); setError(errText(err, 'People could not be loaded.')); });
   }, []);
 
-  useEffect(() => {
-    if (activeConv) {
-      fetchMessages(activeConv.id);
-      const interval = setInterval(() => {
-        api.chat.getMessages(activeConv.id).then((res) => setMessages(res.data || [])).catch(() => {});
-      }, 5000);
-      return () => clearInterval(interval);
-    }
-  }, [activeConv?.id]);
-
-  const handleSendMessage = async (e) => {
+  const create = async (e) => {
     e.preventDefault();
-    if (!inputText.trim() || !activeConv || sending) return;
-
-    const content = inputText.trim();
-    setInputText('');
-    setSending(true);
-
+    setBusy(true);
+    setError(null);
     try {
-      const res = await api.chat.sendMessage(activeConv.id, content);
-      setMessages((prev) => [...prev, res.data]);
-      setTimeout(scrollToBottom, 50);
+      const payload = mode === 'DIRECT'
+        ? { type: 'DIRECT', member_ids: [target] }
+        : { type: groupType, title: title.trim(), member_ids: members };
+      const r = await api.chat.createConversation(payload);
+      onCreated(r.data);
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to send message.');
+      setError(errText(err, 'The conversation could not be started.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const toggle = (id) => setMembers((m) => (m.includes(id) ? m.filter((x) => x !== id) : [...m, id]));
+
+  return (
+    <Modal isOpen onClose={onClose} title="New conversation" maxWidth="max-w-md">
+      <form onSubmit={create} className="space-y-4">
+        {canGroup && (
+          <div role="tablist" aria-label="Conversation type" className="grid grid-cols-2 bg-slate-100 p-0.5 rounded-lg text-sm">
+            {[['DIRECT', 'Direct message'], ['GROUP', 'Group']].map(([id, label]) => (
+              <button key={id} type="button" role="tab" aria-selected={mode === id} onClick={() => setMode(id)}
+                className={`py-1.5 rounded-md font-medium ${mode === id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>{label}</button>
+            ))}
+          </div>
+        )}
+        {error && <p role="alert" className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2.5">{error}</p>}
+        {!contacts ? <div className="h-10 rounded bg-slate-100 animate-pulse" /> : contacts.length === 0 ? (
+          <p className="text-sm text-slate-600">There’s nobody you can message yet. You can message your team lead and your department once an administrator sets them on your profile.</p>
+        ) : mode === 'DIRECT' ? (
+          <FormField label="Message" required id="c_to">
+            <select id="c_to" value={target} onChange={(e) => setTarget(e.target.value)} required className="enterprise-input w-full cursor-pointer">
+              <option value="">Choose a person</option>
+              {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}{c.is_manager ? ' (your team lead)' : ''}{c.job_title ? ` · ${c.job_title}` : ''}</option>)}
+            </select>
+          </FormField>
+        ) : (
+          <>
+            <FormField label="Group name" required id="c_title">
+              <input id="c_title" value={title} onChange={(e) => setTitle(e.target.value)} required maxLength={120} placeholder="e.g. Winter launch" className="enterprise-input w-full" />
+            </FormField>
+            <FormField label="Kind" id="c_kind">
+              <select id="c_kind" value={groupType} onChange={(e) => setGroupType(e.target.value)} className="enterprise-input w-full cursor-pointer">
+                <option value="PROJECT">Project group</option>
+                <option value="DEPARTMENT">Department group</option>
+                {isAdmin && <option value="ANNOUNCEMENT">Announcements</option>}
+              </select>
+            </FormField>
+            <fieldset>
+              <legend className="text-sm font-medium text-slate-700 mb-1.5">Members</legend>
+              <div className="max-h-48 overflow-y-auto rounded-lg ring-1 ring-slate-200 divide-y divide-slate-100">
+                {contacts.map((c) => (
+                  <label key={c.id} className="flex items-center gap-2.5 px-3 py-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50">
+                    <input type="checkbox" checked={members.includes(c.id)} onChange={() => toggle(c.id)} className="accent-brand-700" />
+                    {c.full_name}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </>
+        )}
+        <div className="flex justify-end gap-2 pt-2 border-t border-[#E5E7EB]">
+          <SecondaryButton onClick={onClose}>Cancel</SecondaryButton>
+          <PrimaryButton type="submit" loading={busy} disabled={!contacts?.length || (mode === 'DIRECT' ? !target : !title.trim() || !members.length)}>Start</PrimaryButton>
+        </div>
+      </form>
+    </Modal>
+  );
+};
+
+// ---------------------------------------------------------------- share picker
+
+const SharePicker = ({ onPick, onClose }) => {
+  const [tab, setTab] = useState('account');
+  const [data, setData] = useState({});
+  const [error, setError] = useState(null);
+  useEffect(() => {
+    if (data[tab]) return;
+    const load = {
+      account: () => api.employees.getMyAccounts({ limit: 100 }),
+      task: () => api.tasks.list({ my_tasks_only: true }),
+      post: () => api.socialPosts.list({ mine: true }),
+    }[tab];
+    load().then((r) => setData((d) => ({ ...d, [tab]: r.data || [] }))).catch((err) => setError(errText(err, 'Could not load your items.')));
+  }, [tab, data]);
+  const items = data[tab];
+  const label = (it) => (tab === 'account' ? `@${it.username}` : tab === 'task' ? it.title : `@${it.account_username} · ${it.caption?.slice(0, 40) || ''}`);
+
+  return (
+    <Modal isOpen onClose={onClose} title="Share a link" maxWidth="max-w-md">
+      <div role="tablist" aria-label="What to share" className="grid grid-cols-3 bg-slate-100 p-0.5 rounded-lg text-sm mb-3">
+        {[['account', 'Account'], ['task', 'Task'], ['post', 'Post']].map(([id, l]) => (
+          <button key={id} type="button" role="tab" aria-selected={tab === id} onClick={() => setTab(id)}
+            className={`py-1.5 rounded-md font-medium ${tab === id ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>{l}</button>
+        ))}
+      </div>
+      <p className="text-xs text-slate-500 mb-2">The other person only sees it if they have access to it.</p>
+      {error ? <p className="text-sm text-rose-700">{error}</p> : !items ? <div className="h-24 rounded bg-slate-100 animate-pulse" /> : items.length === 0 ? (
+        <p className="text-sm text-slate-500 py-4">Nothing to share here yet.</p>
+      ) : (
+        <ul className="max-h-72 overflow-y-auto divide-y divide-slate-100 rounded-lg ring-1 ring-slate-200">
+          {items.slice(0, 50).map((it) => (
+            <li key={it.id}>
+              <button type="button" onClick={() => onPick(shareText(tab, it))} className="w-full text-left px-3 py-2.5 text-sm text-slate-800 hover:bg-slate-50 truncate">{label(it)}</button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Modal>
+  );
+};
+
+// ---------------------------------------------------------------- page
+
+export const ChatPage = () => {
+  const { employee, can } = useAuth();
+  const [convos, setConvos] = useState(null);
+  const [activeId, setActiveId] = useState(null);
+  const [messages, setMessages] = useState([]);
+  const [error, setError] = useState(null);
+  const [msgError, setMsgError] = useState(null);
+  const [text, setText] = useState('');
+  const [sending, setSending] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [kudos, setKudos] = useState(false);
+  const [notice, setNotice] = useState(null);
+  const endRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const loadConvos = useCallback(async () => {
+    try {
+      setConvos((await api.chat.listConversations()).data || []);
+      setError(null);
+    } catch (err) {
+      setError(errText(err, 'Conversations could not be loaded.'));
+    }
+  }, []);
+  useEffect(() => { loadConvos(); }, [loadConvos]);
+
+  const active = convos?.find((c) => c.id === activeId) || null;
+
+  useEffect(() => {
+    if (!activeId) return undefined;
+    let alive = true;
+    const pull = () => api.chat.getMessages(activeId)
+      .then((r) => { if (alive) { setMessages(r.data || []); setMsgError(null); } })
+      .catch((err) => alive && setMsgError(errText(err, 'Messages could not be loaded.')));
+    setMessages([]);
+    pull();
+    const t = setInterval(pull, 5000);
+    return () => { alive = false; clearInterval(t); };
+  }, [activeId]);
+
+  useEffect(() => { endRef.current?.scrollIntoView({ block: 'end' }); }, [messages.length]);
+
+  const send = async (e) => {
+    e.preventDefault();
+    const content = text.trim();
+    if (!content || !active) return;
+    setSending(true);
+    setMsgError(null);
+    try {
+      const r = await api.chat.sendMessage(active.id, content);
+      setMessages((m) => [...m, r.data]);
+      setText('');
+      loadConvos();
+    } catch (err) {
+      setMsgError(errText(err, 'The message wasn’t sent.'));
     } finally {
       setSending(false);
     }
   };
 
-  const handleCreateConversation = async (e) => {
-    e.preventDefault();
-    setCreating(true);
-    try {
-      let payload;
-      if (modalType === 'DIRECT') {
-        if (!selectedTargetEmp) return;
-        payload = {
-          type: 'DIRECT',
-          participant_ids: [selectedTargetEmp],
-        };
-      } else {
-        if (!channelTitle.trim()) return;
-        payload = {
-          type: 'CHANNEL',
-          title: channelTitle.trim(),
-        };
-      }
-
-      const res = await api.chat.createConversation(payload);
-      setIsModalOpen(false);
-      setSelectedTargetEmp('');
-      setChannelTitle('');
-      await fetchConversations(false);
-      setActiveConv(res.data);
-    } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to create conversation.');
-    } finally {
-      setCreating(false);
-    }
-  };
+  const sorted = (convos || []).slice().sort((a, b) =>
+    new Date(b.latest_message?.created_at || b.created_at) - new Date(a.latest_message?.created_at || a.created_at));
 
   return (
-    <div className="space-y-6">
-      {/* 1. Page Header */}
+    <div className="space-y-5">
       <PageHeader
-        title="Company Chat & Channels"
-        description="Internal corporate messaging with data loss prevention and audit-compliant logging."
-        breadcrumbs={[
-          { label: 'Overview', to: '/dashboard' },
-          { label: 'Workspace' },
-          { label: 'Company Chat' },
-        ]}
+        title="Team messages"
+        description="Talk with your team lead, your team and project groups. Share links to accounts, tasks and posts."
+        breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'Team messages' }]}
         actions={
-          <PrimaryButton size="sm" onClick={() => setIsModalOpen(true)} icon={Plus}>
-            New Chat
-          </PrimaryButton>
+          <div className="flex flex-wrap gap-2">
+            <SecondaryButton size="sm" icon={PartyPopper} onClick={() => setKudos(true)}>Give kudos</SecondaryButton>
+            <PrimaryButton size="sm" icon={Plus} onClick={() => setCreating(true)}>New conversation</PrimaryButton>
+          </div>
         }
       />
+      {notice && <p role="status" className="text-sm text-[#15803D]">{notice}</p>}
 
-      {/* Main Chat Interface */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs overflow-hidden h-[620px] flex">
-        {/* Left: Conversation List (Width: 260px) */}
-        <div className="w-64 border-r border-[#E5E7EB] flex flex-col shrink-0 bg-[#FBFBFC]">
-          <div className="p-3 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
-            <span className="text-xs font-semibold text-[#172B24] uppercase tracking-wider">
-              Conversations
-            </span>
-            <SecondaryButton
-              size="sm"
-              onClick={() => fetchConversations(true)}
-              icon={RefreshCw}
-              title="Refresh"
-              className="h-7 w-7 p-0"
-            />
-          </div>
-
-          <div className="flex-1 overflow-y-auto divide-y divide-[#E5E7EB]">
-            {loading ? (
-              <LoadingState message="Loading channels..." />
-            ) : conversations.length === 0 ? (
-              <div className="p-4 text-center text-xs text-[#64748B]">
-                No active conversations yet.
+      {error ? <ErrorState message={error} onRetry={loadConvos} /> : (
+        <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden h-[calc(100vh-15rem)] min-h-[480px] md:grid md:grid-cols-[300px_1fr]">
+          {/* conversation list */}
+          <nav aria-label="Conversations" className={`${active ? 'hidden md:flex' : 'flex'} flex-col h-full md:border-r border-[#E6EAF0] min-w-0`}>
+            {!convos ? (
+              <div className="p-4 space-y-3" aria-busy="true">{[0, 1, 2].map((i) => <div key={i} className="h-12 rounded bg-slate-100 animate-pulse" />)}</div>
+            ) : sorted.length === 0 ? (
+              <div className="p-6 text-center my-auto">
+                <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" aria-hidden="true" />
+                <p className="mt-2 text-sm font-medium text-slate-900">No conversations yet</p>
+                <p className="text-xs text-slate-500 mt-1">Start one with your team lead or a teammate.</p>
+                <SecondaryButton size="sm" icon={Plus} className="mt-3" onClick={() => setCreating(true)}>New conversation</SecondaryButton>
               </div>
             ) : (
-              conversations.map((conv) => {
-                const isActive = activeConv?.id === conv.id;
-                const isChannel = conv.type === 'CHANNEL';
-
-                return (
-                  <button
-                    key={conv.id}
-                    onClick={() => setActiveConv(conv)}
-                    className={`w-full text-left p-3 text-xs transition-colors cursor-pointer flex items-start gap-2.5 ${
-                      isActive
-                        ? 'bg-[#F0FDF4] border-l-2 border-[#166534]'
-                        : 'hover:bg-[#F1F5F9]'
-                    }`}
-                  >
-                    <div
-                      className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
-                        isActive
-                          ? 'bg-[#166534] text-white'
-                          : 'bg-[#E2E8F0] text-[#64748B]'
-                      }`}
-                    >
-                      {isChannel ? <Hash className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className={`font-semibold truncate ${isActive ? 'text-[#166534]' : 'text-[#172B24]'}`}>
-                        {conv.title || 'Direct Conversation'}
-                      </p>
-                      <p className="text-[11px] text-[#64748B] truncate mt-0.5">
-                        {conv.last_message || 'No messages yet'}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })
+              <ul className="overflow-y-auto divide-y divide-slate-100">
+                {sorted.map((c) => {
+                  const m = c.latest_message;
+                  const group = c.type !== 'DIRECT';
+                  return (
+                    <li key={c.id}>
+                      <button type="button" onClick={() => setActiveId(c.id)} aria-current={c.id === activeId ? 'true' : undefined}
+                        className={`w-full text-left px-4 py-3 flex gap-3 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brand-500 ${c.id === activeId ? 'bg-brand-50' : 'hover:bg-slate-50'}`}>
+                        <span className="w-9 h-9 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold flex items-center justify-center shrink-0">
+                          {group ? <Hash className="w-4 h-4" aria-hidden="true" /> : initials(c.title)}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="flex justify-between gap-2">
+                            <span className="text-sm font-medium text-slate-900 truncate">{c.title}</span>
+                            {m && <span className="text-[11px] text-slate-400 shrink-0">{mailTime(m.created_at)}</span>}
+                          </span>
+                          <span className="block text-xs text-slate-500 truncate">
+                            {m ? `${m.sender_id === employee?.id ? 'You' : m.sender?.full_name?.split(' ')[0]}: ${m.is_redacted ? 'Message removed' : m.content}` : group ? `${c.member_count} members` : 'No messages yet'}
+                          </span>
+                        </span>
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
             )}
-          </div>
-        </div>
+          </nav>
 
-        {/* Right: Message Stream & Input */}
-        <div className="flex-1 flex flex-col min-w-0 bg-white">
-          {activeConv ? (
-            <>
-              {/* Chat Header */}
-              <div className="h-14 px-5 border-b border-[#E5E7EB] flex items-center justify-between bg-white shrink-0">
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm text-[#172B24]">
-                    {activeConv.title || 'Direct Conversation'}
+          {/* conversation */}
+          <section aria-label={active ? active.title : 'Conversation'} className={`${active ? 'flex' : 'hidden md:flex'} flex-col h-full min-w-0`}>
+            {!active ? (
+              <p className="m-auto text-sm text-slate-400">Choose a conversation.</p>
+            ) : (
+              <>
+                <header className="h-14 px-4 border-b border-[#E6EAF0] flex items-center gap-3 shrink-0">
+                  <button type="button" onClick={() => setActiveId(null)} aria-label="Back to conversations" className="md:hidden p-1.5 -ml-1 rounded text-slate-600 hover:bg-slate-100"><ArrowLeft className="w-4 h-4" /></button>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold text-slate-900 truncate">{active.title}</span>
+                    <span className="block text-[11px] text-slate-500 flex items-center gap-1">
+                      <Users className="w-3 h-3" aria-hidden="true" /> {active.members.map((m) => m.full_name).join(', ')}
+                    </span>
                   </span>
-                  <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0]">
-                    {activeConv.type}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 text-xs text-[#15803D]">
-                  <ShieldCheck className="w-4 h-4" />
-                  <span className="hidden sm:inline">DLP Protection Active</span>
-                </div>
-              </div>
-
-              {/* Messages Body */}
-              <div className="flex-1 p-5 overflow-y-auto space-y-3 bg-[#F8FAFC]">
-                {loadingMessages ? (
-                  <LoadingState message="Loading messages..." />
-                ) : messages.length === 0 ? (
-                  <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] text-xs">
-                    <MessageSquare className="w-8 h-8 text-[#CBD5E1] mb-2" />
-                    <p className="font-semibold text-[#172B24]">No messages yet</p>
-                    <p>Send the first message to initiate conversation.</p>
-                  </div>
-                ) : (
-                  messages.map((msg) => {
-                    const isMe = msg.sender_id === employee?.id;
+                </header>
+                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-slate-50" aria-live="polite">
+                  {messages.length === 0 && !msgError && <p className="text-center text-sm text-slate-400 mt-10">No messages yet. Say hello.</p>}
+                  {messages.map((m) => {
+                    const mine = m.sender_id === employee?.id;
                     return (
-                      <div
-                        key={msg.id}
-                        className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
-                      >
-                        <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-[11px] font-semibold text-[#172B24]">
-                            {isMe ? 'You' : msg.sender_name}
-                          </span>
-                          <span className="text-[10px] text-[#94A3B8] font-mono">
-                            {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </span>
-                        </div>
-                        <div
-                          className={`p-3 rounded-lg max-w-md text-xs leading-relaxed shadow-xs ${
-                            isMe
-                              ? 'bg-[#166534] text-white'
-                              : 'bg-white border border-[#E5E7EB] text-[#172B24]'
-                          }`}
-                        >
-                          {msg.content}
+                      <div key={m.id} className={`flex flex-col ${mine ? 'items-end' : 'items-start'}`}>
+                        <span className="text-[11px] text-slate-500 mb-0.5">{mine ? 'You' : m.sender?.full_name} · {mailTime(m.created_at)}</span>
+                        <div className={`px-3 py-2 rounded-2xl max-w-[85%] sm:max-w-md text-sm leading-relaxed whitespace-pre-line break-words ${mine ? 'bg-brand-700 text-white rounded-br-md' : 'bg-white ring-1 ring-slate-200 text-slate-900 rounded-bl-md'}`}>
+                          {m.is_redacted ? <em className="opacity-80">Message removed (it contained sensitive data)</em> : <MessageText text={m.content} mine={mine} />}
                         </div>
                       </div>
                     );
-                  })
-                )}
-                <div ref={messagesEndRef} />
-              </div>
-
-              {/* Message Input Box */}
-              <form onSubmit={handleSendMessage} className="p-3 border-t border-[#E5E7EB] bg-white flex items-center gap-2">
-                <input
-                  type="text"
-                  value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
-                  placeholder="Type an internal corporate message..."
-                  className="enterprise-input flex-1"
-                />
-                <PrimaryButton type="submit" disabled={!inputText.trim() || sending} icon={Send}>
-                  Send
-                </PrimaryButton>
-              </form>
-            </>
-          ) : (
-            <div className="h-full flex items-center justify-center text-xs text-[#64748B]">
-              Select a conversation to view messages.
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* New Conversation Modal */}
-      {isModalOpen && (
-        <Modal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          title="New Conversation"
-          maxWidth="max-w-md"
-        >
-          <form onSubmit={handleCreateConversation} className="space-y-4">
-            <div className="flex bg-[#F1F5F9] p-0.5 rounded-md text-xs">
-              <button
-                type="button"
-                onClick={() => setModalType('DIRECT')}
-                className={`flex-1 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
-                  modalType === 'DIRECT' ? 'bg-white text-[#172B24] shadow-xs' : 'text-[#64748B]'
-                }`}
-              >
-                Direct Message
-              </button>
-              <button
-                type="button"
-                onClick={() => setModalType('CHANNEL')}
-                className={`flex-1 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
-                  modalType === 'CHANNEL' ? 'bg-white text-[#172B24] shadow-xs' : 'text-[#64748B]'
-                }`}
-              >
-                Team Channel
-              </button>
-            </div>
-
-            {modalType === 'DIRECT' ? (
-              <FormField label="Select Team Member" required id="emp_chat">
-                <select
-                  id="emp_chat"
-                  value={selectedTargetEmp}
-                  onChange={(e) => setSelectedTargetEmp(e.target.value)}
-                  required
-                  className="enterprise-input w-full cursor-pointer"
-                >
-                  <option value="">Choose an employee...</option>
-                  {employeesList
-                    .filter((e) => e.id !== employee?.id)
-                    .map((emp) => (
-                      <option key={emp.id} value={emp.id}>
-                        {emp.full_name} ({emp.employee_code})
-                      </option>
-                    ))}
-                </select>
-              </FormField>
-            ) : (
-              <FormField label="Channel Title" required id="ch_title">
-                <input
-                  type="text"
-                  id="ch_title"
-                  value={channelTitle}
-                  onChange={(e) => setChannelTitle(e.target.value)}
-                  placeholder="e.g. #marketing-deliverables"
-                  required
-                  className="enterprise-input w-full"
-                />
-              </FormField>
+                  })}
+                  <div ref={endRef} />
+                </div>
+                {msgError && <p role="alert" className="px-4 py-2 text-xs text-rose-700 bg-rose-50 border-t border-rose-200 flex justify-between">{msgError}<button type="button" onClick={() => setMsgError(null)} aria-label="Dismiss"><X className="w-3.5 h-3.5" /></button></p>}
+                <form onSubmit={send} className="p-3 border-t border-[#E6EAF0] flex items-center gap-2">
+                  <button type="button" onClick={() => setSharing(true)} aria-label="Share a link to an account, task or post" title="Share a link"
+                    className="h-10 w-10 shrink-0 rounded-lg ring-1 ring-slate-200 text-slate-500 hover:text-slate-900 hover:bg-slate-50 flex items-center justify-center">
+                    <Link2 className="w-4 h-4" />
+                  </button>
+                  <label htmlFor="chat-input" className="sr-only">Message</label>
+                  <input id="chat-input" ref={inputRef} value={text} onChange={(e) => setText(e.target.value)} maxLength={4000} placeholder="Write a message" className="enterprise-input flex-1 min-w-0 h-10" autoComplete="off" />
+                  <PrimaryButton type="submit" icon={Send} loading={sending} disabled={!text.trim()}><span className="hidden sm:inline">Send</span></PrimaryButton>
+                </form>
+              </>
             )}
+          </section>
+        </div>
+      )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#E5E7EB]">
-              <SecondaryButton onClick={() => setIsModalOpen(false)}>
-                Cancel
-              </SecondaryButton>
-              <PrimaryButton type="submit" loading={creating}>
-                Create Conversation
-              </PrimaryButton>
-            </div>
-          </form>
-        </Modal>
+      {creating && (
+        <NewConversation canGroup={can('manager:portal')} isAdmin={can('admin:portal')} onClose={() => setCreating(false)}
+          onCreated={(c) => { setCreating(false); loadConvos().then(() => setActiveId(c.id)); }} />
+      )}
+      {kudos && <GiveKudos onClose={() => setKudos(false)} onSent={(t) => { setKudos(false); setNotice(t); }} />}
+      {sharing && (
+        <SharePicker onClose={() => setSharing(false)} onPick={(snippet) => {
+          setSharing(false);
+          setText((t) => (t.trim() ? `${t.trim()} ${snippet}` : snippet));
+          setTimeout(() => inputRef.current?.focus(), 0);
+        }} />
       )}
     </div>
   );

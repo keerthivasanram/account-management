@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 from app.core.database import get_db
 from app.models.models import Employee
 from app.schemas.department import DepartmentCreate, DepartmentUpdate, DepartmentResponse
+from app.core.permissions import Perm, require_permission
 from app.services.auth_service import get_current_employee, require_admin
 from app.services.department_service import DepartmentService
 
@@ -32,7 +33,7 @@ def get_department(
 @router.post("", response_model=DepartmentResponse, status_code=status.HTTP_201_CREATED)
 def create_department(
     data: DepartmentCreate,
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.DEPARTMENTS_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Creates a new organizational department (Admin only)."""
@@ -43,7 +44,7 @@ def create_department(
 def update_department(
     dept_id: uuid.UUID,
     data: DepartmentUpdate,
-    admin: Employee = Depends(require_admin),
+    admin: Employee = Depends(require_permission(Perm.DEPARTMENTS_MANAGE)),
     db: Session = Depends(get_db)
 ):
     """Updates department details or assigns department head (Admin only)."""

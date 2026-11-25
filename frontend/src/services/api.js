@@ -25,12 +25,19 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 403 && error.response.data?.code === 'MOBILE_BLOCKED') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      if (window.location.pathname !== '/') window.location.href = '/?blocked=mobile';
+      return Promise.reject(error);
+    }
     if (error.response && error.response.status === 401) {
       // Optional: clear token if invalid
-      if (window.location.pathname !== '/login') {
+      // Expired/invalid session: drop it and return to the sign-in page (the front page)
+      if (window.location.pathname !== '/') {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
-        window.location.href = '/login';
+        window.location.href = '/';
       }
     }
     return Promise.reject(error);
@@ -54,6 +61,27 @@ export const api = {
     getMyProfile: () => apiClient.get('/employees/me'),
     getMyAccounts: (params) => apiClient.get('/employees/me/accounts', { params }),
     getMyDashboardStats: () => apiClient.get('/employees/me/stats'),
+    updateMyProfile: (data) => apiClient.patch('/employees/me', data),
+  },
+
+  // Manager workspace (team, approvals)
+  manager: {
+    getOverview: () => apiClient.get('/manager/overview'),
+    getApprovals: () => apiClient.get('/manager/approvals'),
+    // Team lead: team account requests and reassignment within the team
+    reviewAccount: (id, data) => apiClient.patch(`/manager/accounts/${id}/approval`, data),
+    teamAccounts: () => apiClient.get('/manager/accounts'),
+    reassign: (id, employeeId) => apiClient.post(`/manager/accounts/${id}/assign`, { employee_id: employeeId }),
+  },
+
+  // Super admin console
+  superAdmin: {
+    getOverview: () => apiClient.get('/super-admin/overview'),
+    getSettings: () => apiClient.get('/super-admin/settings'),
+    updateSettings: (changes) => apiClient.put('/super-admin/settings', changes),
+    getHealth: () => apiClient.get('/super-admin/health'),
+    searchAudit: (params) => apiClient.get('/super-admin/audit', { params }),
+    revokeAllSessions: () => apiClient.post('/super-admin/sessions/revoke-all'),
   },
 
   // Instagram Accounts
@@ -64,6 +92,12 @@ export const api = {
     getById: (id) => apiClient.get(`/accounts/${id}`),
     update: (id, data) => apiClient.patch(`/accounts/${id}`, data),
     getStatus: (id) => apiClient.get(`/accounts/${id}/status`),
+    importTemplate: () => apiClient.get('/accounts/import/template', { responseType: 'blob' }),
+    importCsv: (file, dryRun = true) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/accounts/import', form, { params: { dry_run: dryRun }, headers: { 'Content-Type': 'multipart/form-data' } });
+    },
   },
 
   // Meta OAuth Integrations
@@ -104,6 +138,7 @@ export const api = {
   // Company-Managed Internal Messaging
   chat: {
     listConversations: () => apiClient.get('/chat/conversations'),
+    contacts: () => apiClient.get('/chat/contacts'),
     createConversation: (data) => apiClient.post('/chat/conversations', data),
     getMessages: (conversationId) => apiClient.get(`/chat/conversations/${conversationId}/messages`),
     sendMessage: (conversationId, content) => apiClient.post(`/chat/conversations/${conversationId}/messages`, { content }),
@@ -116,14 +151,19 @@ export const api = {
     checkOut: () => apiClient.post('/attendance/check-out'),
     getHistory: () => apiClient.get('/attendance/history'),
     requestLeave: (data) => apiClient.post('/attendance/leaves', data),
-    listLeaves: () => apiClient.get('/attendance/leaves'),
+    listLeaves: (params) => apiClient.get('/attendance/leaves', { params }),
+    getLeaveBalance: () => apiClient.get('/attendance/leave-balance'),
     reviewLeave: (id, data) => apiClient.patch(`/attendance/leaves/${id}/review`, data),
-  },
-
-  // MFA & Unique Login Verification
-  mfa: {
-    requestChallenge: (email) => apiClient.post('/auth/mfa/challenge', { email }),
-    verifyChallenge: (data) => apiClient.post('/auth/mfa/verify', data),
+    cancelLeave: (id) => apiClient.post(`/attendance/leaves/${id}/cancel`),
+    // Rules: monthly register, rotational week-off roster, holidays, corrections
+    register: (params) => apiClient.get('/attendance/register', { params }),
+    setWeekOff: (data) => apiClient.put('/attendance/roster', data),
+    holidays: (year) => apiClient.get('/attendance/holidays', { params: { year } }),
+    addHoliday: (data) => apiClient.post('/attendance/holidays', data),
+    removeHoliday: (id) => apiClient.delete(`/attendance/holidays/${id}`),
+    corrections: (params) => apiClient.get('/attendance/corrections', { params }),
+    requestCorrection: (data) => apiClient.post('/attendance/corrections', data),
+    reviewCorrection: (id, data) => apiClient.patch(`/attendance/corrections/${id}/review`, data),
   },
 
   // Secure Document Management
@@ -138,12 +178,70 @@ export const api = {
   // Social Media Management & Scheduled Publishing
   socialPosts: {
     list: (params) => apiClient.get('/social/posts', { params }),
+    get: (id) => apiClient.get(`/social/posts/${id}`),
     create: (data) => apiClient.post('/social/posts', data),
+    update: (id, data) => apiClient.patch(`/social/posts/${id}`, data),
+    remove: (id) => apiClient.delete(`/social/posts/${id}`),
     review: (id, data) => apiClient.patch(`/social/posts/${id}/review`, data),
     publishNow: (id) => apiClient.post(`/social/posts/${id}/publish-now`),
+    uploadMedia: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/social/posts/media', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
   },
 
   // In-App Notifications
+  // Mail: your own inbox (approvals, assignments, notices, support replies)
+  mail: {
+    list: (params) => apiClient.get('/mail', { params }),
+    unreadCount: () => apiClient.get('/mail/unread-count'),
+    update: (id, data) => apiClient.patch(`/mail/${id}`, data),
+    readAll: () => apiClient.post('/mail/read-all'),
+    sendNotice: (data) => apiClient.post('/mail/notices', data),
+    sentNotices: () => apiClient.get('/mail/notices/sent'),
+  },
+
+  // Month close (payroll inputs)
+  payroll: {
+    periods: () => apiClient.get('/payroll/periods'),
+    preview: (month) => apiClient.get(`/payroll/${month}/preview`),
+    lock: (month, data) => apiClient.post(`/payroll/${month}/lock`, data),
+    reopen: (month, reason) => apiClient.post(`/payroll/${month}/reopen`, { reason }),
+    exportCsv: (month) => apiClient.get(`/payroll/${month}/export`, { responseType: 'blob' }),
+  },
+
+  // HR: eagle view, org structure, team routing
+  hr: {
+    overview: () => apiClient.get('/hr/overview'),
+    org: () => apiClient.get('/hr/org'),
+    move: (data) => apiClient.post('/hr/teams/move', data),
+    // Junior HR prepares role / team changes; Senior HR approves
+    changeRequests: (params) => apiClient.get('/hr/change-requests', { params }),
+    requestChange: (data) => apiClient.post('/hr/change-requests', data),
+    reviewChange: (id, data) => apiClient.patch(`/hr/change-requests/${id}/review`, data),
+  },
+
+  // Community: idea of the day, kudos, anniversaries
+  community: {
+    today: () => apiClient.get('/community/today'),
+    giveKudos: (data) => apiClient.post('/community/kudos', data),
+  },
+
+  // Help & support tickets
+  support: {
+    list: (params) => apiClient.get('/support/tickets', { params }),
+    get: (id) => apiClient.get(`/support/tickets/${id}`),
+    create: (data) => apiClient.post('/support/tickets', data),
+    reply: (id, body) => apiClient.post(`/support/tickets/${id}/messages`, { body }),
+    update: (id, data) => apiClient.patch(`/support/tickets/${id}`, data),
+    uploadAttachment: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/support/attachments', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
+  },
+
   notifications: {
     list: (params) => apiClient.get('/notifications', { params }),
     markRead: (id) => apiClient.patch(`/notifications/${id}/read`),
@@ -153,6 +251,7 @@ export const api = {
   // Enterprise Security & Anti-Leak Shield
   security: {
     reportIncident: (data) => apiClient.post('/security/incidents', data),
+    reportCopy: (data) => apiClient.post('/security/copy-events', data),
     listIncidents: () => apiClient.get('/security/incidents'),
     updateIncidentStatus: (id, status) => apiClient.patch(`/security/incidents/${id}/status`, { status }),
     getSummary: () => apiClient.get('/security/summary'),
@@ -164,7 +263,22 @@ export const api = {
   // Admin Operations
   admin: {
     getStats: () => apiClient.get('/admin/stats'),
-    listEmployees: () => apiClient.get('/admin/employees'),
+    getOverview: () => apiClient.get('/admin/overview'),
+    listEmployees: (params) => apiClient.get('/admin/employees', { params }),
+    inviteEmployee: (data) => apiClient.post('/admin/employees', data),
+    resendInvite: (id) => apiClient.post(`/admin/employees/${id}/resend-invite`),
+    cancelInvite: (id) => apiClient.delete(`/admin/employees/${id}/invite`),
+    importEmployees: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/admin/employees/import', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
+    exportEmployees: () => apiClient.get('/admin/employees/export', { responseType: 'blob' }),
+    offboardEmployee: (id, data) => apiClient.post(`/admin/employees/${id}/offboard`, data),
+    reactivateEmployee: (id) => apiClient.post(`/admin/employees/${id}/reactivate`),
+    revokeSessions: (id) => apiClient.post(`/admin/employees/${id}/revoke-sessions`),
+    listRoles: () => apiClient.get('/admin/roles'),
+    getPeopleMeta: () => apiClient.get('/admin/meta'),
     getEmployee: (id) => apiClient.get(`/admin/employees/${id}`),
     getEmployeeAccounts: (id, params) => apiClient.get(`/admin/employees/${id}/accounts`, { params }),
     updateEmployee: (id, data) => apiClient.patch(`/admin/employees/${id}`, data),

@@ -75,7 +75,8 @@ def test_documents_classification_and_access_control(client, seed_data):
 
 def test_social_post_publishing_pipeline(client, seed_data, db_session):
     admin_token = "dev-token-admin"
-    emp_token = "dev-token-employee-EMP-0002"
+    emp_token = "dev-token-employee-1"            # seed "employee" (EMP-0002), who registered the account
+    other_token = "dev-token-employee-EMP-0002"   # resolves to a different employee (EMP-0003)
 
     # Seed an Instagram account
     account = InstagramAccount(
@@ -93,6 +94,15 @@ def test_social_post_publishing_pipeline(client, seed_data, db_session):
 
     # 1. Staff creates scheduled post
     scheduled_time = datetime.now(timezone.utc) + timedelta(days=1)
+
+    # Someone not assigned to the account cannot post to it
+    res_other = client.post(
+        "/api/v1/social/posts",
+        headers={"Authorization": f"Bearer {other_token}"},
+        json={"account_id": str(account.id), "caption": "x", "media_url": "https://example.com/a.jpg",
+              "media_type": "IMAGE", "scheduled_at": scheduled_time.isoformat(), "submit": True},
+    )
+    assert res_other.status_code == 404
     res_post = client.post(
         "/api/v1/social/posts",
         headers={"Authorization": f"Bearer {emp_token}"},
@@ -101,7 +111,8 @@ def test_social_post_publishing_pipeline(client, seed_data, db_session):
             "caption": "Step into autumn elegance with our newest collection drop. #AutumnVibes #Klarves",
             "media_url": "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f",
             "media_type": "IMAGE",
-            "scheduled_at": scheduled_time.isoformat()
+            "scheduled_at": scheduled_time.isoformat(),
+            "submit": True
         }
     )
     assert res_post.status_code == 201

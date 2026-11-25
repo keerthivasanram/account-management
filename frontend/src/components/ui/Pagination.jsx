@@ -20,9 +20,9 @@ export const Pagination = ({
       className={`px-4 py-3 bg-white border-t border-[#E5E7EB] flex items-center justify-between gap-4 text-xs text-[#64748B] ${className}`}
     >
       <div>
-        Showing <span className="font-medium text-[#172B24]">{startItem}</span> to{' '}
-        <span className="font-medium text-[#172B24]">{endItem}</span> of{' '}
-        <span className="font-medium text-[#172B24]">{totalItems}</span> results
+        Showing <span className="font-medium text-slate-900">{startItem}</span> to{' '}
+        <span className="font-medium text-slate-900">{endItem}</span> of{' '}
+        <span className="font-medium text-slate-900">{totalItems}</span> results
       </div>
 
       <div className="flex items-center gap-2">
@@ -35,7 +35,7 @@ export const Pagination = ({
           Previous
         </SecondaryButton>
 
-        <span className="px-2 font-medium text-[#172B24]">
+        <span className="px-2 font-medium text-slate-900">
           Page {currentPage} of {totalPages || 1}
         </span>
 

@@ -7,6 +7,7 @@ from app.models.models import Employee
 from app.services.auth_service import get_current_employee
 from app.repositories.document_repo import DocumentRepository
 from app.schemas.document import DocumentCreate, DocumentResponse, DocumentOwner
+from app.core.permissions import is_admin
 
 router = APIRouter(prefix="/documents", tags=["Secure Document Management"])
 
@@ -47,7 +48,7 @@ def create_document(
     db: Session = Depends(get_db)
 ):
     """Registers a new document with classified security access tags."""
-    if payload.classification == "RESTRICTED" and current_employee.role != "admin":
+    if payload.classification == "RESTRICTED" and not is_admin(current_employee):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Only administrators can classify documents as RESTRICTED."
@@ -95,7 +96,7 @@ def get_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    if doc.classification == "RESTRICTED" and current_employee.role != "admin" and doc.owner_id != current_employee.id:
+    if doc.classification == "RESTRICTED" and not is_admin(current_employee) and doc.owner_id != current_employee.id:
         raise HTTPException(status_code=403, detail="Clearance denied: RESTRICTED document.")
 
     client_ip = request.client.host if request.client else "unknown"
@@ -133,7 +134,7 @@ def record_download(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    if doc.classification == "RESTRICTED" and current_employee.role != "admin" and doc.owner_id != current_employee.id:
+    if doc.classification == "RESTRICTED" and not is_admin(current_employee) and doc.owner_id != current_employee.id:
         raise HTTPException(status_code=403, detail="Download prohibited: RESTRICTED document.")
 
     client_ip = request.client.host if request.client else "unknown"
@@ -152,7 +153,7 @@ def delete_document(
     if not doc:
         raise HTTPException(status_code=404, detail="Document not found.")
 
-    if current_employee.role != "admin" and doc.owner_id != current_employee.id:
+    if not is_admin(current_employee) and doc.owner_id != current_employee.id:
         raise HTTPException(status_code=403, detail="You do not have permission to delete this document.")
 
     repo.delete_document(document_id)

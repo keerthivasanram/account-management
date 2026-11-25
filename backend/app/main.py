@@ -18,7 +18,25 @@ async def lifespan(app: FastAPI):
         yield
         return
 
-    # In tests or offline, safely attempt startup tasks
+    problems = settings.validate_for_production()
+    if problems:
+        raise RuntimeError(
+            "Refusing to start with insecure configuration: " + "; ".join(problems)
+        )
+
+    if not settings.is_development:
+        # Production schema is owned by Alembic (`alembic upgrade head`); no demo data.
+        _run_bootstrap(dev=False)
+        yield
+        return
+
+    if not settings.SEED_DEMO_DATA:
+        # Development against a real database (e.g. Supabase): schema from Alembic, no demo people
+        _run_bootstrap(dev=False)
+        yield
+        return
+
+    # Development only: create tables and seed demo data
     try:
         Base.metadata.create_all(bind=engine)
         db = SessionLocal()
@@ -181,12 +199,28 @@ async def lifespan(app: FastAPI):
             db.commit()
         except Exception as e:
             db.rollback()
+            print(f"Development seed skipped: {e}")
         finally:
             db.close()
     except Exception as e:
         print(f"Database connection or startup initialization skipped: {e}")
 
+    _run_bootstrap(dev=True)
     yield
+
+
+def _run_bootstrap(dev: bool) -> None:
+    from app.services.bootstrap import ensure_super_admins, seed_dev_role_fixtures
+    db = SessionLocal()
+    try:
+        if dev:
+            seed_dev_role_fixtures(db)
+        ensure_super_admins(db)
+    except Exception as e:
+        db.rollback()
+        print(f"Startup bootstrap skipped: {e}")
+    finally:
+        db.close()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -198,10 +232,16 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Phones/tablets are refused (added before CORS so CORS stays outermost and the 403 still
+# carries CORS headers the browser can read)
+if settings.BLOCK_MOBILE_DEVICES:
+    from app.security.device_policy import MobileBlockMiddleware
+    app.add_middleware(MobileBlockMiddleware)
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if settings.ENVIRONMENT == "development" else settings.BACKEND_CORS_ORIGINS,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -211,10 +251,9 @@ app.add_middleware(
 async def global_exception_handler(request: Request, exc: Exception):
     import traceback
     traceback.print_exc()
-    return JSONResponse(
-        status_code=500,
-        content={"detail": f"Server Error: {str(exc) or 'An unexpected error occurred'}"}
-    )
+    # Never leak exception internals (SQL, file paths, secrets) to clients outside development.
+    detail = f"Server Error: {str(exc)}" if settings.is_development else "An unexpected error occurred"
+    return JSONResponse(status_code=500, content={"detail": detail})
 
 @app.get("/health", tags=["Health"])
 @app.get("/api/health", tags=["Health"])

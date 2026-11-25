@@ -12,9 +12,11 @@ import SecondaryButton from '../../components/ui/SecondaryButton';
 import Modal from '../../components/Modal';
 import ConfirmationDialog from '../../components/ui/ConfirmationDialog';
 import ErrorState from '../../components/ui/ErrorState';
+import Protected from '../../components/ui/Protected';
 import {
   Instagram,
   UserPlus,
+  Upload,
   ExternalLink,
   Zap,
   RefreshCw,
@@ -247,7 +249,7 @@ export const AccountsListPage = () => {
           type="checkbox"
           checked={paginatedAccounts.length > 0 && selectedIds.size === paginatedAccounts.length}
           onChange={handleSelectAll}
-          className="rounded border-[#E5E7EB] text-[#166534] focus:ring-[#166534] cursor-pointer"
+          className="rounded border-[#E5E7EB] text-brand-700 focus:ring-brand-700 cursor-pointer"
         />
       ),
       width: '40px',
@@ -259,7 +261,7 @@ export const AccountsListPage = () => {
             e.stopPropagation();
             handleToggleRow(row.id);
           }}
-          className="rounded border-[#E5E7EB] text-[#166534] focus:ring-[#166534] cursor-pointer"
+          className="rounded border-[#E5E7EB] text-brand-700 focus:ring-brand-700 cursor-pointer"
         />
       ),
     },
@@ -267,7 +269,7 @@ export const AccountsListPage = () => {
       header: (
         <button
           onClick={() => handleSort('username')}
-          className="inline-flex items-center gap-1 font-semibold text-xs text-[#64748B] uppercase tracking-wider hover:text-[#172B24]"
+          className="inline-flex items-center gap-1 font-semibold text-xs text-[#64748B] uppercase tracking-wider hover:text-slate-900"
         >
           <span>Instagram Account</span>
           <ArrowUpDown className="w-3 h-3 text-[#94A3B8]" />
@@ -276,13 +278,13 @@ export const AccountsListPage = () => {
       accessor: 'username',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-[#172B24]">@{row.username}</span>
+          <Protected type="instagram_account" id={row.id} field="username" className="font-semibold text-slate-900">@{row.username}</Protected>
           {row.profile_url && (
             <a
               href={row.profile_url}
               target="_blank"
               rel="noreferrer"
-              className="text-[#94A3B8] hover:text-[#172B24] transition-colors"
+              className="text-[#94A3B8] hover:text-slate-900 transition-colors"
               title="Open Instagram"
               onClick={(e) => e.stopPropagation()}
             >
@@ -306,7 +308,7 @@ export const AccountsListPage = () => {
       accessor: 'employee',
       render: (row) => (
         <div>
-          <p className="text-xs font-medium text-[#172B24]">
+          <p className="text-xs font-medium text-slate-900">
             {row.active_assignment?.employee_name || 'Unassigned'}
           </p>
           {row.active_assignment?.employee_code && (
@@ -321,7 +323,7 @@ export const AccountsListPage = () => {
       header: (
         <button
           onClick={() => handleSort('client_name')}
-          className="inline-flex items-center gap-1 font-semibold text-xs text-[#64748B] uppercase tracking-wider hover:text-[#172B24]"
+          className="inline-flex items-center gap-1 font-semibold text-xs text-[#64748B] uppercase tracking-wider hover:text-slate-900"
         >
           <span>Client</span>
           <ArrowUpDown className="w-3 h-3 text-[#94A3B8]" />
@@ -329,7 +331,7 @@ export const AccountsListPage = () => {
       ),
       accessor: 'client_name',
       render: (row) => (
-        <span className="text-xs text-[#172B24] font-medium">
+        <span className="text-xs text-slate-900 font-medium">
           {row.client_name || '—'}
         </span>
       ),
@@ -389,7 +391,7 @@ export const AccountsListPage = () => {
                 onClick={() => handleConnectOAuth(row)}
                 disabled={actionLoading}
                 icon={Zap}
-                className="text-[#166534] border-[#BBF7D0] hover:bg-[#F0FDF4]"
+                className="text-brand-700 border-brand-200 hover:bg-brand-50"
               >
                 Connect
               </SecondaryButton>
@@ -443,15 +445,15 @@ export const AccountsListPage = () => {
     <div className="space-y-6">
       {/* 1. Page Header */}
       <PageHeader
-        title="Instagram Accounts"
+        title={isAdmin ? 'Instagram Accounts' : 'My accounts'}
         description={
           isAdmin
             ? 'Complete enterprise directory of managed accounts, employee allocations, and Meta OAuth tokens.'
-            : 'Assigned accounts allocated to your portfolio with official Meta OAuth status.'
+            : 'Instagram accounts assigned to you, with their connection and approval status.'
         }
         breadcrumbs={[
           { label: 'Overview', to: '/dashboard' },
-          { label: 'Instagram Accounts' },
+          { label: isAdmin ? 'Instagram Accounts' : 'My accounts' },
         ]}
         actions={
           <div className="flex items-center gap-3">
@@ -460,12 +462,11 @@ export const AccountsListPage = () => {
                 {selectedIds.size} selected
               </span>
             )}
-            <PrimaryButton
-              size="sm"
-              onClick={() => navigate('/register')}
-              icon={UserPlus}
-            >
-              Register Account
+            <SecondaryButton size="sm" onClick={() => navigate('/accounts/import')} icon={Upload}>
+              Import accounts
+            </SecondaryButton>
+            <PrimaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>
+              Add account
             </PrimaryButton>
           </div>
         }
@@ -490,7 +491,7 @@ export const AccountsListPage = () => {
       {error && <ErrorState message={error} onRetry={fetchAccounts} />}
 
       {/* 2. Search & Multi-Filter Control Bar */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3.5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         {/* Search */}
         <div className="w-full lg:w-72">
           <SearchInput
@@ -615,8 +616,8 @@ export const AccountsListPage = () => {
             {/* Header info */}
             <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg flex items-center justify-between">
               <div>
-                <h4 className="text-base font-semibold text-[#172B24]">
-                  @{selectedAccount.username}
+                <h4 className="text-base font-semibold text-slate-900">
+                  <Protected type="instagram_account" id={selectedAccount.id} field="username">@{selectedAccount.username}</Protected>
                 </h4>
                 <p className="text-xs text-[#64748B]">{selectedAccount.display_name || 'No display name'}</p>
                 {selectedAccount.profile_url && (
@@ -624,7 +625,7 @@ export const AccountsListPage = () => {
                     href={selectedAccount.profile_url}
                     target="_blank"
                     rel="noreferrer"
-                    className="text-xs text-[#166534] hover:underline inline-flex items-center gap-1 mt-1 font-medium"
+                    className="text-xs text-brand-700 hover:underline inline-flex items-center gap-1 mt-1 font-medium"
                   >
                     <span>View on Instagram</span>
                     <ExternalLink className="w-3 h-3" />
@@ -638,7 +639,7 @@ export const AccountsListPage = () => {
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div className="p-3 bg-white border border-[#E5E7EB] rounded-md">
                 <span className="text-[#64748B] block mb-0.5">Assigned Employee</span>
-                <span className="font-semibold text-[#172B24]">
+                <span className="font-semibold text-slate-900">
                   {selectedAccount.active_assignment?.employee_name || 'Unassigned'}
                 </span>
                 <span className="text-[11px] text-[#64748B] block font-mono">
@@ -648,7 +649,7 @@ export const AccountsListPage = () => {
 
               <div className="p-3 bg-white border border-[#E5E7EB] rounded-md">
                 <span className="text-[#64748B] block mb-0.5">Client &amp; Campaign</span>
-                <span className="font-semibold text-[#172B24]">
+                <span className="font-semibold text-slate-900">
                   {selectedAccount.client_name || 'No Client'}
                 </span>
                 <span className="text-[11px] text-[#64748B] block">
@@ -658,14 +659,14 @@ export const AccountsListPage = () => {
 
               <div className="p-3 bg-white border border-[#E5E7EB] rounded-md">
                 <span className="text-[#64748B] block mb-0.5">Account Type</span>
-                <span className="font-semibold text-[#172B24]">
+                <span className="font-semibold text-slate-900">
                   {selectedAccount.account_type || 'BUSINESS'}
                 </span>
               </div>
 
               <div className="p-3 bg-white border border-[#E5E7EB] rounded-md">
                 <span className="text-[#64748B] block mb-0.5">Official Instagram ID</span>
-                <span className="font-mono text-[#172B24]">
+                <span className="font-mono text-slate-900">
                   {selectedAccount.instagram_user_id || 'Not connected yet'}
                 </span>
               </div>
@@ -674,7 +675,7 @@ export const AccountsListPage = () => {
             {/* Meta OAuth Status Card */}
             <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-semibold text-[#172B24]">Meta Authorization</span>
+                <span className="text-xs font-semibold text-slate-900">Meta Authorization</span>
                 <StatusBadge
                   status={(selectedAccount.connection?.connection_status || 'NOT_CONNECTED').toUpperCase()}
                 />
@@ -682,7 +683,7 @@ export const AccountsListPage = () => {
 
               {selectedAccount.connection ? (
                 <div className="text-xs text-[#64748B] space-y-1">
-                  <p>Provider: <strong className="text-[#172B24]">{selectedAccount.connection.provider}</strong></p>
+                  <p>Provider: <strong className="text-slate-900">{selectedAccount.connection.provider}</strong></p>
                   <p>Security: <strong className="text-[#15803D]">Fernet AES-128 Encrypted on Server</strong></p>
                   {selectedAccount.connection.last_validated_at && (
                     <p>Last Validated: {new Date(selectedAccount.connection.last_validated_at).toLocaleString()}</p>

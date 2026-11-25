@@ -19,7 +19,7 @@ export const FilterDropdown = ({
       <select
         value={value}
         onChange={onChange}
-        className={`h-[38px] appearance-none bg-white border border-[#E5E7EB] hover:border-[#D1D5DB] rounded-md text-sm text-[#172B24] pr-8 text-left transition-colors cursor-pointer focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534] ${
+        className={`h-[38px] appearance-none bg-white border border-[#E5E7EB] hover:border-[#D1D5DB] rounded-md text-sm text-slate-900 pr-8 text-left transition-colors cursor-pointer focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700 ${
           Icon ? 'pl-9' : 'pl-3'
         }`}
         {...props}

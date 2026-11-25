@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict
 from typing import Optional, Dict, Any
 from datetime import datetime
 from uuid import UUID
@@ -23,7 +23,16 @@ class SecurityIncidentResponse(BaseModel):
     key_combination: Optional[str] = None
     ip_address: Optional[str] = None
     status: str
+    details: Optional[Dict[str, Any]] = None
     created_at: datetime
+
+
+class ProtectedCopyEvent(BaseModel):
+    """A copy of a protected field inside Klarves. The copied text is never sent or stored."""
+    resource_type: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-z_]+$")
+    resource_id: Optional[str] = Field(None, max_length=64)
+    field: str = Field(..., min_length=1, max_length=50, pattern=r"^[a-z_]+$")
+    route: Optional[str] = Field(None, max_length=255)
 
 class DeviceRegisterRequest(BaseModel):
     device_name: str

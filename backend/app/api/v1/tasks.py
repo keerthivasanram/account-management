@@ -26,10 +26,11 @@ def list_tasks(
     current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Lists company tasks with full activity histories."""
+    """Lists the tasks the caller may see: own, plus team (managers) or all (admins)."""
     target_assignee = current_employee.id if my_tasks_only else assigned_to
     service = TaskService(db)
     return service.list_tasks(
+        viewer=current_employee,
         project_id=project_id,
         assigned_to=target_assignee,
         status_filter=status,
@@ -47,7 +48,7 @@ def get_task(
 ):
     """Returns task details, current status, and immutable activity event history."""
     service = TaskService(db)
-    return service.get_task(task_id)
+    return service.get_task(task_id, viewer=current_employee)
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 def create_task(
@@ -65,15 +66,8 @@ def start_task(
     current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Marks task as IN_PROGRESS by the assignee."""
-    service = TaskService(db)
-    return service.update_task_status(
-        task_id=task_id,
-        new_status="IN_PROGRESS",
-        actor=current_employee,
-        action="STARTED",
-        remarks="Employee began active work on deliverable."
-    )
+    """Marks task as IN_PROGRESS. Assignee only; from TODO or CHANGES_REQUESTED."""
+    return TaskService(db).start_task(task_id, current_employee)
 
 @router.post("/{task_id}/submit", response_model=TaskResponse)
 def submit_task_for_review(

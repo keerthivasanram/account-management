@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, date
 from sqlalchemy import (
     Column, String, Text, Boolean, Date, DateTime, Float, Integer,
-    ForeignKey, Index, func
+    ForeignKey, Index, UniqueConstraint, func
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -15,7 +15,7 @@ class Department(Base):
     name = Column(String(150), unique=True, nullable=False, index=True)
     code = Column(String(50), unique=True, nullable=False, index=True)
     description = Column(Text, nullable=True)
-    head_employee_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True), nullable=True)
+    head_employee_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL", use_alter=True, name="fk_departments_head_employee_id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     head = relationship("Employee", foreign_keys=[head_employee_id], post_update=True)
@@ -30,13 +30,27 @@ class Employee(Base):
     employee_code = Column(String(50), unique=True, nullable=False, index=True)
     full_name = Column(String(255), nullable=False)
     email = Column(String(255), unique=True, nullable=False, index=True)
-    role = Column(String(50), nullable=False, default="employee")  # 'employee' or 'admin'
+    role = Column(String(50), nullable=False, default="employee")  # see app.core.permissions.Role
     is_active = Column(Boolean, nullable=False, default=True)
+    # Lifecycle: INVITED -> ACTIVE -> (ON_LEAVE) -> OFFBOARDED. is_active mirrors status != OFFBOARDED.
+    status = Column(String(30), nullable=False, default="ACTIVE", server_default="ACTIVE", index=True)
     department_id = Column(GUID, ForeignKey("departments.id", ondelete="SET NULL"), nullable=True, index=True)
+    manager_id = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    joined_on = Column(Date, nullable=True)
+    offboarded_at = Column(DateTime(timezone=True), nullable=True)
+    last_login_at = Column(DateTime(timezone=True), nullable=True)
+    # Bumped to invalidate every backend-issued session for this employee (force logout / offboarding)
+    token_version = Column(Integer, nullable=False, default=0, server_default="0")
+    phone_number = Column(String(50), nullable=True)
+    job_title = Column(String(100), nullable=True)
+    bio = Column(Text, nullable=True)
+    emergency_contact = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     # Relationships
     department = relationship("Department", back_populates="members", foreign_keys=[department_id])
+    manager = relationship("Employee", remote_side="Employee.id", foreign_keys=[manager_id], back_populates="direct_reports")
+    direct_reports = relationship("Employee", foreign_keys=[manager_id], back_populates="manager")
     tasks_assigned = relationship("Task", back_populates="assignee", foreign_keys="Task.assigned_to")
     tasks_created = relationship("Task", back_populates="creator", foreign_keys="Task.created_by")
     projects_owned = relationship("Project", back_populates="owner", foreign_keys="Project.owner_id")
@@ -184,7 +198,7 @@ class OAuthState(Base):
     __tablename__ = "oauth_states"
 
     id = Column(GUID, primary_key=True, default=uuid.uuid4)
-    state_token = Column(String(255), unique=True, nullable=False, index=True)
+    state_token = Column(String(1024), unique=True, nullable=False, index=True)  # signed state is ~300 chars
     employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
     account_id = Column(GUID, ForeignKey("instagram_accounts.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
@@ -261,6 +275,7 @@ class Notification(Base):
     type = Column(String(50), nullable=False, default="INFO")  # TASK_ASSIGNED, TASK_REVIEW_REQUESTED, TASK_APPROVED, CHANGES_REQUESTED, SECURITY_ALERT
     link_url = Column(String(255), nullable=True)
     is_read = Column(Boolean, nullable=False, default=False)
+    archived_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Mail: archived items leave the inbox
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     recipient = relationship("Employee", back_populates="notifications")
@@ -292,6 +307,8 @@ class SecurityIncident(Base):
     key_combination = Column(String(100), nullable=True)
     ip_address = Column(String(100), nullable=True)
     status = Column(String(50), nullable=False, default="OPEN")  # OPEN, RESOLVED, FALSE_POSITIVE
+    # Server-side alerts: rule, summary and the affected records (never copied content)
+    details = Column(JSONType, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     actor = relationship("Employee")
@@ -388,6 +405,7 @@ class LoginVerificationCode(Base):
     code = Column(String(20), nullable=False)
     purpose = Column(String(50), nullable=False, default="LOGIN_2FA")  # LOGIN_2FA, DEVICE_VERIFY
     is_used = Column(Boolean, nullable=False, default=False)
+    failed_attempts = Column(Integer, nullable=False, default=0, server_default="0")
     expires_at = Column(DateTime(timezone=True), nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
@@ -452,3 +470,162 @@ class ScheduledPost(Base):
     creator = relationship("Employee")
     campaign = relationship("Campaign")
     project = relationship("Project")
+
+# ==============================================================================
+# MODULE 10 — ORGANISATION SETTINGS (super admin policy store)
+# ==============================================================================
+
+class OrgSetting(Base):
+    __tablename__ = "org_settings"
+
+    key = Column(String(100), primary_key=True)
+    value = Column(JSONType, nullable=True)
+    updated_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    updater = relationship("Employee")
+
+
+# ==============================================================================
+# MODULE 11 — HELP & SUPPORT
+# ==============================================================================
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    reference = Column(String(20), unique=True, nullable=False, index=True)  # e.g. SUP-0042, shown to people
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(30), nullable=False, default="OTHER")  # ACCOUNT_SETUP, PUBLISHING, ACCESS, OTHER
+    subject = Column(String(200), nullable=False)
+    description = Column(Text, nullable=False)
+    attachment_ref = Column(Text, nullable=True)  # private storage reference (screenshot)
+    status = Column(String(20), nullable=False, default="OPEN", index=True)  # OPEN, IN_PROGRESS, RESOLVED, CLOSED
+    assigned_to = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    creator = relationship("Employee", foreign_keys=[created_by])
+    assignee = relationship("Employee", foreign_keys=[assigned_to])
+    messages = relationship("SupportTicketMessage", back_populates="ticket", cascade="all, delete-orphan",
+                            order_by="SupportTicketMessage.created_at")
+
+
+class SupportTicketMessage(Base):
+    __tablename__ = "support_ticket_messages"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    ticket_id = Column(GUID, ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    ticket = relationship("SupportTicket", back_populates="messages")
+    author = relationship("Employee")
+
+
+# ==============================================================================
+# MODULE 12 — COMMUNITY (kudos)
+# ==============================================================================
+
+class Kudos(Base):
+    __tablename__ = "kudos"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    from_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    to_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    message = Column(String(280), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    sender = relationship("Employee", foreign_keys=[from_id])
+    recipient = relationship("Employee", foreign_keys=[to_id])
+
+
+# ==============================================================================
+# MODULE 13 — ATTENDANCE RULES (holidays, rotational week offs, corrections)
+# ==============================================================================
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    date = Column(Date, unique=True, nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class WeekOff(Base):
+    """A rostered (rotational) week off for one person on one date."""
+    __tablename__ = "week_offs"
+    __table_args__ = (UniqueConstraint("employee_id", "date", name="uq_week_offs_employee_date"),)
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    set_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class AttendanceCorrection(Base):
+    """Request to fix a day's clock-in / clock-out. Approved by the team lead or Senior HR, never the requester."""
+    __tablename__ = "attendance_corrections"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    check_in_at = Column(DateTime(timezone=True), nullable=False)
+    check_out_at = Column(DateTime(timezone=True), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), nullable=False, default="PENDING", index=True)  # PENDING, APPROVED, REJECTED
+    requested_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    requester = relationship("Employee", foreign_keys=[requested_by])
+
+
+# ==============================================================================
+# MODULE 14 — MONTH CLOSE (payroll inputs)
+# ==============================================================================
+
+class PayrollPeriod(Base):
+    """A calendar month's attendance, locked by Senior HR. The snapshot is what gets exported."""
+    __tablename__ = "payroll_periods"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    month = Column(String(7), unique=True, nullable=False, index=True)  # "2026-11"
+    status = Column(String(20), nullable=False, default="LOCKED")      # LOCKED, REOPENED
+    snapshot = Column(JSONType, nullable=True)                          # rows exported to payroll
+    note = Column(Text, nullable=True)
+    locked_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    locked_at = Column(DateTime(timezone=True), nullable=True)
+    reopened_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reopened_at = Column(DateTime(timezone=True), nullable=True)
+    reopen_reason = Column(Text, nullable=True)
+
+
+# ==============================================================================
+# MODULE 15 — PEOPLE CHANGE REQUESTS (Junior HR prepares, Senior HR approves)
+# ==============================================================================
+
+class PeopleChangeRequest(Base):
+    __tablename__ = "people_change_requests"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    kind = Column(String(20), nullable=False)                 # ROLE | TEAM
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    payload = Column(JSONType, nullable=False)                # {"role": ...} | {"manager_id": ..., "department_id": ...}
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), nullable=False, default="PENDING", index=True)  # PENDING, APPROVED, REJECTED
+    requested_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    requester = relationship("Employee", foreign_keys=[requested_by])

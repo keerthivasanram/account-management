@@ -86,6 +86,27 @@ export const SecurityShield = ({ children }) => {
     };
   }, [employee, location.pathname]);
 
+  // 3. Protected-field copy events: audit who copied which field of which record.
+  //    The copied text itself is never read or sent.
+  useEffect(() => {
+    if (!employee) return;
+    const handleCopy = (e) => {
+      const anchor = e.target?.nodeType === 1 ? e.target : e.target?.parentElement;
+      const selectionNode = window.getSelection?.()?.anchorNode;
+      const fromSelection = selectionNode && (selectionNode.nodeType === 1 ? selectionNode : selectionNode.parentElement);
+      const el = (fromSelection || anchor)?.closest?.('[data-protected-field]');
+      if (!el) return;
+      api.security.reportCopy({
+        resource_type: el.dataset.protectedType || 'record',
+        resource_id: el.dataset.protectedId || null,
+        field: el.dataset.protectedField,
+        route: location.pathname,
+      }).catch(() => {});
+    };
+    document.addEventListener('copy', handleCopy);
+    return () => document.removeEventListener('copy', handleCopy);
+  }, [employee, location.pathname]);
+
   return (
     <div className="relative w-full h-full">
       {/* Background/Focus-Loss Blur Guard */}

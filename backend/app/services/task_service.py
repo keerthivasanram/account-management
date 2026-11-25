@@ -13,6 +13,11 @@ from app.repositories.project_repo import ProjectRepository
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.notification_repo import NotificationRepository
 from app.repositories.audit_repo import AuditRepository
+from app.core.permissions import Perm, has_permission, is_admin, is_manager_of, can_review_task
+
+# Assignee-driven transitions. Reviewer transitions (approve / request changes) are gated in _ensure_can_review.
+STARTABLE = ("TODO", "CHANGES_REQUESTED")
+SUBMITTABLE = ("IN_PROGRESS", "CHANGES_REQUESTED")
 
 class TaskService:
     def __init__(self, db: Session):
@@ -62,8 +67,36 @@ class TaskService:
             activity_events=events
         )
 
+    # ------------------------------------------------------------ visibility
+
+    def _visible_assignees(self, viewer: Employee) -> Optional[List[uuid.UUID]]:
+        """None = every task; otherwise the assignees whose tasks the viewer may see."""
+        if has_permission(viewer, Perm.TASKS_REVIEW_ALL):
+            return None
+        ids = [viewer.id]
+        if has_permission(viewer, Perm.TASKS_REVIEW_TEAM):
+            ids += [e.id for e in self.emp_repo.list_team(viewer, include_inactive=True)]
+        return ids
+
+    def can_view(self, viewer: Employee, t: Task) -> bool:
+        if has_permission(viewer, Perm.TASKS_REVIEW_ALL):
+            return True
+        if viewer.id in (t.assigned_to, t.created_by):
+            return True
+        if t.project is not None and t.project.owner_id == viewer.id:
+            return True
+        return has_permission(viewer, Perm.TASKS_REVIEW_TEAM) and is_manager_of(viewer, t.assignee)
+
+    def _get_visible(self, task_id: uuid.UUID, viewer: Employee) -> Task:
+        t = self.task_repo.get_by_id(task_id)
+        # 404 rather than 403 so task IDs outside your scope don't confirm they exist
+        if not t or not self.can_view(viewer, t):
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        return t
+
     def list_tasks(
         self,
+        viewer: Employee,
         project_id: Optional[uuid.UUID] = None,
         assigned_to: Optional[uuid.UUID] = None,
         created_by: Optional[uuid.UUID] = None,
@@ -81,17 +114,25 @@ class TaskService:
             priority=priority,
             search=search,
             skip=skip,
-            limit=limit
+            limit=limit,
+            visible_assignee_ids=self._visible_assignees(viewer),
+            visible_creator_id=viewer.id,
         )
         return [self._build_response(t) for t in tasks]
 
-    def get_task(self, task_id: uuid.UUID) -> TaskResponse:
+    def get_task(self, task_id: uuid.UUID, viewer: Optional[Employee] = None) -> TaskResponse:
+        if viewer is not None:
+            return self._build_response(self._get_visible(task_id, viewer))
         t = self.task_repo.get_by_id(task_id)
         if not t:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
         return self._build_response(t)
 
     def create_task(self, data: TaskCreate, creator: Employee) -> TaskResponse:
+        can_all = has_permission(creator, Perm.TASKS_REVIEW_ALL)
+        if not can_all and not has_permission(creator, Perm.TASKS_REVIEW_TEAM):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only team leads and administrators can create tasks.")
+
         project = self.project_repo.get_by_id(data.project_id)
         if not project:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Selected project does not exist")
@@ -99,6 +140,10 @@ class TaskService:
         assignee = self.emp_repo.get_by_id(data.assigned_to)
         if not assignee:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Assigned employee does not exist")
+        if not assignee.is_active:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot assign work to an inactive employee")
+        if not can_all and assignee.id != creator.id and not is_manager_of(creator, assignee):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only assign tasks to people on your team.")
 
         task = Task(
             id=uuid.uuid4(),
@@ -176,14 +221,29 @@ class TaskService:
 
         return self.get_task(task.id)
 
+    def start_task(self, task_id: uuid.UUID, employee: Employee) -> TaskResponse:
+        task = self.task_repo.get_by_id(task_id)
+        if not task:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        if task.assigned_to != employee.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only the assignee can start this task.")
+        if task.status not in STARTABLE:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"This task can't be started (current status: {task.status}).")
+        return self.update_task_status(
+            task_id=task_id, new_status="IN_PROGRESS", actor=employee, action="STARTED",
+            remarks="Work started." if task.status == "TODO" else "Work resumed after requested changes.",
+        )
+
     def submit_task(self, task_id: uuid.UUID, req: TaskSubmitRequest, employee: Employee) -> TaskResponse:
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
         # Employee can only submit their own assigned task
-        if employee.role != "admin" and task.assigned_to != employee.id:
+        if not is_admin(employee) and task.assigned_to != employee.id:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You can only submit tasks assigned to you.")
+        if task.status not in SUBMITTABLE:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Start the task before submitting it (current status: {task.status}).")
 
         updated = self.update_task_status(
             task_id=task_id,
@@ -205,14 +265,21 @@ class TaskService:
 
         return updated
 
+    def _ensure_can_review(self, task: Task, reviewer: Employee) -> None:
+        """Only an authorised reviewer may approve / request changes, never the assignee."""
+        if task.assigned_to == reviewer.id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Separation of duties required: you cannot review your own task.")
+        if not can_review_task(reviewer, task):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="You are not authorised to review this task.")
+        if task.status != "IN_REVIEW":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Only tasks in review can be reviewed (current status: {task.status}).")
+
     def approve_task(self, task_id: uuid.UUID, req: TaskApprovalRequest, manager: Employee) -> TaskResponse:
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
 
-        # Separation of duties: Cannot self-approve own restricted task unless admin
-        if manager.role != "admin" and task.assigned_to == manager.id:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Separation of duties required: you cannot approve your own task.")
+        self._ensure_can_review(task, manager)
 
         updated = self.update_task_status(
             task_id=task_id,
@@ -237,6 +304,8 @@ class TaskService:
         task = self.task_repo.get_by_id(task_id)
         if not task:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+
+        self._ensure_can_review(task, manager)
 
         updated = self.update_task_status(
             task_id=task_id,

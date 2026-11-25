@@ -19,10 +19,10 @@ export const SecurityWatermark = () => {
   return (
     <div
       aria-hidden="true"
-      className="pointer-events-none select-none fixed inset-0 z-40 overflow-hidden opacity-[0.035] flex flex-col justify-around rotate-[-15deg] scale-125"
+      className="pointer-events-none select-none fixed inset-0 z-40 overflow-hidden opacity-[0.025] flex flex-col justify-around rotate-[-15deg] scale-125"
     >
       {[...Array(14)].map((_, rIdx) => (
-        <div key={rIdx} className="flex justify-around whitespace-nowrap text-xs font-mono font-medium tracking-widest text-[#172B24]">
+        <div key={rIdx} className="flex justify-around whitespace-nowrap text-xs font-mono font-medium tracking-widest text-slate-900">
           {[...Array(4)].map((_, cIdx) => (
             <span key={cIdx} className="mx-8">
               {watermarkText}

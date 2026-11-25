@@ -1,0 +1,36 @@
+name: Meta token health (daily)
+
+# Runs app/jobs/token_health.py against the production database once a day.
+# Repository secrets required: DATABASE_URL (Supabase connection string).
+on:
+  schedule:
+    - cron: "30 0 * * *"   # 00:30 UTC daily
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "Report only, change nothing"
+        type: boolean
+        default: true
+
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      ENVIRONMENT: production
+      DEV_AUTH_BYPASS: "false"
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: pip install -r requirements.txt
+      - name: Sweep
+        run: |
+          if [ -z "$DATABASE_URL" ]; then echo "::error::Add the DATABASE_URL repository secret"; exit 1; fi
+          python -m app.jobs.token_health ${{ (github.event_name == 'workflow_dispatch' && inputs.dry_run) && '--dry-run' || '' }}

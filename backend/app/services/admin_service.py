@@ -19,6 +19,7 @@ from app.repositories.campaign_repo import CampaignRepository
 from app.repositories.assignment_repo import AssignmentRepository
 from app.repositories.verification_repo import VerificationRepository
 from app.repositories.audit_repo import AuditRepository
+from app.services.org_settings_service import OrgSettingsService
 
 class AdminService:
     def __init__(self, db: Session):
@@ -49,63 +50,8 @@ class AdminService:
         )
 
     def list_employees_with_stats(self) -> List[EmployeeResponse]:
-        employees = self.employee_repo.list(limit=500)
-        results = []
-        for emp in employees:
-            assigned = self.assignment_repo.count_assigned_accounts(emp.id)
-            registered = self.account_repo.count_registered(emp.id)
-            results.append(
-                EmployeeResponse(
-                    id=emp.id,
-                    auth_user_id=emp.auth_user_id,
-                    employee_code=emp.employee_code,
-                    full_name=emp.full_name,
-                    email=emp.email,
-                    role=emp.role,
-                    is_active=emp.is_active,
-                    created_at=emp.created_at,
-                    assigned_accounts_count=assigned,
-                    registered_accounts_count=registered
-                )
-            )
-        return results
-
-    def update_employee(self, employee_id: uuid.UUID, data: EmployeeUpdate, admin: Employee) -> EmployeeResponse:
-        emp = self.employee_repo.get_by_id(employee_id)
-        if not emp:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Employee not found")
-
-        if data.full_name is not None:
-            emp.full_name = data.full_name
-        if data.role is not None:
-            emp.role = data.role
-        if data.is_active is not None:
-            emp.is_active = data.is_active
-
-        self.employee_repo.update(emp)
-
-        self.audit_repo.log(
-            action="employee_profile_updated",
-            entity_type="employee",
-            entity_id=emp.id,
-            actor_id=admin.id,
-            metadata={"updates": data.model_dump(exclude_unset=True)}
-        )
-
-        assigned = self.assignment_repo.count_assigned_accounts(emp.id)
-        registered = self.account_repo.count_registered(emp.id)
-        return EmployeeResponse(
-            id=emp.id,
-            auth_user_id=emp.auth_user_id,
-            employee_code=emp.employee_code,
-            full_name=emp.full_name,
-            email=emp.email,
-            role=emp.role,
-            is_active=emp.is_active,
-            created_at=emp.created_at,
-            assigned_accounts_count=assigned,
-            registered_accounts_count=registered
-        )
+        from app.services.employee_presenter import to_responses
+        return to_responses(self.db, self.employee_repo.list(limit=1000))
 
     def get_employee_details(self, employee_id: uuid.UUID) -> Dict[str, Any]:
         emp = self.employee_repo.get_by_id(employee_id)
@@ -125,21 +71,12 @@ class AdminService:
             rejected=raw_status_counts.get("rejected", 0)
         )
 
-        target = 60
+        target = OrgSettingsService(self.db).get("account_target_max")
         capacity_pct = min(100, round((assigned / target) * 100)) if target > 0 else 0
 
-        emp_response = EmployeeResponse(
-            id=emp.id,
-            auth_user_id=emp.auth_user_id,
-            employee_code=emp.employee_code,
-            full_name=emp.full_name,
-            email=emp.email,
-            role=emp.role,
-            is_active=emp.is_active,
-            created_at=emp.created_at,
-            assigned_accounts_count=assigned,
-            registered_accounts_count=registered
-        )
+        from app.services.employee_presenter import to_response, report_counts
+        emp_response = to_response(emp, (assigned, registered), report_counts(self.db, [emp.id]).get(emp.id, 0),
+                                   include_private=True)
 
         return {
             "employee": emp_response,
@@ -227,6 +164,22 @@ class AdminService:
             metadata={"remarks": req.remarks, "new_status": status_val}
         )
 
+        # Mail: the person who registered the account hears the decision
+        if status_val in ("approved", "rejected"):
+            from app.repositories.notification_repo import NotificationRepository
+            handle = f"@{account.username}"
+            if status_val == "approved":
+                msg = f"{admin.full_name} approved {handle}. You can connect it and start publishing."
+            else:
+                msg = f"{admin.full_name} rejected {handle}." + (f" Reason: {req.remarks}" if req.remarks else "")
+            NotificationRepository(self.db).create(
+                recipient_id=account.registered_by,
+                title=f"Account {status_val}: {handle}",
+                message=msg,
+                type=f"ACCOUNT_{status_val.upper()}",
+                link_url="/accounts",
+            )
+
         return {
             "success": True,
             "account_id": account.id,
@@ -261,6 +214,15 @@ class AdminService:
                 "assigned_to_code": target_emp.employee_code,
                 "assigned_to_name": target_emp.full_name
             }
+        )
+
+        from app.repositories.notification_repo import NotificationRepository
+        NotificationRepository(self.db).create(
+            recipient_id=target_emp.id,
+            title=f"Account assigned: @{account.username}",
+            message=f"{admin.full_name} assigned @{account.username} to you.",
+            type="ACCOUNT_ASSIGNED",
+            link_url="/accounts",
         )
 
         return {

@@ -12,7 +12,7 @@ export const FormSection = ({
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
           {title && (
-            <h3 className="text-base font-semibold text-[#172B24]">
+            <h3 className="text-base font-semibold text-slate-900">
               {title}
             </h3>
           )}

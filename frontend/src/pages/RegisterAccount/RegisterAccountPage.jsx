@@ -188,12 +188,12 @@ export const RegisterAccountPage = () => {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* 1. Page Header */}
       <PageHeader
-        title="Register Instagram Account"
-        description="Add a new Instagram business or creator account to the organization fleet."
+        title="Add account"
+        description="Add an Instagram business or creator account you manage. It is assigned to you and goes to an admin for approval."
         breadcrumbs={[
           { label: 'Overview', to: '/dashboard' },
-          { label: 'Instagram Accounts', to: '/accounts' },
-          { label: 'Register Account' },
+          { label: 'My accounts', to: '/accounts' },
+          { label: 'Add account' },
         ]}
       />
 
@@ -207,7 +207,7 @@ export const RegisterAccountPage = () => {
       )}
 
       {/* Main Registration Form Container */}
-      <form onSubmit={handleSubmit} className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs p-6 space-y-6">
+      <form onSubmit={handleSubmit} className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-6 space-y-6">
         {/* =========================================================================
             SECTION 1: BASIC ACCOUNT DETAILS
         ========================================================================== */}
@@ -361,7 +361,7 @@ export const RegisterAccountPage = () => {
             <label
               className={`p-4 rounded-lg border flex items-start gap-3 cursor-pointer transition-colors ${
                 connectOption === 'connect_later'
-                  ? 'bg-[#F0FDF4] border-[#166534]'
+                  ? 'bg-brand-50 border-brand-700'
                   : 'bg-white border-[#E5E7EB] hover:bg-[#F9FAFB]'
               }`}
             >
@@ -371,10 +371,10 @@ export const RegisterAccountPage = () => {
                 value="connect_later"
                 checked={connectOption === 'connect_later'}
                 onChange={() => setConnectOption('connect_later')}
-                className="mt-0.5 text-[#166534] focus:ring-[#166534]"
+                className="mt-0.5 text-brand-700 focus:ring-brand-700"
               />
               <div>
-                <span className="text-sm font-semibold text-[#172B24]">
+                <span className="text-sm font-semibold text-slate-900">
                   Register profile and connect later
                 </span>
                 <p className="text-xs text-[#64748B] mt-0.5">
@@ -386,7 +386,7 @@ export const RegisterAccountPage = () => {
             <label
               className={`p-4 rounded-lg border flex items-start gap-3 cursor-pointer transition-colors ${
                 connectOption === 'connect_now'
-                  ? 'bg-[#F0FDF4] border-[#166534]'
+                  ? 'bg-brand-50 border-brand-700'
                   : 'bg-white border-[#E5E7EB] hover:bg-[#F9FAFB]'
               }`}
             >
@@ -396,10 +396,10 @@ export const RegisterAccountPage = () => {
                 value="connect_now"
                 checked={connectOption === 'connect_now'}
                 onChange={() => setConnectOption('connect_now')}
-                className="mt-0.5 text-[#166534] focus:ring-[#166534]"
+                className="mt-0.5 text-brand-700 focus:ring-brand-700"
               />
               <div>
-                <span className="text-sm font-semibold text-[#172B24]">
+                <span className="text-sm font-semibold text-slate-900">
                   Authorize Meta OAuth immediately upon creation
                 </span>
                 <p className="text-xs text-[#64748B] mt-0.5">
@@ -418,15 +418,15 @@ export const RegisterAccountPage = () => {
           description="Confirm employee assignment and workload threshold."
         >
           <div className="p-4 bg-[#F8FAFC] border border-[#E5E7EB] rounded-lg text-xs space-y-2">
-            <div className="flex justify-between items-center text-[#172B24]">
+            <div className="flex justify-between items-center text-slate-900">
               <span className="text-[#64748B]">Assignee Portfolio</span>
               <span className="font-semibold">{employee?.full_name} ({employee?.employee_code})</span>
             </div>
-            <div className="flex justify-between items-center text-[#172B24]">
+            <div className="flex justify-between items-center text-slate-900">
               <span className="text-[#64748B]">Capacity Compliance</span>
               <span className="text-[#15803D] font-medium">Within 60-account threshold</span>
             </div>
-            <div className="flex justify-between items-center text-[#172B24]">
+            <div className="flex justify-between items-center text-slate-900">
               <span className="text-[#64748B]">Token Encryption</span>
               <span className="font-mono text-[11px] text-[#64748B]">AES-128 Fernet At-Rest</span>
             </div>

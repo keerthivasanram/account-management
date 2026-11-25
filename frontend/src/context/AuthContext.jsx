@@ -5,51 +5,57 @@ import { supabaseAuth, isSupabaseConfigured } from '../services/supabase';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [employee, setEmployee] = useState(() => {
-    const saved = localStorage.getItem('auth_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [employee, setEmployee] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Synchronize profile on load if token exists
-  useEffect(() => {
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        try {
-          const res = await api.employees.getMyProfile();
-          setEmployee(res.data);
-          localStorage.setItem('auth_user', JSON.stringify(res.data));
-        } catch (err) {
-          console.warn('Session verification failed, logging out:', err);
-          logout();
-        }
-      }
-      setLoading(false);
-    };
+  // Permissions must come from a fresh /employees/me before any privileged navigation renders.
+  // A cached profile is never trusted for that. 401/403 signs out; any other failure is
+  // surfaced as profileError so the layout can offer a retry instead of guessing a role.
+  const [profileError, setProfileError] = useState(null);
 
-    initAuth();
-  }, []);
+  const loadProfile = async () => {
+    const storedToken = localStorage.getItem('auth_token');
+    if (!storedToken) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setProfileError(null);
+    try {
+      const res = await api.employees.getMyProfile();
+      if (!Array.isArray(res.data?.permissions)) {
+        throw new Error('Your permissions could not be read.');
+      }
+      setEmployee(res.data);
+      localStorage.setItem('auth_user', JSON.stringify(res.data));
+    } catch (err) {
+      const code = err.response?.status;
+      if (code === 401 || code === 403) {
+        console.warn('Session rejected, signing out:', err);
+        logout();
+      } else {
+        setEmployee(null);
+        setProfileError(err.response?.data?.detail || err.message || 'Could not load your profile.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loginWithSupabase = async (email, password) => {
     setError(null);
     setLoading(true);
     try {
       let sessionToken = null;
-      try {
-        const data = await supabaseAuth.signInWithPassword(email, password);
-        sessionToken = data.session?.access_token;
-      } catch (sbErr) {
-        // Fallback in development mode to seamless dev login
-        console.warn('Supabase cloud authentication failed, falling back to local session:', sbErr.message);
-        const cleanEmail = email.trim().toLowerCase();
-        const role = cleanEmail.includes('admin') ? 'admin' : 'employee';
-        const namePart = cleanEmail.split('@')[0].replace(/[._-]/g, ' ');
-        const fullName = namePart.charAt(0).toUpperCase() + namePart.slice(1);
-        return await loginWithDev(cleanEmail, role, fullName || 'Staff Member');
-      }
+      // No silent fallback: a failed password is a failed login.
+      const data = await supabaseAuth.signInWithPassword(email, password);
+      sessionToken = data.session?.access_token;
 
       if (!sessionToken) {
         throw new Error('No access token returned from authentication provider.');
@@ -65,16 +71,10 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('auth_user', JSON.stringify(res.data));
         return res.data;
       } catch (profErr) {
-        console.warn('Profile fetch after login encountered error, using session payload:', profErr);
-        const fallbackProfile = {
-          email,
-          role: email.includes('admin') ? 'admin' : 'employee',
-          full_name: email.split('@')[0],
-          is_active: true
-        };
-        setEmployee(fallbackProfile);
-        localStorage.setItem('auth_user', JSON.stringify(fallbackProfile));
-        return fallbackProfile;
+        // Never invent a local profile/role: the backend is the only source of authorization.
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        throw profErr;
       }
     } catch (err) {
       const msg = err.response?.data?.detail || (typeof err.response?.data === 'string' ? err.response.data : null) || err.message || 'Login failed';
@@ -85,13 +85,47 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loginWithDev = async (email, role = 'employee', fullName = '') => {
+  // Called on /auth/callback after Google (or any Supabase OAuth provider) redirects back.
+  // supabase-js reads the session from the URL; the backend then decides who this is.
+  const completeOAuthLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const session = await supabaseAuth.getSession();
+      const sessionToken = session?.access_token;
+      if (!sessionToken) {
+        throw new Error('Google sign-in did not complete. Please try again.');
+      }
+      localStorage.setItem('auth_token', sessionToken);
+      setToken(sessionToken);
+      try {
+        const res = await api.employees.getMyProfile();
+        setEmployee(res.data);
+        localStorage.setItem('auth_user', JSON.stringify(res.data));
+        return res.data;
+      } catch (profErr) {
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        await supabaseAuth.signOut().catch(() => {});
+        throw profErr;
+      }
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || 'Google sign-in failed';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Development-only shortcut. The backend returns 404 outside development and
+  // always uses the role stored in the database.
+  const loginWithDev = async (email, fullName = '') => {
     setError(null);
     setLoading(true);
     try {
       const res = await api.auth.devLogin({
         email,
-        role,
         full_name: fullName
       });
       const receivedToken = res.data.access_token;
@@ -105,21 +139,9 @@ export const AuthProvider = ({ children }) => {
         localStorage.setItem('auth_user', JSON.stringify(profRes.data));
         return profRes.data;
       } catch (profErr) {
-        console.warn('Profile fetch fallback to dev login response payload:', profErr);
-        const fallbackProfile = {
-          id: res.data?.employee?.id,
-          employee_code: res.data?.employee?.employee_code || 'EMP-0001',
-          full_name: res.data?.employee?.full_name || fullName || 'Staff Member',
-          email: res.data?.employee?.email || email,
-          role: res.data?.employee?.role || role,
-          is_active: true,
-          created_at: new Date().toISOString(),
-          assigned_accounts_count: 0,
-          registered_accounts_count: 0
-        };
-        setEmployee(fallbackProfile);
-        localStorage.setItem('auth_user', JSON.stringify(fallbackProfile));
-        return fallbackProfile;
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        throw profErr;
       }
     } catch (err) {
       let msg = err.response?.data?.detail;
@@ -162,18 +184,26 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
+    // Clear the local session first so it's gone even if the network call below is slow or fails
+    localStorage.removeItem('auth_token');
+    localStorage.removeItem('auth_user');
+    setToken(null);
+    setEmployee(null);
+    setProfileError(null);
     try {
       await supabaseAuth.signOut();
     } catch (err) {
       console.error('Logout error:', err);
     }
-    localStorage.removeItem('auth_token');
-    localStorage.removeItem('auth_user');
-    setToken(null);
-    setEmployee(null);
   };
 
-  const isAdmin = employee?.role === 'admin';
+  // Permissions come from the backend (/employees/me). UI checks are cosmetic;
+  // the API enforces every permission server-side.
+  const permissions = employee?.permissions || [];
+  const can = (perm) => permissions.includes(perm);
+  const isSuperAdmin = employee?.role === 'super_admin';
+  const isAdmin = can('admin:portal');
+  const isManager = can('manager:portal');
 
   return (
     <AuthContext.Provider
@@ -183,10 +213,17 @@ export const AuthProvider = ({ children }) => {
         loading,
         error,
         isAdmin,
+        isSuperAdmin,
+        isManager,
+        permissions,
+        can,
         isSupabaseConfigured,
         loginWithSupabase,
         loginWithDev,
         loginWithMfa,
+        completeOAuthLogin,
+        profileError,
+        retryProfile: loadProfile,
         logout,
         refreshProfile: async () => {
           if (token) {
