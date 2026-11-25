@@ -9,14 +9,14 @@ export const EmptyState = ({
   className = '',
 }) => {
   return (
-    <div className={`p-12 text-center flex flex-col items-center justify-center ${className}`}>
-      <div className="w-12 h-12 rounded-full bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center text-[#64748B] mb-3">
-        <Icon className="w-6 h-6" />
+    <div className={`px-6 py-14 text-center flex flex-col items-center justify-center ${className}`}>
+      <div className="w-16 h-16 mb-5 rounded-2xl bg-brand-50 ring-1 ring-brand-100 flex items-center justify-center text-brand-700">
+        <Icon className="w-7 h-7" strokeWidth={1.75} />
       </div>
-      <h3 className="text-base font-semibold text-[#172B24] mb-1">
+      <h3 className="text-base font-semibold text-slate-900 mb-1.5">
         {title}
       </h3>
-      <p className="text-sm text-[#64748B] max-w-sm mb-4 font-normal">
+      <p className="text-sm text-slate-500 max-w-sm mb-5 leading-relaxed">
         {description}
       </p>
       {action && <div>{action}</div>}

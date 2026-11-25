@@ -96,7 +96,7 @@ export const AdminClientsCampaignsPage = () => {
       header: 'Client Name',
       accessor: 'name',
       render: (row) => (
-        <span className="font-semibold text-sm text-[#172B24]">{row.name}</span>
+        <span className="font-semibold text-sm text-slate-900">{row.name}</span>
       ),
     },
     {
@@ -111,7 +111,7 @@ export const AdminClientsCampaignsPage = () => {
       accessor: 'campaigns_count',
       render: (row) => {
         const cCount = campaigns.filter((c) => c.client_id === row.id).length;
-        return <span className="text-xs text-[#172B24] font-medium">{cCount} campaigns</span>;
+        return <span className="text-xs text-slate-900 font-medium">{cCount} campaigns</span>;
       },
     },
     {
@@ -130,7 +130,7 @@ export const AdminClientsCampaignsPage = () => {
       header: 'Campaign Name',
       accessor: 'name',
       render: (row) => (
-        <span className="font-semibold text-sm text-[#172B24]">{row.name}</span>
+        <span className="font-semibold text-sm text-slate-900">{row.name}</span>
       ),
     },
     {
@@ -138,7 +138,7 @@ export const AdminClientsCampaignsPage = () => {
       accessor: 'client_name',
       render: (row) => {
         const clientObj = clients.find((c) => c.id === row.client_id);
-        return <span className="text-xs font-medium text-[#172B24]">{clientObj?.name || '—'}</span>;
+        return <span className="text-xs font-medium text-slate-900">{clientObj?.name || '—'}</span>;
       },
     },
     {
@@ -213,8 +213,8 @@ export const AdminClientsCampaignsPage = () => {
           onClick={() => setActiveTab('clients')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'clients'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Clients ({clients.length})
@@ -223,8 +223,8 @@ export const AdminClientsCampaignsPage = () => {
           onClick={() => setActiveTab('campaigns')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'campaigns'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Campaigns ({campaigns.length})
@@ -288,7 +288,7 @@ export const AdminClientsCampaignsPage = () => {
                 onChange={(e) => setClientForm({ ...clientForm, description: e.target.value })}
                 placeholder="Client notes, industry, or operational scope..."
                 rows={3}
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 
@@ -349,7 +349,7 @@ export const AdminClientsCampaignsPage = () => {
                 onChange={(e) => setCampaignForm({ ...campaignForm, description: e.target.value })}
                 placeholder="Deliverables and schedule notes..."
                 rows={3}
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 

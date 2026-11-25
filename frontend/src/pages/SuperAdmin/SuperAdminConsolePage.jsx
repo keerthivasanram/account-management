@@ -24,9 +24,9 @@ const TABS = [
 const errText = (err, fb) => err?.response?.data?.detail || fb;
 const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : '—');
 const Panel = ({ title, children, action }) => (
-  <section className="bg-white border border-[#E5E7EB] rounded-lg p-5">
+  <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5">
     <header className="flex items-center justify-between mb-4 gap-3">
-      <h2 className="text-sm font-semibold text-[#172B24]">{title}</h2>
+      <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
       {action}
     </header>
     {children}
@@ -56,15 +56,15 @@ const OverviewTab = ({ flash }) => {
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="stat-group grid grid-cols-2 lg:grid-cols-4 gap-4">
         {data.roles.map((r) => <MetricCard key={r.role} label={r.label + 's'} value={r.count} icon={r.role === 'super_admin' ? Crown : Users} />)}
       </div>
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
         <Panel title="Configuration & security posture">
           <div className="grid grid-cols-3 gap-3 mb-4 text-xs">
-            <div className="p-3 rounded-md border border-[#E5E7EB]"><p className="text-[#64748B]">Open incidents</p><p className="text-lg font-semibold text-[#172B24] tabular-nums">{data.security.open_incidents}</p></div>
-            <div className="p-3 rounded-md border border-[#E5E7EB]"><p className="text-[#64748B]">Incidents (7d)</p><p className="text-lg font-semibold text-[#172B24] tabular-nums">{data.security.incidents_7d}</p></div>
-            <div className="p-3 rounded-md border border-[#E5E7EB]"><p className="text-[#64748B]">MFA required</p><p className="text-lg font-semibold text-[#172B24]">{data.security.require_mfa ? 'Yes' : 'No'}</p></div>
+            <div className="p-3 rounded-md border border-[#E5E7EB]"><p className="text-[#64748B]">Open incidents</p><p className="text-lg font-semibold text-slate-900 tabular-nums">{data.security.open_incidents}</p></div>
+            <div className="p-3 rounded-md border border-[#E5E7EB]"><p className="text-[#64748B]">Incidents (7d)</p><p className="text-lg font-semibold text-slate-900 tabular-nums">{data.security.incidents_7d}</p></div>
+            <div className="p-3 rounded-md border border-[#E5E7EB]"><p className="text-[#64748B]">MFA required</p><p className="text-lg font-semibold text-slate-900">{data.security.require_mfa ? 'Yes' : 'No'}</p></div>
           </div>
           {data.warnings.length === 0 ? (
             <p className="text-xs text-[#15803D] flex items-center gap-1.5"><CheckCircle2 className="w-4 h-4" /> No configuration warnings.</p>
@@ -84,7 +84,7 @@ const OverviewTab = ({ flash }) => {
             <ul className="divide-y divide-[#F1F5F9]">
               {data.privileged_events.map((e) => (
                 <li key={e.id} className="py-2 text-xs flex justify-between gap-3">
-                  <span className="min-w-0 truncate"><span className="font-medium text-[#172B24]">{e.actor_name}</span> <span className="text-[#64748B]">{e.action.replace(/_/g, ' ')}</span></span>
+                  <span className="min-w-0 truncate"><span className="font-medium text-slate-900">{e.actor_name}</span> <span className="text-[#64748B]">{e.action.replace(/_/g, ' ')}</span></span>
                   <span className="text-[#94A3B8] shrink-0">{fmt(e.created_at)}</span>
                 </li>
               ))}
@@ -164,7 +164,7 @@ const AdminsTab = ({ flash }) => {
             <tbody>
               {admins.map((a) => (
                 <tr key={a.id} className="border-b border-[#F1F5F9]">
-                  <td className="py-2.5 pr-3"><p className="font-medium text-[#172B24]">{a.full_name}</p><p className="text-xs text-[#64748B]">{a.email}</p></td>
+                  <td className="py-2.5 pr-3"><p className="font-medium text-slate-900">{a.full_name}</p><p className="text-xs text-[#64748B]">{a.email}</p></td>
                   <td className="py-2.5 pr-3"><StatusBadge status={a.role} text={a.role_label} />{!a.is_active && <StatusBadge status="OFFBOARDED" className="ml-1" />}</td>
                   <td className="py-2.5 pr-3 text-xs text-[#64748B]">{fmt(a.last_login_at)}</td>
                   <td className="py-2.5 text-right">
@@ -219,8 +219,8 @@ const SettingsTab = ({ flash }) => {
     if (typeof s.default === 'boolean') {
       return (
         <label className="inline-flex items-center gap-2 cursor-pointer">
-          <input type="checkbox" className="w-4 h-4 accent-[#166534]" checked={!!v} onChange={(e) => setDraft({ ...draft, [s.key]: e.target.checked })} />
-          <span className="text-sm text-[#172B24]">{v ? 'On' : 'Off'}</span>
+          <input type="checkbox" className="w-4 h-4 accent-brand-700" checked={!!v} onChange={(e) => setDraft({ ...draft, [s.key]: e.target.checked })} />
+          <span className="text-sm text-slate-900">{v ? 'On' : 'Off'}</span>
         </label>
       );
     }
@@ -249,7 +249,7 @@ const SettingsTab = ({ flash }) => {
         {items.map((s) => (
           <div key={s.key} className="py-4 grid grid-cols-1 md:grid-cols-[18rem_1fr] gap-3">
             <div>
-              <p className="text-sm font-medium text-[#172B24]">{s.key.replace(/_/g, ' ')}</p>
+              <p className="text-sm font-medium text-slate-900">{s.key.replace(/_/g, ' ')}</p>
               <p className="text-xs text-[#64748B] mt-0.5">{s.description}</p>
             </div>
             <div>{input(s)}</div>
@@ -264,7 +264,7 @@ const SettingsTab = ({ flash }) => {
 const Check = ({ ok, label, detail }) => (
   <li className="flex items-start gap-2 py-2">
     {ok === null || ok === undefined ? <Info className="w-4 h-4 text-[#64748B] mt-0.5" /> : ok ? <CheckCircle2 className="w-4 h-4 text-[#15803D] mt-0.5" /> : <XCircle className="w-4 h-4 text-[#DC2626] mt-0.5" />}
-    <div><p className="text-sm text-[#172B24]">{label}</p>{detail && <p className="text-xs text-[#64748B]">{detail}</p>}</div>
+    <div><p className="text-sm text-slate-900">{label}</p>{detail && <p className="text-xs text-[#64748B]">{detail}</p>}</div>
   </li>
 );
 
@@ -291,7 +291,7 @@ const HealthTab = ({ flash }) => {
         <dl className="grid grid-cols-2 gap-3 text-xs">
           {[['Status', h.status], ['API version', h.version], ['Python', h.python], ['Checked', fmt(h.checked_at)],
             ...Object.entries(h.row_counts).map(([k, v]) => [k.replace('_', ' '), v.toLocaleString()])].map(([k, v]) => (
-            <div key={k} className="p-3 rounded-md border border-[#E5E7EB]"><dt className="text-[#64748B] capitalize">{k}</dt><dd className="font-semibold text-[#172B24] tabular-nums">{v}</dd></div>
+            <div key={k} className="p-3 rounded-md border border-[#E5E7EB]"><dt className="text-[#64748B] capitalize">{k}</dt><dd className="font-semibold text-slate-900 tabular-nums">{v}</dd></div>
           ))}
         </dl>
       </Panel>
@@ -320,8 +320,8 @@ const AuditTab = ({ flash }) => {
         <FormField label="Action contains"><input className="enterprise-input" placeholder="e.g. offboard, role, leave" value={filters.action} onChange={(e) => setFilters({ ...filters, action: e.target.value })} /></FormField>
         <FormField label="From"><input type="date" className="enterprise-input" value={filters.date_from} onChange={(e) => setFilters({ ...filters, date_from: e.target.value })} /></FormField>
         <FormField label="To"><input type="date" className="enterprise-input" value={filters.date_to} onChange={(e) => setFilters({ ...filters, date_to: e.target.value })} /></FormField>
-        <label className="inline-flex items-center gap-2 text-sm text-[#172B24] h-[38px]">
-          <input type="checkbox" className="accent-[#166534]" checked={filters.privileged_only} onChange={(e) => setFilters({ ...filters, privileged_only: e.target.checked })} /> Privileged only
+        <label className="inline-flex items-center gap-2 text-sm text-slate-900 h-[38px]">
+          <input type="checkbox" className="accent-brand-700" checked={filters.privileged_only} onChange={(e) => setFilters({ ...filters, privileged_only: e.target.checked })} /> Privileged only
         </label>
         <PrimaryButton type="submit">Search</PrimaryButton>
       </form>
@@ -332,7 +332,7 @@ const AuditTab = ({ flash }) => {
             {res.items.map((a) => (
               <li key={a.id} className="text-xs">
                 <button className="w-full text-left px-3 py-2 flex justify-between gap-3 hover:bg-[#F8FAFC]" onClick={() => setOpen(open === a.id ? null : a.id)}>
-                  <span className="min-w-0 truncate"><span className="font-medium text-[#172B24]">{a.actor_name}</span> <span className="text-[#64748B]">{a.action.replace(/_/g, ' ')} · {a.entity_type}</span></span>
+                  <span className="min-w-0 truncate"><span className="font-medium text-slate-900">{a.actor_name}</span> <span className="text-[#64748B]">{a.action.replace(/_/g, ' ')} · {a.entity_type}</span></span>
                   <span className="text-[#94A3B8] shrink-0">{fmt(a.created_at)}</span>
                 </button>
                 {open === a.id && <pre className="px-3 pb-3 text-[11px] text-[#475569] whitespace-pre-wrap break-all">{JSON.stringify(a.metadata, null, 2)}</pre>}
@@ -363,7 +363,7 @@ export const SuperAdminConsolePage = () => {
         title="Super Admin Control Center"
         description="Who holds power, how the company is configured, and whether the platform is healthy."
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'Super Admin' }]}
-        actions={<span className="inline-flex items-center gap-1.5 text-xs text-[#166534] bg-[#F0FDF4] border border-[#BBF7D0] rounded-full px-3 py-1"><ShieldCheck className="w-3.5 h-3.5" /> Every action here is audit-logged</span>}
+        actions={<span className="inline-flex items-center gap-1.5 text-xs text-brand-700 bg-brand-50 border border-brand-200 rounded-full px-3 py-1"><ShieldCheck className="w-3.5 h-3.5" /> Every action here is audit-logged</span>}
       />
       {feedback && (
         <div className={`p-3.5 rounded-lg border text-xs flex items-center justify-between gap-3 ${feedback.ok ? 'bg-[#F0FDF4] border-[#BBF7D0] text-[#15803D]' : 'bg-[#FEF2F2] border-[#FECACA] text-[#DC2626]'}`}>
@@ -374,7 +374,7 @@ export const SuperAdminConsolePage = () => {
       <div className="flex gap-1 border-b border-[#E5E7EB] overflow-x-auto">
         {TABS.map(([key, label]) => (
           <button key={key} onClick={() => { setFeedback(null); setParams(key === 'overview' ? {} : { tab: key }); }}
-            className={`px-4 py-2 text-sm -mb-px border-b-2 whitespace-nowrap transition-colors ${tab === key ? 'border-[#166534] text-[#166534] font-medium' : 'border-transparent text-[#64748B] hover:text-[#172B24]'}`}>
+            className={`px-4 py-2 text-sm -mb-px border-b-2 whitespace-nowrap transition-colors ${tab === key ? 'border-brand-700 text-brand-700 font-medium' : 'border-transparent text-[#64748B] hover:text-slate-900'}`}>
             {label}
           </button>
         ))}

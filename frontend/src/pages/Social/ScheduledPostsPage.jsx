@@ -113,7 +113,7 @@ export const ScheduledPostsPage = () => {
       header: 'Target Account',
       accessor: 'account_username',
       render: (row) => (
-        <span className="font-semibold text-sm text-[#172B24]">
+        <span className="font-semibold text-sm text-slate-900">
           @{row.account_username || 'account'}
         </span>
       ),
@@ -122,7 +122,7 @@ export const ScheduledPostsPage = () => {
       header: 'Caption',
       accessor: 'caption',
       render: (row) => (
-        <span className="text-xs text-[#172B24] line-clamp-1 max-w-sm block" title={row.caption}>
+        <span className="text-xs text-slate-900 line-clamp-1 max-w-sm block" title={row.caption}>
           {row.caption}
         </span>
       ),
@@ -174,7 +174,7 @@ export const ScheduledPostsPage = () => {
               href={row.media_url}
               target="_blank"
               rel="noreferrer"
-              className="p-1.5 text-[#64748B] hover:text-[#172B24]"
+              className="p-1.5 text-[#64748B] hover:text-slate-900"
               title="Preview Media"
             >
               <ExternalLink className="w-3.5 h-3.5" />
@@ -224,7 +224,7 @@ export const ScheduledPostsPage = () => {
       {error && <ErrorState message={error} onRetry={fetchData} />}
 
       {/* Filter Bar */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 shadow-xs flex items-center justify-between">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3 flex items-center justify-between">
         <FilterDropdown
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -291,7 +291,7 @@ export const ScheduledPostsPage = () => {
                 placeholder="Write caption, hashtags, and mentions..."
                 rows={4}
                 required
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 

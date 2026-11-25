@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import logoLight from '../logo-light.png';
+import logoMark from '../logo-mark.png';
 import {
   LayoutDashboard,
   Instagram,
@@ -34,7 +34,6 @@ export const AppSidebar = () => {
   const { employee, isAdmin, isManager, can, logout } = useAuth();
   const location = useLocation();
   const [openIncidentsCount, setOpenIncidentsCount] = useState(0);
-  const [collaborationOpen, setCollaborationOpen] = useState(true);
 
   useEffect(() => {
     if (!isAdmin) return;
@@ -95,28 +94,51 @@ export const AppSidebar = () => {
     { to: '/departments', label: 'Departments', icon: Building2 },
   ];
 
-  const renderNavLink = (item) => {
-    const Icon = item.icon;
-    const isActive = item.to.includes('?')
+  const sections = [
+    { id: 'main', label: 'Main', links: mainLinks, show: true },
+    { id: 'team', label: 'My Team', links: teamLinks, show: isManager },
+    { id: 'management', label: 'Management', links: managementLinks, show: isAdmin },
+    { id: 'administration', label: 'Administration', links: administrationLinks, show: isAdmin },
+    { id: 'super', label: 'Super Admin', links: superAdminLinks, show: can('settings:manage') },
+    { id: 'workspace', label: 'Workspace', links: collaborationLinks, show: true },
+  ].filter((sec) => sec.show);
+
+  const isLinkActive = (item) =>
+    item.to.includes('?')
       ? location.pathname + location.search === item.to
       : location.pathname === item.to && !location.search.includes('tab=');
 
+  // Sections remember whether they are collapsed; the one holding the current page always opens.
+  const [collapsed, setCollapsed] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('nav_collapsed') || '{}'); } catch { return {}; }
+  });
+  const toggleSection = (id) => {
+    setCollapsed((prev) => {
+      const next = { ...prev, [id]: !prev[id] };
+      try { localStorage.setItem('nav_collapsed', JSON.stringify(next)); } catch { /* ignore */ }
+      return next;
+    });
+  };
+
+  const renderNavLink = (item) => {
+    const Icon = item.icon;
+    const active = isLinkActive(item);
     return (
       <NavLink
         key={item.to}
         to={item.to}
-        className={`h-9 px-3 flex items-center justify-between rounded-md text-sm transition-colors duration-150 ${
-          isActive
-            ? 'bg-[#F0FDF4] text-[#166534] font-medium border-l-2 border-[#166534]'
-            : 'text-[#64748B] hover:text-[#172B24] hover:bg-[#F8FAFC]'
+        className={`group relative h-9 pl-3 pr-2.5 flex items-center justify-between rounded-lg text-[13px] transition-colors duration-150 ${
+          active
+            ? 'bg-brand-600 text-white font-medium shadow-sm shadow-black/20'
+            : 'text-emerald-50/75 hover:text-white hover:bg-white/[0.06]'
         }`}
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <Icon className={`w-4 h-4 shrink-0 ${isActive ? 'text-[#166534]' : 'text-[#64748B]'}`} />
+        <div className="flex items-center gap-3 min-w-0">
+          <Icon className={`w-[17px] h-[17px] shrink-0 ${active ? 'text-white' : 'text-emerald-100/60 group-hover:text-white'}`} />
           <span className="truncate">{item.label}</span>
         </div>
         {item.badge > 0 && (
-          <span className="px-1.5 py-0.2 text-[11px] font-bold rounded-full bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]">
+          <span className="min-w-[20px] h-5 px-1.5 inline-flex items-center justify-center text-[11px] font-semibold rounded-full bg-rose-500 text-white">
             {item.badge}
           </span>
         )}
@@ -124,125 +146,64 @@ export const AppSidebar = () => {
     );
   };
 
+  const initials = (employee?.full_name || 'U')
+    .split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('');
+
   return (
-    <aside className="w-60 bg-white border-r border-[#E5E7EB] flex flex-col shrink-0 min-h-screen select-none">
-      {/* Brand Header */}
-      <div className="h-16 px-4 flex items-center justify-between border-b border-[#E5E7EB] bg-white">
-        <NavLink to="/dashboard" className="flex items-center gap-2 group">
-          <img
-            src={logoLight}
-            alt="Klarves"
-            className="h-8 object-contain"
-          />
+    <aside className="w-64 bg-shell-900 flex flex-col shrink-0 h-screen sticky top-0 select-none border-r border-white/5">
+      {/* Brand */}
+      <div className="h-16 px-5 flex items-center justify-between gap-2.5 border-b border-white/10">
+        <NavLink to="/dashboard" className="flex items-center gap-2.5">
+          <img src={logoMark} alt="" className="h-7 w-7 object-contain" />
+          <span className="leading-none">
+            <span className="block text-white font-bold tracking-[0.08em] text-[15px]">KLARVES</span>
+            <span className="block text-[9.5px] text-emerald-100/60 mt-1">Employee Platform</span>
+          </span>
         </NavLink>
-        <span className="text-[10px] font-mono font-medium px-2 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0]">
-          v3.2
-        </span>
+        <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-emerald-50/80">v3.2</span>
       </div>
 
-      {/* Navigation Sections */}
-      <div className="flex-1 py-4 px-3 space-y-6 overflow-y-auto">
-        {/* MAIN */}
-        <div>
-          <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
-            Main
-          </div>
-          <nav className="space-y-0.5">
-            {mainLinks.map(renderNavLink)}
-          </nav>
-        </div>
-
-        {/* MY TEAM */}
-        {isManager && (
-          <div>
-            <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
-              My Team
+      {/* Navigation */}
+      <div className="flex-1 py-4 px-3 space-y-5 overflow-y-auto sidebar-scroll">
+        {sections.map((sec) => {
+          const holdsActive = sec.links.some(isLinkActive);
+          const open = holdsActive || !collapsed[sec.id];
+          return (
+            <div key={sec.id}>
+              <button
+                type="button"
+                onClick={() => toggleSection(sec.id)}
+                className="w-full px-3 mb-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-emerald-100/50 uppercase flex items-center justify-between hover:text-white transition-colors cursor-pointer"
+              >
+                <span>{sec.label}</span>
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
+              </button>
+              {open && <nav className="space-y-0.5">{sec.links.map(renderNavLink)}</nav>}
             </div>
-            <nav className="space-y-0.5">
-              {teamLinks.map(renderNavLink)}
-            </nav>
-          </div>
-        )}
-
-        {/* MANAGEMENT */}
-        {isAdmin && (
-          <div>
-            <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
-              Management
-            </div>
-            <nav className="space-y-0.5">
-              {managementLinks.map(renderNavLink)}
-            </nav>
-          </div>
-        )}
-
-        {/* ADMINISTRATION */}
-        {isAdmin && (
-          <div>
-            <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
-              Administration
-            </div>
-            <nav className="space-y-0.5">
-              {administrationLinks.map(renderNavLink)}
-            </nav>
-          </div>
-        )}
-
-        {/* SUPER ADMIN */}
-        {can('settings:manage') && (
-          <div>
-            <div className="px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase">
-              Super Admin
-            </div>
-            <nav className="space-y-0.5">
-              {superAdminLinks.map(renderNavLink)}
-            </nav>
-          </div>
-        )}
-
-        {/* WORKSPACE & COLLABORATION */}
-        <div>
-          <button
-            type="button"
-            onClick={() => setCollaborationOpen(!collaborationOpen)}
-            className="w-full px-3 mb-1.5 text-[11px] font-semibold tracking-wider text-[#64748B] uppercase flex items-center justify-between hover:text-[#172B24] transition-colors"
-          >
-            <span>Workspace</span>
-            <ChevronDown
-              className={`w-3.5 h-3.5 transition-transform duration-200 ${
-                collaborationOpen ? '' : '-rotate-90'
-              }`}
-            />
-          </button>
-          {collaborationOpen && (
-            <nav className="space-y-0.5">
-              {collaborationLinks.map(renderNavLink)}
-            </nav>
-          )}
-        </div>
+          );
+        })}
       </div>
 
-      {/* User Profile Footer */}
-      <div className="p-3 border-t border-[#E5E7EB] bg-white">
-        <div className="p-2.5 rounded-lg bg-[#F8FAFC] border border-[#E5E7EB] flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#166534] font-semibold text-xs shrink-0">
-              {employee?.full_name?.charAt(0) || 'U'}
+      {/* User */}
+      <div className="p-3 border-t border-white/10">
+        <div className="p-2.5 rounded-xl bg-white/[0.06] flex items-center justify-between gap-2">
+          <NavLink to="/profile" className="flex items-center gap-2.5 min-w-0">
+            <div className="w-9 h-9 rounded-full bg-brand-600 ring-2 ring-white/10 flex items-center justify-center text-white font-semibold text-xs shrink-0">
+              {initials}
             </div>
             <div className="min-w-0">
-              <p className="text-xs font-semibold text-[#172B24] truncate">
-                {employee?.full_name || 'Authenticated User'}
+              <p className="text-[13px] font-medium text-white truncate">
+                {employee?.full_name || 'Signed in'}
               </p>
-              <p className="text-[11px] text-[#64748B] font-mono truncate">
-                {employee?.employee_code || 'STAFF'}{employee?.role_label ? ` · ${employee.role_label}` : ''}
+              <p className="text-[11px] text-emerald-100/60 truncate">
+                {employee?.role_label || employee?.employee_code || ''}
               </p>
             </div>
-          </div>
-
+          </NavLink>
           <button
             onClick={logout}
             title="Sign out"
-            className="p-1.5 text-[#64748B] hover:text-[#DC2626] hover:bg-[#FEF2F2] rounded-md transition-colors cursor-pointer"
+            className="p-2 text-emerald-100/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer"
           >
             <LogOut className="w-4 h-4" />
           </button>

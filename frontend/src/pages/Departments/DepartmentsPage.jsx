@@ -83,8 +83,8 @@ export const DepartmentsPage = () => {
       accessor: 'name',
       render: (row) => (
         <div className="flex items-center gap-2.5">
-          <Building2 className="w-4 h-4 text-[#166534] shrink-0" />
-          <span className="font-semibold text-sm text-[#172B24]">{row.name}</span>
+          <Building2 className="w-4 h-4 text-brand-700 shrink-0" />
+          <span className="font-semibold text-sm text-slate-900">{row.name}</span>
         </div>
       ),
     },
@@ -92,7 +92,7 @@ export const DepartmentsPage = () => {
       header: 'Department Code',
       accessor: 'code',
       render: (row) => (
-        <span className="font-mono text-xs font-semibold text-[#172B24] bg-[#F1F5F9] px-2 py-0.5 rounded border border-[#E2E8F0]">
+        <span className="font-mono text-xs font-semibold text-slate-900 bg-[#F1F5F9] px-2 py-0.5 rounded border border-[#E2E8F0]">
           {row.code}
         </span>
       ),
@@ -153,7 +153,7 @@ export const DepartmentsPage = () => {
       {error && <ErrorState message={error} onRetry={fetchDepartments} />}
 
       {/* Search Bar */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 shadow-xs flex items-center justify-between">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3 flex items-center justify-between">
         <div className="w-full sm:w-80">
           <SearchInput
             value={searchQuery}
@@ -223,7 +223,7 @@ export const DepartmentsPage = () => {
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Operational scope, team mandate..."
                 rows={3}
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 

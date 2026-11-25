@@ -15,15 +15,15 @@ export const DataTable = ({
   className = '',
 }) => {
   return (
-    <div className={`bg-white border border-[#E5E7EB] rounded-lg shadow-xs overflow-hidden ${className}`}>
+    <div className={`bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden ${className}`}>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-[#F9FAFB] border-b border-[#E5E7EB]">
+            <tr className="bg-slate-50/80 border-b border-[#E6EAF0]">
               {columns.map((col, idx) => (
                 <th
                   key={idx}
-                  className={`px-4 py-3 text-xs font-semibold text-[#64748B] uppercase tracking-wider whitespace-nowrap ${
+                  className={`px-5 py-3 text-[11px] font-semibold text-slate-500 uppercase tracking-[0.08em] whitespace-nowrap ${
                     col.align === 'right'
                       ? 'text-right'
                       : col.align === 'center'
@@ -37,7 +37,7 @@ export const DataTable = ({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#E5E7EB]">
+          <tbody className="divide-y divide-slate-100">
             {loading ? (
               <tr>
                 <td colSpan={columns.length}>
@@ -59,14 +59,14 @@ export const DataTable = ({
                 <tr
                   key={row.id || rowIdx}
                   onClick={() => onRowClick && onRowClick(row)}
-                  className={`text-sm text-[#172B24] transition-colors ${
-                    onRowClick ? 'cursor-pointer hover:bg-[#F8FAFC]' : 'hover:bg-[#FBFBFC]'
+                  className={`text-sm text-slate-900 transition-colors ${
+                    onRowClick ? 'cursor-pointer hover:bg-brand-50/40' : 'hover:bg-slate-50/70'
                   }`}
                 >
                   {columns.map((col, colIdx) => (
                     <td
                       key={colIdx}
-                      className={`px-4 py-3.5 whitespace-nowrap align-middle ${
+                      className={`px-5 py-4 whitespace-nowrap align-middle ${
                         col.align === 'right'
                           ? 'text-right'
                           : col.align === 'center'

@@ -51,16 +51,16 @@ export const OAuthCallbackPage = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex flex-col items-center justify-center p-6 text-center select-none">
-      <div className="w-full max-w-md bg-white border border-[#E5E7EB] rounded-lg p-8 shadow-xs space-y-6">
-        <div className="w-12 h-12 rounded-lg bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#166534] mx-auto">
+    <div className="min-h-screen bg-[#F4F6FA] flex flex-col items-center justify-center p-6 text-center select-none">
+      <div className="w-full max-w-md bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-8 space-y-6">
+        <div className="w-12 h-12 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-700 mx-auto">
           <Instagram className="w-6 h-6" />
         </div>
 
         {status === 'processing' && (
           <div className="space-y-3">
-            <Loader2 className="w-7 h-7 text-[#166534] animate-spin mx-auto" />
-            <h2 className="text-lg font-semibold text-[#172B24]">Connecting with Meta...</h2>
+            <Loader2 className="w-7 h-7 text-brand-700 animate-spin mx-auto" />
+            <h2 className="text-lg font-semibold text-slate-900">Connecting with Meta...</h2>
             <p className="text-xs text-[#64748B] max-w-xs mx-auto">
               Verifying signed state, exchanging long-lived tokens, and establishing official Instagram Graph API connection.
             </p>
@@ -73,9 +73,9 @@ export const OAuthCallbackPage = () => {
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#172B24]">Instagram Connected!</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Instagram Connected!</h2>
               <p className="text-xs text-[#64748B] mt-1">
-                Account <strong className="text-[#172B24]">@{resultData?.username}</strong> is now securely authorized and linked.
+                Account <strong className="text-slate-900">@{resultData?.username}</strong> is now securely authorized and linked.
               </p>
               <p className="text-[11px] text-[#94A3B8] mt-1">Redirecting to your accounts in 3 seconds...</p>
             </div>
@@ -91,7 +91,7 @@ export const OAuthCallbackPage = () => {
               <XCircle className="w-6 h-6" />
             </div>
             <div>
-              <h2 className="text-lg font-semibold text-[#172B24]">Connection Failed</h2>
+              <h2 className="text-lg font-semibold text-slate-900">Connection Failed</h2>
               <p className="text-xs text-[#DC2626] max-w-xs mx-auto mt-1">{errorMessage}</p>
             </div>
             <SecondaryButton onClick={() => navigate('/accounts')} className="w-full">

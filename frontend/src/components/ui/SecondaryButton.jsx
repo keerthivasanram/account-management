@@ -20,15 +20,15 @@ export const SecondaryButton = ({
   }[size] || 'h-[38px] px-3.5 text-sm';
 
   const colorStyles = danger
-    ? 'text-[#DC2626] bg-white hover:bg-[#FEF2F2] border-[#FECACA] hover:border-[#F87171] focus:ring-[#DC2626]'
-    : 'text-[#172B24] bg-white hover:bg-[#F9FAFB] active:bg-[#F3F4F6] border-[#E5E7EB] hover:border-[#D1D5DB] focus:ring-[#166534]';
+    ? 'text-[#DC2626] bg-white hover:bg-[#FEF2F2] border-[#FECACA] hover:border-[#F87171] focus:ring-rose-100'
+    : 'text-slate-900 bg-white hover:bg-[#F9FAFB] active:bg-[#F3F4F6] border-slate-200 hover:border-slate-300 focus:ring-brand-100';
 
   return (
     <button
       type={type}
       onClick={onClick}
       disabled={disabled || loading}
-      className={`inline-flex items-center justify-center gap-2 rounded-md font-medium border shadow-2xs transition-colors duration-150 focus:outline-none focus:ring-2 focus:ring-offset-1 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${colorStyles} ${sizeStyles} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 rounded-lg font-medium border shadow-2xs transition-colors duration-150 focus:outline-none focus:ring-4 disabled:opacity-50 disabled:pointer-events-none cursor-pointer ${colorStyles} ${sizeStyles} ${className}`}
       {...props}
     >
       {loading ? (

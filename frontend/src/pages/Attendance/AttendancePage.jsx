@@ -131,7 +131,7 @@ export const AttendancePage = () => {
       header: 'Shift Date',
       accessor: 'date',
       render: (row) => (
-        <span className="font-semibold text-xs text-[#172B24]">
+        <span className="font-semibold text-xs text-slate-900">
           {new Date(row.date).toLocaleDateString('en-US', {
             weekday: 'short',
             month: 'short',
@@ -144,7 +144,7 @@ export const AttendancePage = () => {
       header: 'Check In',
       accessor: 'check_in_time',
       render: (row) => (
-        <span className="font-mono text-xs text-[#172B24]">
+        <span className="font-mono text-xs text-slate-900">
           {row.check_in_time
             ? new Date(row.check_in_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
             : '—'}
@@ -166,7 +166,7 @@ export const AttendancePage = () => {
       header: 'Logged Hours',
       accessor: 'hours_worked',
       render: (row) => (
-        <span className="font-mono text-xs font-medium text-[#172B24]">
+        <span className="font-mono text-xs font-medium text-slate-900">
           {row.hours_worked ? `${row.hours_worked.toFixed(1)} hrs` : 'In Progress'}
         </span>
       ),
@@ -183,7 +183,7 @@ export const AttendancePage = () => {
       header: 'Leave Type',
       accessor: 'leave_type',
       render: (row) => (
-        <span className="font-semibold text-xs text-[#172B24]">{row.leave_type}</span>
+        <span className="font-semibold text-xs text-slate-900">{row.leave_type}</span>
       ),
     },
     {
@@ -199,7 +199,7 @@ export const AttendancePage = () => {
       header: 'Reason',
       accessor: 'reason',
       render: (row) => (
-        <span className="text-xs text-[#172B24] truncate max-w-xs block">{row.reason}</span>
+        <span className="text-xs text-slate-900 truncate max-w-xs block">{row.reason}</span>
       ),
     },
     {
@@ -292,7 +292,7 @@ export const AttendancePage = () => {
       {error && <ErrorState message={error} onRetry={fetchData} />}
 
       {/* 2. Metrics */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="stat-group grid grid-cols-1 sm:grid-cols-3 gap-4">
         <MetricCard
           label="Today's Shift Status"
           value={summary?.today_status === 'CHECKED_IN' ? 'Clocked In' : 'Not Checked In'}
@@ -321,8 +321,8 @@ export const AttendancePage = () => {
           onClick={() => setActiveTab('attendance')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'attendance'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Attendance History ({history.length})
@@ -331,8 +331,8 @@ export const AttendancePage = () => {
           onClick={() => setActiveTab('leaves')}
           className={`pb-3 text-sm font-medium transition-colors border-b-2 -mb-px cursor-pointer ${
             activeTab === 'leaves'
-              ? 'border-[#166534] text-[#166534]'
-              : 'border-transparent text-[#64748B] hover:text-[#172B24]'
+              ? 'border-brand-700 text-brand-700'
+              : 'border-transparent text-[#64748B] hover:text-slate-900'
           }`}
         >
           Leave Requests ({leaves.length})
@@ -411,7 +411,7 @@ export const AttendancePage = () => {
                 placeholder="Reason for leave request..."
                 rows={3}
                 required
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 

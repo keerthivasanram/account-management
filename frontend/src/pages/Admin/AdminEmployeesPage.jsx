@@ -234,11 +234,11 @@ export const AdminEmployeesPage = () => {
       accessor: 'full_name',
       render: (row) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#166534] font-semibold text-xs shrink-0">
+          <div className="w-8 h-8 rounded-full bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-700 font-semibold text-xs shrink-0">
             {row.full_name?.charAt(0) || 'U'}
           </div>
           <div className="min-w-0">
-            <p className="font-semibold text-sm text-[#172B24] truncate">{row.full_name}</p>
+            <p className="font-semibold text-sm text-slate-900 truncate">{row.full_name}</p>
             <span className="text-[11px] text-[#64748B]">{row.job_title || row.email}</span>
           </div>
         </div>
@@ -248,7 +248,7 @@ export const AdminEmployeesPage = () => {
       header: 'Code',
       accessor: 'employee_code',
       render: (row) => (
-        <span className="font-mono text-xs text-[#172B24] font-medium bg-[#F1F5F9] px-2 py-0.5 rounded border border-[#E2E8F0]">
+        <span className="font-mono text-xs text-slate-900 font-medium bg-[#F1F5F9] px-2 py-0.5 rounded border border-[#E2E8F0]">
           {row.employee_code}
         </span>
       ),
@@ -259,7 +259,7 @@ export const AdminEmployeesPage = () => {
       accessor: 'department_name',
       render: (row) => (
         <div className="text-xs">
-          <p className="text-[#172B24]">{row.department_name || '—'}</p>
+          <p className="text-slate-900">{row.department_name || '—'}</p>
           <p className="text-[#64748B]">{row.manager_name ? `Reports to ${row.manager_name}` : 'No manager'}</p>
         </div>
       ),
@@ -275,11 +275,11 @@ export const AdminEmployeesPage = () => {
         return (
           <div className="w-32">
             <div className="flex justify-between text-xs mb-1">
-              <span className={`font-medium ${over ? 'text-[#DC2626]' : 'text-[#172B24]'}`}>{count}</span>
+              <span className={`font-medium ${over ? 'text-[#DC2626]' : 'text-slate-900'}`}>{count}</span>
               <span className="text-[#64748B]">{minTarget}–{maxTarget}</span>
             </div>
             <div className="w-full bg-[#F1F5F9] h-1.5 rounded-full overflow-hidden">
-              <div className={`h-full rounded-full ${over ? 'bg-[#DC2626]' : under ? 'bg-[#D97706]' : 'bg-[#166534]'}`} style={{ width: `${pct}%` }} />
+              <div className={`h-full rounded-full ${over ? 'bg-[#DC2626]' : under ? 'bg-[#D97706]' : 'bg-brand-700'}`} style={{ width: `${pct}%` }} />
             </div>
           </div>
         );
@@ -338,14 +338,14 @@ export const AdminEmployeesPage = () => {
 
       {error && <ErrorState message={error} onRetry={load} />}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="stat-group grid grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard label="Active" value={counts.active} icon={UserCheck} subtext="Currently working" />
         <MetricCard label="Invited" value={counts.invited} icon={Mail} subtext="Not signed in yet" />
         <MetricCard label="On leave" value={counts.onLeave} icon={Users} subtext="Status ON_LEAVE" />
         <MetricCard label="Outside account target" value={counts.outOfRange} icon={UserX} subtext={`Employees outside ${minTarget}–${maxTarget}`} />
       </div>
 
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3.5 shadow-xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3.5 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
         <div className="w-full lg:w-80">
           <SearchInput value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search by name, email, or code..." />
         </div>
@@ -388,12 +388,12 @@ export const AdminEmployeesPage = () => {
               ].map(([k, v]) => (
                 <div key={k} className="p-3 bg-white border border-[#E5E7EB] rounded-md">
                   <span className="text-[#64748B] block mb-0.5">{k}</span>
-                  <span className="text-[#172B24] font-medium break-words">{v}</span>
+                  <span className="text-slate-900 font-medium break-words">{v}</span>
                 </div>
               ))}
             </div>
             <div className="space-y-2">
-              <h5 className="text-xs font-semibold text-[#172B24] uppercase tracking-wider">Assigned Instagram accounts ({accounts.length})</h5>
+              <h5 className="text-xs font-semibold text-slate-900 uppercase tracking-wider">Assigned Instagram accounts ({accounts.length})</h5>
               <div className="max-h-56 overflow-y-auto divide-y divide-[#E5E7EB] border border-[#E5E7EB] rounded-lg bg-white">
                 {loadingDetails ? (
                   <div className="p-4 text-center text-xs text-[#64748B]">Loading…</div>
@@ -402,7 +402,7 @@ export const AdminEmployeesPage = () => {
                 ) : accounts.map((acc) => (
                   <div key={acc.id} className="p-3 text-xs flex items-center justify-between">
                     <div>
-                      <span className="font-semibold text-[#172B24]">@{acc.username}</span>
+                      <span className="font-semibold text-slate-900">@{acc.username}</span>
                       <p className="text-[11px] text-[#64748B]">{acc.client_name || 'No client'}</p>
                     </div>
                     <StatusBadge status={acc.status} />

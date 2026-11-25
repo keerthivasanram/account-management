@@ -160,11 +160,11 @@ export const ChatPage = () => {
       />
 
       {/* Main Chat Interface */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs overflow-hidden h-[620px] flex">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden h-[620px] flex">
         {/* Left: Conversation List (Width: 260px) */}
         <div className="w-64 border-r border-[#E5E7EB] flex flex-col shrink-0 bg-[#FBFBFC]">
           <div className="p-3 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
-            <span className="text-xs font-semibold text-[#172B24] uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-900 uppercase tracking-wider">
               Conversations
             </span>
             <SecondaryButton
@@ -194,21 +194,21 @@ export const ChatPage = () => {
                     onClick={() => setActiveConv(conv)}
                     className={`w-full text-left p-3 text-xs transition-colors cursor-pointer flex items-start gap-2.5 ${
                       isActive
-                        ? 'bg-[#F0FDF4] border-l-2 border-[#166534]'
+                        ? 'bg-brand-50 border-l-2 border-brand-700'
                         : 'hover:bg-[#F1F5F9]'
                     }`}
                   >
                     <div
                       className={`w-7 h-7 rounded-md flex items-center justify-center shrink-0 ${
                         isActive
-                          ? 'bg-[#166534] text-white'
+                          ? 'bg-brand-700 text-white'
                           : 'bg-[#E2E8F0] text-[#64748B]'
                       }`}
                     >
                       {isChannel ? <Hash className="w-3.5 h-3.5" /> : <Users className="w-3.5 h-3.5" />}
                     </div>
                     <div className="min-w-0 flex-1">
-                      <p className={`font-semibold truncate ${isActive ? 'text-[#166534]' : 'text-[#172B24]'}`}>
+                      <p className={`font-semibold truncate ${isActive ? 'text-brand-700' : 'text-slate-900'}`}>
                         {conv.title || 'Direct Conversation'}
                       </p>
                       <p className="text-[11px] text-[#64748B] truncate mt-0.5">
@@ -229,7 +229,7 @@ export const ChatPage = () => {
               {/* Chat Header */}
               <div className="h-14 px-5 border-b border-[#E5E7EB] flex items-center justify-between bg-white shrink-0">
                 <div className="flex items-center gap-2">
-                  <span className="font-semibold text-sm text-[#172B24]">
+                  <span className="font-semibold text-sm text-slate-900">
                     {activeConv.title || 'Direct Conversation'}
                   </span>
                   <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-[#F1F5F9] text-[#64748B] border border-[#E2E8F0]">
@@ -249,7 +249,7 @@ export const ChatPage = () => {
                 ) : messages.length === 0 ? (
                   <div className="h-full flex flex-col items-center justify-center text-center text-[#64748B] text-xs">
                     <MessageSquare className="w-8 h-8 text-[#CBD5E1] mb-2" />
-                    <p className="font-semibold text-[#172B24]">No messages yet</p>
+                    <p className="font-semibold text-slate-900">No messages yet</p>
                     <p>Send the first message to initiate conversation.</p>
                   </div>
                 ) : (
@@ -261,7 +261,7 @@ export const ChatPage = () => {
                         className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
                       >
                         <div className="flex items-center gap-1.5 mb-1">
-                          <span className="text-[11px] font-semibold text-[#172B24]">
+                          <span className="text-[11px] font-semibold text-slate-900">
                             {isMe ? 'You' : msg.sender_name}
                           </span>
                           <span className="text-[10px] text-[#94A3B8] font-mono">
@@ -271,8 +271,8 @@ export const ChatPage = () => {
                         <div
                           className={`p-3 rounded-lg max-w-md text-xs leading-relaxed shadow-xs ${
                             isMe
-                              ? 'bg-[#166534] text-white'
-                              : 'bg-white border border-[#E5E7EB] text-[#172B24]'
+                              ? 'bg-brand-700 text-white'
+                              : 'bg-white border border-[#E5E7EB] text-slate-900'
                           }`}
                         >
                           {msg.content}
@@ -320,7 +320,7 @@ export const ChatPage = () => {
                 type="button"
                 onClick={() => setModalType('DIRECT')}
                 className={`flex-1 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
-                  modalType === 'DIRECT' ? 'bg-white text-[#172B24] shadow-xs' : 'text-[#64748B]'
+                  modalType === 'DIRECT' ? 'bg-white text-slate-900 shadow-xs' : 'text-[#64748B]'
                 }`}
               >
                 Direct Message
@@ -329,7 +329,7 @@ export const ChatPage = () => {
                 type="button"
                 onClick={() => setModalType('CHANNEL')}
                 className={`flex-1 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
-                  modalType === 'CHANNEL' ? 'bg-white text-[#172B24] shadow-xs' : 'text-[#64748B]'
+                  modalType === 'CHANNEL' ? 'bg-white text-slate-900 shadow-xs' : 'text-[#64748B]'
                 }`}
               >
                 Team Channel

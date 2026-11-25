@@ -32,14 +32,14 @@ export const AuthCallbackPage = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#F8FAFC] px-4">
-      <div className="w-full max-w-sm bg-white border border-[#E5E7EB] rounded-lg p-6 text-center space-y-4">
+      <div className="w-full max-w-sm bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-6 text-center space-y-4">
         {error ? (
           <>
             <div className="flex items-start gap-2 p-3 rounded-md bg-[#FEF2F2] border border-[#FECACA] text-xs text-[#DC2626] text-left">
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
-            <Link to="/login" className="inline-block text-sm font-medium text-[#166534] hover:underline">
+            <Link to="/login" className="inline-block text-sm font-medium text-brand-700 hover:underline">
               Back to sign in
             </Link>
           </>

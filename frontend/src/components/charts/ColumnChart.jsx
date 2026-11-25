@@ -6,10 +6,10 @@ import React, { useState } from 'react';
  * per-column hover tooltip with a hit target taller than the mark, selective labels
  * (max + last only), and a table view for screen readers / exact values.
  */
-const ACCENT = '#166534';
+const ACCENT = '#15803D'; // brand-600, validated: contrast >= 3:1 on white
 const GRID = '#E5E7EB';
 const INK_MUTED = '#64748B';
-const INK = '#172B24';
+const INK = '#0F172A';
 
 const niceMax = (v) => {
   if (v <= 4) return 4;
@@ -77,7 +77,7 @@ export const ColumnChart = ({ data, valueKey, labelKey, formatLabel = (v) => v, 
           style={{ left: `${((pad.left + hover * slot + slot / 2) / width) * 100}%`, top: 4 }}
         >
           <p className="text-[#64748B]">{formatLabel(data[hover][labelKey])}</p>
-          <p className="font-semibold text-[#172B24] tabular-nums">{data[hover][valueKey]}{unit}</p>
+          <p className="font-semibold text-slate-900 tabular-nums">{data[hover][valueKey]}{unit}</p>
         </div>
       )}
       <details className="mt-1">
@@ -87,7 +87,7 @@ export const ColumnChart = ({ data, valueKey, labelKey, formatLabel = (v) => v, 
             {data.map((d) => (
               <tr key={d[labelKey]} className="border-b border-[#F1F5F9]">
                 <td className="py-1 text-[#64748B]">{formatLabel(d[labelKey])}</td>
-                <td className="py-1 text-right tabular-nums text-[#172B24]">{d[valueKey]}{unit}</td>
+                <td className="py-1 text-right tabular-nums text-slate-900">{d[valueKey]}{unit}</td>
               </tr>
             ))}
           </tbody>

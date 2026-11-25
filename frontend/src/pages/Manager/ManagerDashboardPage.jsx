@@ -88,7 +88,7 @@ export const ManagerDashboardPage = () => {
       accessor: 'full_name',
       render: (m) => (
         <div className="min-w-0">
-          <p className="font-semibold text-sm text-[#172B24] truncate">{m.full_name}</p>
+          <p className="font-semibold text-sm text-slate-900 truncate">{m.full_name}</p>
           <p className="text-[11px] text-[#64748B] truncate">
             {m.employee_code} · {m.job_title || m.role_label}{m.reports_directly ? '' : ' · via department'}
           </p>
@@ -105,7 +105,7 @@ export const ManagerDashboardPage = () => {
       accessor: 'open_tasks',
       render: (m) => (
         <span className="text-xs tabular-nums">
-          <span className="font-semibold text-[#172B24]">{m.open_tasks}</span>
+          <span className="font-semibold text-slate-900">{m.open_tasks}</span>
           {m.overdue_tasks > 0 && <span className="ml-1.5 text-[#DC2626]">({m.overdue_tasks} overdue)</span>}
         </span>
       ),
@@ -115,7 +115,7 @@ export const ManagerDashboardPage = () => {
       accessor: 'assigned_accounts',
       render: (m) => (
         <div className="flex items-center gap-2">
-          <span className="text-xs font-semibold tabular-nums text-[#172B24]">{m.assigned_accounts}</span>
+          <span className="text-xs font-semibold tabular-nums text-slate-900">{m.assigned_accounts}</span>
           {m.workload === 'OVER' && <StatusBadge status="OVERLOADED" text="over" />}
           {m.workload === 'UNDER' && <StatusBadge status="UNDER" text="under" />}
         </div>
@@ -143,7 +143,7 @@ export const ManagerDashboardPage = () => {
       {error && <ErrorState message={error} onRetry={load} />}
 
       {overview && (
-        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="stat-group grid grid-cols-2 lg:grid-cols-5 gap-4">
           <MetricCard label="Team size" value={overview.team_size} icon={UsersRound} />
           <MetricCard label="In today" value={overview.present_today} icon={UserCheck}
             subtext={`${overview.not_checked_in} not checked in`} />
@@ -160,7 +160,7 @@ export const ManagerDashboardPage = () => {
           <button
             key={key}
             onClick={() => setParams(key === 'team' ? {} : { tab: key })}
-            className={`px-4 py-2 text-sm -mb-px border-b-2 transition-colors ${tab === key ? 'border-[#166534] text-[#166534] font-medium' : 'border-transparent text-[#64748B] hover:text-[#172B24]'}`}
+            className={`px-4 py-2 text-sm -mb-px border-b-2 transition-colors ${tab === key ? 'border-brand-700 text-brand-700 font-medium' : 'border-transparent text-[#64748B] hover:text-slate-900'}`}
           >
             {label}
           </button>
@@ -179,10 +179,10 @@ export const ManagerDashboardPage = () => {
 
       {tab === 'approvals' && !loading && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          <section className="bg-white border border-[#E5E7EB] rounded-lg">
+          <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft">
             <header className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2">
               <CheckSquare className="w-4 h-4 text-[#64748B]" />
-              <h2 className="text-sm font-semibold text-[#172B24]">Task reviews ({inbox.tasks.length})</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Task reviews ({inbox.tasks.length})</h2>
             </header>
             {inbox.tasks.length === 0 ? (
               <EmptyState title="Nothing to review" description="Submitted deliverables from your team land here." />
@@ -191,7 +191,7 @@ export const ManagerDashboardPage = () => {
                 {inbox.tasks.map((t) => (
                   <li key={t.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#172B24] truncate">{t.title}</p>
+                      <p className="text-sm font-medium text-slate-900 truncate">{t.title}</p>
                       <p className="text-xs text-[#64748B]">
                         {t.assignee_name} · {t.project_name || 'No project'} · due {fmtDate(t.due_date)}
                       </p>
@@ -206,10 +206,10 @@ export const ManagerDashboardPage = () => {
             )}
           </section>
 
-          <section className="bg-white border border-[#E5E7EB] rounded-lg">
+          <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft">
             <header className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2">
               <Plane className="w-4 h-4 text-[#64748B]" />
-              <h2 className="text-sm font-semibold text-[#172B24]">Leave requests ({inbox.leaves.length})</h2>
+              <h2 className="text-sm font-semibold text-slate-900">Leave requests ({inbox.leaves.length})</h2>
             </header>
             {inbox.leaves.length === 0 ? (
               <EmptyState title="No pending leave" description="Leave requests from your reports land here." />
@@ -218,7 +218,7 @@ export const ManagerDashboardPage = () => {
                 {inbox.leaves.map((l) => (
                   <li key={l.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                     <div className="min-w-0">
-                      <p className="text-sm font-medium text-[#172B24]">
+                      <p className="text-sm font-medium text-slate-900">
                         {l.employee_name} · {l.days} day{l.days === 1 ? '' : 's'} {l.leave_type.toLowerCase()}
                       </p>
                       <p className="text-xs text-[#64748B]">{fmtDate(l.start_date)} → {fmtDate(l.end_date)} · “{l.reason}”</p>

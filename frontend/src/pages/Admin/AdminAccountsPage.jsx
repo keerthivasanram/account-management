@@ -145,13 +145,13 @@ export const AdminAccountsPage = () => {
       accessor: 'username',
       render: (row) => (
         <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm text-[#172B24]">@{row.username}</span>
+          <span className="font-semibold text-sm text-slate-900">@{row.username}</span>
           {row.profile_url && (
             <a
               href={row.profile_url}
               target="_blank"
               rel="noreferrer"
-              className="text-[#94A3B8] hover:text-[#172B24]"
+              className="text-[#94A3B8] hover:text-slate-900"
             >
               <ExternalLink className="w-3 h-3" />
             </a>
@@ -164,7 +164,7 @@ export const AdminAccountsPage = () => {
       accessor: 'client_name',
       render: (row) => (
         <div>
-          <p className="text-xs font-medium text-[#172B24]">{row.client_name || '—'}</p>
+          <p className="text-xs font-medium text-slate-900">{row.client_name || '—'}</p>
           <p className="text-[11px] text-[#64748B]">{row.campaign_name || 'No campaign'}</p>
         </div>
       ),
@@ -174,7 +174,7 @@ export const AdminAccountsPage = () => {
       accessor: 'employee',
       render: (row) => (
         <div>
-          <p className="text-xs font-medium text-[#172B24]">
+          <p className="text-xs font-medium text-slate-900">
             {row.active_assignment?.employee_name || 'Unassigned'}
           </p>
           <p className="text-[10px] text-[#64748B] font-mono">
@@ -265,7 +265,7 @@ export const AdminAccountsPage = () => {
       {error && <ErrorState message={error} onRetry={fetchAccountsAndEmployees} />}
 
       {/* 2. Search & Filters */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3.5 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3.5 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         <div className="w-full sm:w-80">
           <SearchInput
             value={search}
@@ -319,7 +319,7 @@ export const AdminAccountsPage = () => {
                 <label
                   className={`flex-1 p-3 rounded-md border flex items-center justify-center gap-2 cursor-pointer text-xs font-medium ${
                     approvalStatus === 'approved'
-                      ? 'bg-[#F0FDF4] border-[#166534] text-[#166534]'
+                      ? 'bg-brand-50 border-brand-700 text-brand-700'
                       : 'bg-white border-[#E5E7EB] text-[#64748B]'
                   }`}
                 >
@@ -363,7 +363,7 @@ export const AdminAccountsPage = () => {
                 onChange={(e) => setRemarks(e.target.value)}
                 placeholder="Optional notes or feedback for the employee..."
                 rows={3}
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 

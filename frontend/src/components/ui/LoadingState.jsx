@@ -19,7 +19,7 @@ export const LoadingState = ({
 
   return (
     <div className={`p-12 flex flex-col items-center justify-center text-center ${className}`}>
-      <Loader2 className="w-6 h-6 animate-spin text-[#166534] mb-2" />
+      <Loader2 className="w-6 h-6 animate-spin text-brand-700 mb-2" />
       <p className="text-sm text-[#64748B] font-normal">{message}</p>
     </div>
   );

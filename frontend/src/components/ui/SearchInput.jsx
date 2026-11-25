@@ -17,14 +17,14 @@ export const SearchInput = ({
         value={value}
         onChange={onChange}
         placeholder={placeholder}
-        className="h-[38px] w-full pl-9 pr-8 text-sm text-[#172B24] placeholder-[#94A3B8] bg-white border border-[#E5E7EB] rounded-md transition-colors focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+        className="h-[38px] w-full pl-9 pr-8 text-sm text-slate-900 placeholder-[#94A3B8] bg-white border border-[#E5E7EB] rounded-md transition-colors focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
         {...props}
       />
       {value && (
         <button
           type="button"
           onClick={onClear || (() => onChange({ target: { value: '' } }))}
-          className="absolute right-2.5 p-0.5 text-[#94A3B8] hover:text-[#172B24] rounded transition-colors"
+          className="absolute right-2.5 p-0.5 text-[#94A3B8] hover:text-slate-900 rounded transition-colors"
         >
           <X className="w-3.5 h-3.5" />
         </button>

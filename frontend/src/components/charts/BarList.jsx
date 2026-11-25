@@ -6,7 +6,7 @@ import React, { useState } from 'react';
  * (emphasis, not identity). Bars <= 12px, 4px rounded data-end, value at the tip in text ink,
  * hover tooltip on the whole row, table view built in.
  */
-const ACCENT = '#166534';
+const ACCENT = '#15803D'; // brand-600, validated: contrast >= 3:1 on white
 const RECEDE = '#94A3B8';
 
 export const BarList = ({ rows, labelKey = 'label', valueKey = 'count', highlight, unit = '', emptyText = 'No data yet' }) => {
@@ -36,12 +36,12 @@ export const BarList = ({ rows, labelKey = 'label', valueKey = 'count', highligh
                     style={{ width: `${Math.max(pct, v > 0 ? 1.5 : 0)}%`, background: color, opacity: hover === null || hover === i ? 1 : 0.6 }}
                   />
                 </div>
-                <span className="text-xs font-semibold text-[#172B24] tabular-nums w-10 text-right shrink-0">{v.toLocaleString()}{unit}</span>
+                <span className="text-xs font-semibold text-slate-900 tabular-nums w-10 text-right shrink-0">{v.toLocaleString()}{unit}</span>
               </div>
               {hover === i && (
                 <div className="pointer-events-none absolute right-12 -top-7 bg-white border border-[#E5E7EB] shadow-sm rounded-md px-2 py-1 text-[11px] z-10 whitespace-nowrap">
                   <span className="text-[#64748B]">{r[labelKey]}: </span>
-                  <span className="font-semibold text-[#172B24]">{v.toLocaleString()}{unit}</span>
+                  <span className="font-semibold text-slate-900">{v.toLocaleString()}{unit}</span>
                 </div>
               )}
             </li>

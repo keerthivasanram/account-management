@@ -204,7 +204,7 @@ export const TasksPage = () => {
       accessor: 'title',
       render: (row) => (
         <div>
-          <p className="font-semibold text-sm text-[#172B24]">{row.title}</p>
+          <p className="font-semibold text-sm text-slate-900">{row.title}</p>
           {row.description && (
             <p className="text-xs text-[#64748B] line-clamp-1 max-w-sm">{row.description}</p>
           )}
@@ -215,7 +215,7 @@ export const TasksPage = () => {
       header: 'Project',
       accessor: 'project_name',
       render: (row) => (
-        <span className="text-xs font-medium text-[#172B24]">{row.project_name || 'General Project'}</span>
+        <span className="text-xs font-medium text-slate-900">{row.project_name || 'General Project'}</span>
       ),
     },
     {
@@ -223,7 +223,7 @@ export const TasksPage = () => {
       accessor: 'assignee_name',
       render: (row) => (
         <div>
-          <p className="text-xs font-medium text-[#172B24]">{row.assignee_name || 'Unassigned'}</p>
+          <p className="text-xs font-medium text-slate-900">{row.assignee_name || 'Unassigned'}</p>
           <p className="text-[10px] text-[#64748B] font-mono">{row.assignee_code}</p>
         </div>
       ),
@@ -299,15 +299,15 @@ export const TasksPage = () => {
       {error && <ErrorState message={error} onRetry={fetchData} />}
 
       {/* Tabs & Filters Bar */}
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-3 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-3 flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
         {/* Tabs */}
         <div className="flex bg-[#F1F5F9] p-0.5 rounded-md text-xs">
           <button
             onClick={() => setActiveTab('my')}
             className={`px-3 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
               activeTab === 'my'
-                ? 'bg-white text-[#172B24] shadow-xs'
-                : 'text-[#64748B] hover:text-[#172B24]'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-[#64748B] hover:text-slate-900'
             }`}
           >
             My Assigned Tasks
@@ -316,8 +316,8 @@ export const TasksPage = () => {
             onClick={() => setActiveTab('all')}
             className={`px-3 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
               activeTab === 'all'
-                ? 'bg-white text-[#172B24] shadow-xs'
-                : 'text-[#64748B] hover:text-[#172B24]'
+                ? 'bg-white text-slate-900 shadow-xs'
+                : 'text-[#64748B] hover:text-slate-900'
             }`}
           >
             All Team Tasks
@@ -391,7 +391,7 @@ export const TasksPage = () => {
                 onChange={(e) => setCreateForm({ ...createForm, description: e.target.value })}
                 placeholder="Requirements, reference links, and guidelines..."
                 rows={3}
-                className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
               />
             </FormField>
 
@@ -481,17 +481,17 @@ export const TasksPage = () => {
               </div>
               <div>
                 <span className="text-[#64748B] block">Priority</span>
-                <span className="font-semibold text-[#172B24]">{selectedTask.priority}</span>
+                <span className="font-semibold text-slate-900">{selectedTask.priority}</span>
               </div>
               <div>
                 <span className="text-[#64748B] block">Assignee</span>
-                <span className="font-semibold text-[#172B24]">{selectedTask.assignee_name}</span>
+                <span className="font-semibold text-slate-900">{selectedTask.assignee_name}</span>
               </div>
             </div>
 
             {selectedTask.description && (
               <div>
-                <span className="font-semibold text-[#172B24] block mb-1">Description</span>
+                <span className="font-semibold text-slate-900 block mb-1">Description</span>
                 <p className="text-[#64748B] leading-relaxed p-2.5 bg-white border border-[#E5E7EB] rounded-md">
                   {selectedTask.description}
                 </p>
@@ -517,7 +517,7 @@ export const TasksPage = () => {
                     placeholder="Provide link to design files, copy draft, or deliverable summary..."
                     rows={3}
                     required
-                    className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                    className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
                   />
                 </FormField>
                 <div className="flex justify-end gap-2">
@@ -537,7 +537,7 @@ export const TasksPage = () => {
                     onChange={(e) => setReviewRemarks(e.target.value)}
                     placeholder="Enter approval notes or reasons for revision..."
                     rows={2}
-                    className="w-full text-xs text-[#172B24] p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534]"
+                    className="w-full text-xs text-slate-900 p-2.5 border border-[#E5E7EB] rounded-md focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
                   />
                 </FormField>
                 <div className="flex justify-end gap-2">

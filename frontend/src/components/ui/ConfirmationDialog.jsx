@@ -27,7 +27,7 @@ export const ConfirmationDialog = ({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
       <div
-        className="bg-white border border-[#E5E7EB] rounded-lg shadow-xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-150"
+        className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft shadow-xl w-full max-w-md overflow-hidden transform transition-all animate-in fade-in zoom-in-95 duration-150"
         role="dialog"
         aria-modal="true"
       >
@@ -37,14 +37,14 @@ export const ConfirmationDialog = ({
               className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${
                 danger
                   ? 'bg-[#FEF2F2] text-[#DC2626] border border-[#FECACA]'
-                  : 'bg-[#F0FDF4] text-[#166534] border border-[#BBF7D0]'
+                  : 'bg-brand-50 text-brand-700 border border-brand-200'
               }`}
             >
               <AlertTriangle className="w-5 h-5" />
             </div>
 
             <div className="flex-1 min-w-0">
-              <h3 className="text-base font-semibold text-[#172B24]">
+              <h3 className="text-base font-semibold text-slate-900">
                 {title}
               </h3>
               <p className="text-sm text-[#64748B] mt-1.5 font-normal leading-relaxed">
@@ -54,7 +54,7 @@ export const ConfirmationDialog = ({
 
             <button
               onClick={onClose}
-              className="text-[#94A3B8] hover:text-[#172B24] p-1 rounded transition-colors"
+              className="text-[#94A3B8] hover:text-slate-900 p-1 rounded transition-colors"
             >
               <X className="w-4 h-4" />
             </button>

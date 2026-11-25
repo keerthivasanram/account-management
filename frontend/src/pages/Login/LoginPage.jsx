@@ -167,13 +167,13 @@ export const LoginPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F8FA] flex flex-col justify-center items-center px-4 py-12 select-none">
+    <div className="min-h-screen bg-[#F4F6FA] flex flex-col justify-center items-center px-4 py-12 select-none">
       <div className="w-full max-w-md space-y-6">
         {/* Navigation back */}
         <div className="flex items-center justify-between">
           <Link
             to="/"
-            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-[#172B24] transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-[#64748B] hover:text-slate-900 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Public Portal</span>
@@ -194,7 +194,7 @@ export const LoginPage = () => {
               />
             </Link>
           </div>
-          <h1 className="text-xl font-semibold text-[#172B24] tracking-tight">
+          <h1 className="text-xl font-semibold text-slate-900 tracking-tight">
             Sign in to your account
           </h1>
           <p className="text-xs text-[#64748B]">
@@ -203,7 +203,7 @@ export const LoginPage = () => {
         </div>
 
         {/* Login Card */}
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-6 shadow-xs space-y-5">
+        <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-6 space-y-5">
           {/* Mode Switcher */}
           <div className="flex bg-[#F1F5F9] p-0.5 rounded-md text-xs">
             <button
@@ -214,8 +214,8 @@ export const LoginPage = () => {
               }}
               className={`flex-1 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
                 authMode === 'STANDARD'
-                  ? 'bg-white text-[#172B24] shadow-xs'
-                  : 'text-[#64748B] hover:text-[#172B24]'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-[#64748B] hover:text-slate-900'
               }`}
             >
               Standard Password
@@ -228,8 +228,8 @@ export const LoginPage = () => {
               }}
               className={`flex-1 py-1.5 font-medium rounded-sm transition-colors cursor-pointer ${
                 authMode === 'MFA'
-                  ? 'bg-white text-[#172B24] shadow-xs'
-                  : 'text-[#64748B] hover:text-[#172B24]'
+                  ? 'bg-white text-slate-900 shadow-xs'
+                  : 'text-[#64748B] hover:text-slate-900'
               }`}
             >
               2FA Security Challenge
@@ -288,7 +288,7 @@ export const LoginPage = () => {
                     type="button"
                     onClick={handleGoogleLogin}
                     disabled={isLoading}
-                    className="w-full flex items-center justify-center gap-2 py-2 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F8FAFC] text-sm font-medium text-[#172B24] transition-colors cursor-pointer disabled:opacity-60"
+                    className="w-full flex items-center justify-center gap-2 py-2 rounded-md border border-[#E5E7EB] bg-white hover:bg-[#F8FAFC] text-sm font-medium text-slate-900 transition-colors cursor-pointer disabled:opacity-60"
                   >
                     <svg className="w-4 h-4" viewBox="0 0 48 48" aria-hidden="true">
                       <path fill="#FFC107" d="M43.6 20.5H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.2 8 3.1l5.7-5.7C34.1 6.1 29.3 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.4-.4-3.5z"/>
@@ -375,12 +375,12 @@ export const LoginPage = () => {
                     type="button"
                     onClick={() => handleDevLogin(acc.email, acc.name)}
                     disabled={isLoading}
-                    className="w-full flex items-center justify-between p-2.5 rounded-md bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E5E7EB] text-xs text-[#172B24] transition-colors cursor-pointer"
+                    className="w-full flex items-center justify-between p-2.5 rounded-md bg-[#F8FAFC] hover:bg-[#F1F5F9] border border-[#E5E7EB] text-xs text-slate-900 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-2">
                       {acc.label === 'Employee'
                         ? <UserCheck className="w-4 h-4 text-[#2563EB]" />
-                        : <ShieldCheck className="w-4 h-4 text-[#166534]" />}
+                        : <ShieldCheck className="w-4 h-4 text-brand-700" />}
                       <span className="font-semibold">{acc.label}</span>
                     </div>
                     <span className="text-[10px] font-mono text-[#64748B]">{acc.email}</span>

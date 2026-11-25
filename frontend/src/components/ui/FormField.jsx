@@ -14,7 +14,7 @@ export const FormField = ({
       {label && (
         <label
           htmlFor={id}
-          className="block text-sm font-medium text-[#172B24]"
+          className="block text-sm font-medium text-slate-900"
         >
           {label}
           {required && <span className="text-[#DC2626] ml-1">*</span>}

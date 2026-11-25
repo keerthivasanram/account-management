@@ -90,7 +90,7 @@ export const AppHeader = ({ title = 'Overview' }) => {
           aria-label="Security Alert Toast"
           className="fixed top-4 left-1/2 transform -translate-x-1/2 z-50 w-11/12 max-w-xl animate-in fade-in slide-in-from-top-4 duration-200"
         >
-          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-4 shadow-lg flex items-center justify-between gap-4 text-[#172B24]">
+          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-lg p-4 shadow-lg flex items-center justify-between gap-4 text-slate-900">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-md bg-[#FEE2E2] flex items-center justify-center text-[#DC2626] shrink-0">
                 <ShieldAlert className="w-5 h-5" />
@@ -125,7 +125,7 @@ export const AppHeader = ({ title = 'Overview' }) => {
               </button>
               <button
                 onClick={() => handleDismissToast(activeSecurityToast.id)}
-                className="p-1 text-[#64748B] hover:text-[#172B24] rounded"
+                className="p-1 text-[#64748B] hover:text-slate-900 rounded"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -135,14 +135,14 @@ export const AppHeader = ({ title = 'Overview' }) => {
       )}
 
       {/* Main AppHeader (Height 64px, White, Clean Borders) */}
-      <header className="h-16 bg-white border-b border-[#E5E7EB] px-6 flex items-center justify-between gap-4 sticky top-0 z-30 select-none">
+      <header className="h-16 bg-white/85 backdrop-blur-md border-b border-[#E6EAF0] px-8 flex items-center justify-between gap-4 sticky top-0 z-30 select-none">
         {/* Left: Breadcrumbs & Page Context */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex items-center gap-1.5 text-xs text-[#64748B]">
+          <div className="flex items-center gap-1.5 text-[13px] text-slate-400">
             <span>{breadcrumbSection}</span>
-            <span>/</span>
+            <span className="text-slate-300">/</span>
           </div>
-          <h2 className="text-sm font-semibold text-[#172B24] truncate">
+          <h2 className="text-[13px] font-semibold text-slate-900 truncate">
             {title}
           </h2>
         </div>
@@ -150,12 +150,12 @@ export const AppHeader = ({ title = 'Overview' }) => {
         {/* Right Action Cluster */}
         <div className="flex items-center gap-3">
           {/* Quick Search */}
-          <div className="relative hidden md:block w-52">
-            <Search className="w-3.5 h-3.5 text-[#94A3B8] absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+          <div className="relative hidden md:block w-72">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
-              placeholder="Search platform..."
-              className="w-full h-8 pl-8 pr-2.5 text-xs text-[#172B24] placeholder-[#94A3B8] bg-[#F8FAFC] border border-[#E5E7EB] rounded-md focus:outline-none focus:border-[#166534] focus:ring-1 focus:ring-[#166534] transition-colors"
+              placeholder="Search accounts, handles…"
+              className="w-full h-10 pl-10 pr-3 text-[13px] text-slate-900 placeholder-slate-400 bg-slate-100/80 border border-transparent rounded-xl focus:outline-none focus:bg-white focus:border-brand-500 focus:ring-4 focus:ring-brand-100 transition-all"
               onKeyDown={(e) => {
                 if (e.key === 'Enter' && e.target.value) {
                   navigate(`/accounts?search=${encodeURIComponent(e.target.value)}`);
@@ -168,28 +168,30 @@ export const AppHeader = ({ title = 'Overview' }) => {
           <div className="relative">
             <button
               onClick={() => setShowNotifs(!showNotifs)}
-              className="p-2 text-[#64748B] hover:text-[#172B24] hover:bg-[#F8FAFC] rounded-md transition-colors relative cursor-pointer"
+              className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors relative cursor-pointer"
               title="Notifications"
             >
-              <Bell className="w-4 h-4" />
+              <Bell className="w-[18px] h-[18px]" />
               {unreadCount > 0 && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#166534]" />
+                <span className="absolute top-1.5 right-1.5 min-w-[16px] h-4 px-1 rounded-full bg-rose-500 text-white text-[10px] font-semibold leading-4 text-center ring-2 ring-white">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
               )}
             </button>
 
             {showNotifs && (
               <div
-                className="absolute right-0 mt-2 w-80 bg-white border border-[#E5E7EB] rounded-lg shadow-dropdown z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
+                className="absolute right-0 mt-2 w-80 bg-white border border-[#E6EAF0] rounded-xl shadow-soft shadow-dropdown z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="p-3 border-b border-[#E5E7EB] flex items-center justify-between bg-[#F9FAFB]">
-                  <span className="text-xs font-semibold text-[#172B24]">
+                  <span className="text-xs font-semibold text-slate-900">
                     Notifications ({unreadCount} new)
                   </span>
                   {unreadCount > 0 && (
                     <button
                       onClick={handleMarkAllRead}
-                      className="text-[11px] font-medium text-[#166534] hover:underline cursor-pointer"
+                      className="text-[11px] font-medium text-brand-700 hover:underline cursor-pointer"
                     >
                       Mark all read
                     </button>
@@ -210,7 +212,7 @@ export const AppHeader = ({ title = 'Overview' }) => {
                         }`}
                       >
                         <div className="space-y-0.5 min-w-0">
-                          <p className="font-semibold text-[#172B24] truncate">
+                          <p className="font-semibold text-slate-900 truncate">
                             {notif.title}
                           </p>
                           <p className="text-[11px] text-[#64748B] line-clamp-2">
@@ -223,7 +225,7 @@ export const AppHeader = ({ title = 'Overview' }) => {
                         {!notif.is_read && (
                           <button
                             onClick={(e) => handleMarkOneRead(notif.id, e)}
-                            className="text-[#94A3B8] hover:text-[#166534] p-1 shrink-0"
+                            className="text-[#94A3B8] hover:text-brand-700 p-1 shrink-0"
                             title="Mark read"
                           >
                             <Check className="w-3.5 h-3.5" />
@@ -237,23 +239,23 @@ export const AppHeader = ({ title = 'Overview' }) => {
             )}
           </div>
 
-          <div className="h-5 w-px bg-[#E5E7EB]" />
+          <div className="h-6 w-px bg-slate-200" />
 
           {/* User Profile Pill & Dropdown */}
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
-              className="flex items-center gap-2 p-1.5 hover:bg-[#F8FAFC] rounded-md transition-colors cursor-pointer"
+              className="flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             >
-              <div className="w-7 h-7 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-xs font-semibold text-[#166534]">
-                {employee?.full_name?.charAt(0) || 'U'}
+              <div className="w-8 h-8 rounded-full bg-brand-50 ring-1 ring-brand-200 flex items-center justify-center text-xs font-semibold text-brand-700">
+                {(employee?.full_name || 'U').split(/\s+/).filter(Boolean).slice(0, 2).map((w) => w[0].toUpperCase()).join('')}
               </div>
               <div className="hidden sm:block text-left">
-                <p className="text-xs font-medium text-[#172B24] leading-none">
+                <p className="text-[13px] font-medium text-slate-900 leading-none">
                   {employee?.full_name || 'User'}
                 </p>
-                <p className="text-[10px] text-[#64748B] font-mono mt-0.5">
-                  {employee?.role || 'Staff'}
+                <p className="text-[11px] text-slate-500 mt-1">
+                  {employee?.role_label || employee?.role || 'Staff'}
                 </p>
               </div>
               <ChevronDown className="w-3 h-3 text-[#94A3B8] hidden sm:block" />
@@ -261,7 +263,7 @@ export const AppHeader = ({ title = 'Overview' }) => {
 
             {showProfileMenu && (
               <div
-                className="absolute right-0 mt-2 w-48 bg-white border border-[#E5E7EB] rounded-lg shadow-dropdown z-50 py-1 text-xs text-[#172B24] animate-in fade-in zoom-in-95 duration-100"
+                className="absolute right-0 mt-2 w-48 bg-white border border-[#E6EAF0] rounded-xl shadow-soft shadow-dropdown z-50 py-1 text-xs text-slate-900 animate-in fade-in zoom-in-95 duration-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-3 py-2 border-b border-[#E5E7EB]">

@@ -5,7 +5,7 @@ import LandingFooter from './LandingFooter';
 
 export const LandingPage = () => {
   return (
-    <div className="min-h-screen w-full bg-white text-[#172B24] flex flex-col font-sans selection:bg-[#166534]/15 selection:text-[#166534] m-0 p-0 overflow-x-hidden">
+    <div className="min-h-screen w-full bg-white text-[#172B24] flex flex-col font-sans selection:bg-brand-700/15 selection:text-brand-700 m-0 p-0 overflow-x-hidden">
       {/* 1. Header (88px, pure white, original cyan double-chevron logo, right-aligned login) */}
       <LandingNavbar />
 

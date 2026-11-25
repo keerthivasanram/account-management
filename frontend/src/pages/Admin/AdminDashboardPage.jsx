@@ -12,10 +12,10 @@ import BarList from '../../components/charts/BarList';
 import { Users, UserCheck, Inbox, Instagram, KeyRound, UserPlus, AlertTriangle, ChevronRight } from 'lucide-react';
 
 const Card = ({ title, subtitle, action, children, className = '' }) => (
-  <section className={`bg-white border border-[#E5E7EB] rounded-lg p-5 shadow-xs ${className}`}>
+  <section className={`bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5 ${className}`}>
     <header className="flex items-start justify-between gap-3 mb-4">
       <div>
-        <h2 className="text-sm font-semibold text-[#172B24]">{title}</h2>
+        <h2 className="text-sm font-semibold text-slate-900">{title}</h2>
         {subtitle && <p className="text-xs text-[#64748B] mt-0.5">{subtitle}</p>}
       </div>
       {action}
@@ -79,7 +79,7 @@ export const AdminDashboardPage = () => {
         }
       />
 
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="stat-group grid grid-cols-2 lg:grid-cols-5 gap-4">
         <MetricCard label="Active employees" value={people.active.toLocaleString()} icon={Users}
           subtext={`${people.invited} invited · +${people.joined_last_30d} / −${people.left_last_30d} in 30 days`} />
         <MetricCard label="In today" value={att.rate === null ? '—' : `${att.rate}%`} icon={UserCheck}
@@ -102,10 +102,10 @@ export const AdminDashboardPage = () => {
             {queue.map((q) => (
               <li key={q.label}>
                 <Link to={q.to} className="flex items-center justify-between py-2.5 group">
-                  <span className="text-sm text-[#172B24]">{q.label}</span>
+                  <span className="text-sm text-slate-900">{q.label}</span>
                   <span className="flex items-center gap-1.5">
-                    <span className={`text-sm font-semibold tabular-nums ${q.count ? 'text-[#172B24]' : 'text-[#94A3B8]'}`}>{q.count}</span>
-                    <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-[#166534]" />
+                    <span className={`text-sm font-semibold tabular-nums ${q.count ? 'text-slate-900' : 'text-[#94A3B8]'}`}>{q.count}</span>
+                    <ChevronRight className="w-4 h-4 text-[#94A3B8] group-hover:text-brand-700" />
                   </span>
                 </Link>
               </li>
@@ -131,8 +131,8 @@ export const AdminDashboardPage = () => {
                   <ul className="space-y-1">
                     {list.map((e) => (
                       <li key={e.id} className="flex justify-between text-xs">
-                        <span className="text-[#172B24] truncate">{e.full_name}</span>
-                        <span className="tabular-nums font-semibold text-[#172B24]">{e.assigned}</span>
+                        <span className="text-slate-900 truncate">{e.full_name}</span>
+                        <span className="tabular-nums font-semibold text-slate-900">{e.assigned}</span>
                       </li>
                     ))}
                   </ul>
@@ -146,7 +146,7 @@ export const AdminDashboardPage = () => {
           <BarList rows={people.by_department} labelKey="name" valueKey="count" emptyText="No departments yet" />
           <div className="flex flex-wrap gap-x-5 gap-y-1 mt-5 text-xs text-[#64748B]">
             {people.by_role.map((r) => (
-              <span key={r.role}><span className="font-semibold text-[#172B24] tabular-nums">{r.count}</span> {r.label.toLowerCase()}{r.count === 1 ? '' : 's'}</span>
+              <span key={r.role}><span className="font-semibold text-slate-900 tabular-nums">{r.count}</span> {r.label.toLowerCase()}{r.count === 1 ? '' : 's'}</span>
             ))}
           </div>
         </Card>
@@ -161,7 +161,7 @@ export const AdminDashboardPage = () => {
               <ul className="space-y-1">
                 {tokens.expiring.map((t) => (
                   <li key={t.account_id} className="flex justify-between text-xs">
-                    <span className="text-[#172B24]">@{t.username}</span>
+                    <span className="text-slate-900">@{t.username}</span>
                     <span className="text-[#92400E]">{t.days_left === 0 ? 'today' : `${t.days_left} day(s)`}</span>
                   </li>
                 ))}
@@ -170,12 +170,12 @@ export const AdminDashboardPage = () => {
           )}
         </Card>
 
-        <Card title="Recent activity" action={<Link to="/admin/audit-logs" className="text-xs text-[#166534] hover:underline">Full audit log</Link>}>
+        <Card title="Recent activity" action={<Link to="/admin/audit-logs" className="text-xs text-brand-700 hover:underline">Full audit log</Link>}>
           {data.recent_activity.length === 0 ? <p className="text-xs text-[#64748B]">No activity yet.</p> : (
             <ul className="divide-y divide-[#F1F5F9]">
               {data.recent_activity.map((a) => (
                 <li key={a.id} className="py-2 flex justify-between gap-3 text-xs">
-                  <span className="text-[#172B24] min-w-0 truncate">
+                  <span className="text-slate-900 min-w-0 truncate">
                     <span className="font-medium">{a.actor_name}</span> <span className="text-[#64748B]">{humanAction(a.action)}</span>
                   </span>
                   <span className="text-[#94A3B8] shrink-0">{timeAgo(a.created_at)}</span>

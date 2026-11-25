@@ -12,7 +12,7 @@ export const LandingHero = () => {
       {/* 2. Main Centered Content Container */}
       <div className="relative z-10 max-w-2xl mx-auto flex flex-col items-center justify-center">
         {/* Eyebrow Label: Capsule pill with delicate green border */}
-        <span className="text-[11px] font-semibold tracking-[0.16em] uppercase text-[#166534] bg-[#F0FDF4] border border-[#166534]/20 px-3.5 py-1.5 rounded-full inline-block mb-5 shadow-2xs">
+        <span className="text-[11px] font-semibold tracking-[0.16em] uppercase text-brand-700 bg-brand-50 border border-brand-700/20 px-3.5 py-1.5 rounded-full inline-block mb-5 shadow-2xs">
           INTERNAL OPERATIONS PLATFORM
         </span>
 

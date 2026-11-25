@@ -19,26 +19,26 @@ export const Modal = ({ isOpen, onClose, title, children, maxWidth = 'max-w-lg' 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-150">
       <div
-        className={`bg-white border border-[#E5E7EB] rounded-lg w-full ${maxWidth} shadow-xl overflow-hidden transform transition-all`}
+        className={`bg-white rounded-2xl w-full ${maxWidth} shadow-2xl shadow-slate-900/20 overflow-hidden transform transition-all`}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
         aria-modal="true"
       >
         {/* Header */}
         <div className="px-6 py-4 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
-          <h3 className="text-base font-semibold text-[#172B24] tracking-tight">{title}</h3>
+          <h3 className="text-base font-semibold text-slate-900 tracking-tight">{title}</h3>
           <button
             onClick={onClose}
-            className="text-[#94A3B8] hover:text-[#172B24] p-1.5 rounded-md hover:bg-[#F8FAFC] transition-colors cursor-pointer"
+            className="text-[#94A3B8] hover:text-slate-900 p-1.5 rounded-md hover:bg-[#F8FAFC] transition-colors cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Body */}
-        <div className="p-6 max-h-[80vh] overflow-y-auto text-[#172B24]">
+        <div className="p-6 max-h-[80vh] overflow-y-auto text-slate-900">
           {children}
         </div>
       </div>

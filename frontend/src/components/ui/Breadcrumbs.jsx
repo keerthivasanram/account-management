@@ -13,11 +13,11 @@ export const Breadcrumbs = ({ items = [] }) => {
           <React.Fragment key={index}>
             {index > 0 && <ChevronRight className="w-3.5 h-3.5 text-[#94A3B8] shrink-0" />}
             {item.to && !isLast ? (
-              <Link to={item.to} className="hover:text-[#172B24] transition-colors">
+              <Link to={item.to} className="hover:text-slate-900 transition-colors">
                 {item.label}
               </Link>
             ) : (
-              <span className={isLast ? 'text-[#172B24] font-medium' : ''}>
+              <span className={isLast ? 'text-slate-900 font-medium' : ''}>
                 {item.label}
               </span>
             )}

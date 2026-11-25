@@ -36,11 +36,31 @@
   background: #94A3B8;
 }
 
+/* Dark sidebar scrollbar */
+.sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+.sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); }
+
+/* KPI row rendered as one panel with hairline dividers (works at any column count) */
+.stat-group {
+  gap: 1px !important;
+  background-color: #EEF1F5;
+  border: 1px solid #E6EAF0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 2px 0 rgba(15, 30, 53, 0.04), 0 4px 12px -2px rgba(15, 30, 53, 0.05);
+}
+.stat-group > .metric-card {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+
 /* Table and panel utility */
 .enterprise-panel {
   background-color: #FFFFFF;
-  border: 1px solid #E5E7EB;
-  border-radius: 8px;
+  border: 1px solid #E6EAF0;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px 0 rgba(15, 30, 53, 0.04), 0 4px 12px -2px rgba(15, 30, 53, 0.05);
 }
 
 .enterprise-input {

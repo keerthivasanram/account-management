@@ -61,13 +61,13 @@ export const ProfilePage = () => {
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'My Profile' }]}
       />
 
-      <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 flex items-center justify-between gap-4">
+      <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5 flex items-center justify-between gap-4">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-12 h-12 rounded-full bg-[#F0FDF4] border border-[#BBF7D0] flex items-center justify-center text-[#166534] font-semibold">
+          <div className="w-12 h-12 rounded-full bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-700 font-semibold">
             {employee.full_name?.charAt(0)}
           </div>
           <div className="min-w-0">
-            <p className="text-base font-semibold text-[#172B24] truncate">{employee.full_name}</p>
+            <p className="text-base font-semibold text-slate-900 truncate">{employee.full_name}</p>
             <p className="text-xs text-[#64748B] truncate">{employee.email}</p>
           </div>
         </div>
@@ -78,19 +78,19 @@ export const ProfilePage = () => {
         {facts.map(([k, v]) => (
           <div key={k} className="p-3 bg-white border border-[#E5E7EB] rounded-md">
             <span className="text-[#64748B] block mb-0.5">{k}</span>
-            <span className="text-[#172B24] font-medium">{v}</span>
+            <span className="text-slate-900 font-medium">{v}</span>
           </div>
         ))}
       </div>
 
       {balance && (
-        <div className="bg-white border border-[#E5E7EB] rounded-lg p-5">
-          <h3 className="text-sm font-semibold text-[#172B24] mb-3">Leave balance · {balance.year}</h3>
+        <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5">
+          <h3 className="text-sm font-semibold text-slate-900 mb-3">Leave balance · {balance.year}</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {balance.balances.map((b) => (
               <div key={b.leave_type} className="p-3 rounded-md border border-[#E5E7EB] bg-[#F8FAFC]">
                 <p className="text-[11px] uppercase tracking-wider text-[#64748B]">{b.leave_type.toLowerCase()}</p>
-                <p className="text-xl font-semibold text-[#172B24] tabular-nums">{b.remaining}<span className="text-xs text-[#64748B] font-normal"> / {b.allowance} days</span></p>
+                <p className="text-xl font-semibold text-slate-900 tabular-nums">{b.remaining}<span className="text-xs text-[#64748B] font-normal"> / {b.allowance} days</span></p>
                 {b.pending > 0 && <p className="text-[11px] text-[#D97706]">{b.pending} pending</p>}
               </div>
             ))}
@@ -98,8 +98,8 @@ export const ProfilePage = () => {
         </div>
       )}
 
-      <form onSubmit={save} className="bg-white border border-[#E5E7EB] rounded-lg p-5 space-y-4">
-        <h3 className="text-sm font-semibold text-[#172B24]">Contact details</h3>
+      <form onSubmit={save} className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5 space-y-4">
+        <h3 className="text-sm font-semibold text-slate-900">Contact details</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <FormField label="Phone number">
             <input className="enterprise-input w-full" maxLength={50} value={form.phone_number} onChange={(e) => setForm({ ...form, phone_number: e.target.value })} />

@@ -87,18 +87,18 @@ export const EmployeeDashboard = () => {
       accessor: 'username',
       render: (row) => (
         <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-md bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center text-[#172B24] font-medium text-xs shrink-0">
+          <div className="w-7 h-7 rounded-md bg-[#F1F5F9] border border-[#E2E8F0] flex items-center justify-center text-slate-900 font-medium text-xs shrink-0">
             @
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <span className="font-semibold text-sm text-[#172B24]">@{row.username}</span>
+              <span className="font-semibold text-sm text-slate-900">@{row.username}</span>
               {row.profile_url && (
                 <a
                   href={row.profile_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-[#94A3B8] hover:text-[#172B24]"
+                  className="text-[#94A3B8] hover:text-slate-900"
                   title="Open profile"
                 >
                   <ExternalLink className="w-3 h-3" />
@@ -115,7 +115,7 @@ export const EmployeeDashboard = () => {
       accessor: 'client_name',
       render: (row) => (
         <div>
-          <p className="text-xs font-medium text-[#172B24]">{row.client_name || '—'}</p>
+          <p className="text-xs font-medium text-slate-900">{row.client_name || '—'}</p>
           <p className="text-[11px] text-[#64748B]">{row.campaign_name || 'Unassigned'}</p>
         </div>
       ),
@@ -148,7 +148,7 @@ export const EmployeeDashboard = () => {
               size="sm"
               onClick={() => navigate(`/accounts?connect=${row.id}`)}
               icon={Zap}
-              className="text-[#166534] border-[#BBF7D0] hover:bg-[#F0FDF4]"
+              className="text-brand-700 border-brand-200 hover:bg-brand-50"
             >
               Connect
             </SecondaryButton>
@@ -201,7 +201,7 @@ export const EmployeeDashboard = () => {
       {error && <ErrorState message={error} onRetry={fetchDashboardData} />}
 
       {/* 2. Four Compact Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="stat-group grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <MetricCard
           label="Total Accounts"
           value={stats.total}
@@ -240,15 +240,15 @@ export const EmployeeDashboard = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left Column: Recent Account Registrations (Takes 2 cols) */}
         <div className="lg:col-span-2 space-y-4">
-          <div className="bg-white border border-[#E5E7EB] rounded-lg shadow-xs overflow-hidden">
+          <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden">
             <div className="px-5 py-3.5 border-b border-[#E5E7EB] flex items-center justify-between bg-white">
               <div>
-                <h3 className="text-sm font-semibold text-[#172B24]">Recent Account Registrations</h3>
+                <h3 className="text-sm font-semibold text-slate-900">Recent Account Registrations</h3>
                 <p className="text-xs text-[#64748B]">Recently added or allocated Instagram profiles</p>
               </div>
               <Link
                 to="/accounts"
-                className="text-xs font-medium text-[#166534] hover:underline inline-flex items-center gap-1"
+                className="text-xs font-medium text-brand-700 hover:underline inline-flex items-center gap-1"
               >
                 <span>View all ({stats.total})</span>
                 <ChevronRight className="w-3.5 h-3.5" />
@@ -272,8 +272,8 @@ export const EmployeeDashboard = () => {
         {/* Right Column: Connection Status & Workload Overview (Takes 1 col) */}
         <div className="space-y-6">
           {/* Account Connection Status */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 shadow-xs">
-            <h3 className="text-sm font-semibold text-[#172B24] mb-1">
+          <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5">
+            <h3 className="text-sm font-semibold text-slate-900 mb-1">
               Account Connection Status
             </h3>
             <p className="text-xs text-[#64748B] mb-4">
@@ -282,7 +282,7 @@ export const EmployeeDashboard = () => {
 
             <div className="space-y-3 text-xs">
               <div>
-                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                <div className="flex justify-between text-slate-900 font-medium mb-1">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#15803D]" />
                     Connected &amp; Active
@@ -298,7 +298,7 @@ export const EmployeeDashboard = () => {
               </div>
 
               <div>
-                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                <div className="flex justify-between text-slate-900 font-medium mb-1">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#D97706]" />
                     Pending Connection
@@ -316,7 +316,7 @@ export const EmployeeDashboard = () => {
               </div>
 
               <div>
-                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                <div className="flex justify-between text-slate-900 font-medium mb-1">
                   <span className="flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-[#DC2626]" />
                     Pending Approval / Rejected
@@ -343,8 +343,8 @@ export const EmployeeDashboard = () => {
           </div>
 
           {/* Employee Workload Summary */}
-          <div className="bg-white border border-[#E5E7EB] rounded-lg p-5 shadow-xs">
-            <h3 className="text-sm font-semibold text-[#172B24] mb-1">
+          <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-5">
+            <h3 className="text-sm font-semibold text-slate-900 mb-1">
               Employee Workload Summary
             </h3>
             <p className="text-xs text-[#64748B] mb-4">
@@ -353,14 +353,14 @@ export const EmployeeDashboard = () => {
 
             <div className="space-y-3 text-xs">
               <div className="p-3 bg-[#F8FAFC] border border-[#E5E7EB] rounded-md">
-                <div className="flex justify-between text-[#172B24] font-medium mb-1">
+                <div className="flex justify-between text-slate-900 font-medium mb-1">
                   <span>Assigned Account Load</span>
                   <span>{stats.total} / {targetAccounts} max</span>
                 </div>
                 <div className="w-full bg-[#E2E8F0] h-2 rounded-full overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all duration-300 ${
-                      capacityPercent > 90 ? 'bg-[#DC2626]' : 'bg-[#166534]'
+                      capacityPercent > 90 ? 'bg-[#DC2626]' : 'bg-brand-700'
                     }`}
                     style={{ width: `${capacityPercent}%` }}
                   />
@@ -375,13 +375,13 @@ export const EmployeeDashboard = () => {
               <div className="flex items-center justify-between pt-1 text-xs">
                 <span className="text-[#64748B]">Shift Status</span>
                 <span className="font-medium text-[#15803D] bg-[#F0FDF4] px-2 py-0.5 rounded border border-[#BBF7D0]">
-                  {attendanceSummary?.today_status || 'Active Shift'}
+                  {(attendanceSummary?.today_status || 'Active shift').replace(/_/g, ' ').toLowerCase().replace(/^\w/, (c) => c.toUpperCase())}
                 </span>
               </div>
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-[#64748B]">Employee Code</span>
-                <span className="font-mono text-[#172B24] font-medium">
+                <span className="font-mono text-slate-900 font-medium">
                   {employee?.employee_code || 'EMP-XXXX'}
                 </span>
               </div>
