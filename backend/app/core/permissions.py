@@ -1,11 +1,15 @@
 """
 Role-based access control (RBAC) for KLARVES.
 
-Four roles, ordered by privilege:
+Roles, ordered by privilege:
 
     super_admin  Founders / owners. Everything, incl. managing admins, org settings, security policy.
-    admin        HR / operations. Company-wide people & account operations; cannot touch admins.
-    manager      Department head or people manager. Scoped to their direct reports / department.
+    admin        Operations. Company-wide people & Instagram account operations; cannot touch admins.
+    hr_senior    Senior HR. People, teams, logins, attendance and leave company-wide; no Instagram,
+                 security or system settings.
+    hr_junior    Junior HR. Company-wide view, invites employees, handles leave; changes to roles,
+                 teams and offboarding stay with Senior HR.
+    manager      Team lead (shown as "Team Lead"). Scoped to their direct reports / department.
     employee     Self-service only.
 
 Rules of thumb
@@ -22,6 +26,8 @@ from fastapi import Depends, HTTPException, status
 class Role(str, Enum):
     SUPER_ADMIN = "super_admin"
     ADMIN = "admin"
+    HR_SENIOR = "hr_senior"
+    HR_JUNIOR = "hr_junior"
     MANAGER = "manager"
     EMPLOYEE = "employee"
 
@@ -30,12 +36,16 @@ ALL_ROLES: List[str] = [r.value for r in Role]
 ROLE_RANK: Dict[str, int] = {
     Role.EMPLOYEE.value: 0,
     Role.MANAGER.value: 1,
+    Role.HR_JUNIOR.value: 1,   # HR roles rank with team leads: admins and above stay out of their reach
+    Role.HR_SENIOR.value: 1,
     Role.ADMIN.value: 2,
     Role.SUPER_ADMIN.value: 3,
 }
 ROLE_LABELS: Dict[str, str] = {
     Role.SUPER_ADMIN.value: "Super Admin",
     Role.ADMIN.value: "Admin",
+    Role.HR_SENIOR.value: "Senior HR",
+    Role.HR_JUNIOR.value: "Junior HR",
     Role.MANAGER.value: "Team Lead",
     Role.EMPLOYEE.value: "Employee",
 }
@@ -66,6 +76,10 @@ class Perm(str, Enum):
     ACCOUNTS_MANAGE_ALL = "accounts:manage_all"  # approve, assign, rebalance
     CLIENTS_MANAGE = "clients:manage"
 
+    # HR
+    HR_PORTAL = "hr:portal"                    # HR overview (eagle view) and team routing pages
+    EMPLOYEES_INVITE = "employees:invite"      # invite new employees (role: employee only)
+
     # Oversight
     ADMIN_PORTAL = "admin:portal"
     MANAGER_PORTAL = "manager:portal"
@@ -90,8 +104,26 @@ _MANAGER: FrozenSet[Perm] = _EMPLOYEE | {
     Perm.ACCOUNTS_READ_TEAM,
 }
 
+# Junior HR: sees everyone, invites employees and handles leave; no role / team / offboarding changes
+_HR_JUNIOR: FrozenSet[Perm] = _EMPLOYEE | {
+    Perm.HR_PORTAL,
+    Perm.EMPLOYEES_READ_ALL,
+    Perm.EMPLOYEES_INVITE,
+    Perm.ATTENDANCE_READ_ALL,
+    Perm.LEAVE_APPROVE_ALL,
+}
+
+# Senior HR: people, teams, logins, attendance and leave; no Instagram, security or system settings
+_HR_SENIOR: FrozenSet[Perm] = _HR_JUNIOR | {
+    Perm.EMPLOYEES_MANAGE,
+    Perm.ROLES_ASSIGN,
+    Perm.DEPARTMENTS_MANAGE,
+}
+
 _ADMIN: FrozenSet[Perm] = _MANAGER | {
     Perm.ADMIN_PORTAL,
+    Perm.HR_PORTAL,
+    Perm.EMPLOYEES_INVITE,
     Perm.EMPLOYEES_READ_ALL,
     Perm.EMPLOYEES_MANAGE,
     Perm.ROLES_ASSIGN,
@@ -116,6 +148,8 @@ _SUPER_ADMIN: FrozenSet[Perm] = _ADMIN | {
 ROLE_PERMISSIONS: Dict[str, FrozenSet[Perm]] = {
     Role.EMPLOYEE.value: _EMPLOYEE,
     Role.MANAGER.value: _MANAGER,
+    Role.HR_JUNIOR.value: _HR_JUNIOR,
+    Role.HR_SENIOR.value: _HR_SENIOR,
     Role.ADMIN.value: _ADMIN,
     Role.SUPER_ADMIN.value: _SUPER_ADMIN,
 }
@@ -175,7 +209,10 @@ def assignable_roles(actor) -> List[str]:
     if has_permission(actor, Perm.ROLES_ASSIGN_ADMIN):
         return list(ALL_ROLES)
     if has_permission(actor, Perm.ROLES_ASSIGN):
-        return [Role.MANAGER.value, Role.EMPLOYEE.value]
+        # Senior HR and admins: team lead, employee, Junior HR. Senior HR / admin need a super admin.
+        return [Role.MANAGER.value, Role.EMPLOYEE.value, Role.HR_JUNIOR.value]
+    if has_permission(actor, Perm.EMPLOYEES_INVITE):
+        return [Role.EMPLOYEE.value]
     return []
 
 

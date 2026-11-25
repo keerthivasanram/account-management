@@ -247,5 +247,5 @@ def test_cannot_offboard_last_super_admin_or_self(client, org):
 def test_assignable_roles_endpoint(client, org):
     admin_roles = [r["value"] for r in client.get("/api/v1/admin/roles", headers=login(client, "admin@company.internal")).json()]
     super_roles = [r["value"] for r in client.get("/api/v1/admin/roles", headers=login(client, "founder@company.internal")).json()]
-    assert admin_roles == ["manager", "employee"]
-    assert set(super_roles) == {"super_admin", "admin", "manager", "employee"}
+    assert admin_roles == ["manager", "employee", "hr_junior"]  # Senior HR / admins can also make Junior HR
+    assert set(super_roles) == {"super_admin", "admin", "hr_senior", "hr_junior", "manager", "employee"}

@@ -203,7 +203,7 @@ class EmployeeService:
     # ------------------------------------------------------------------ invite / import
 
     def invite(self, data: EmployeeInvite, actor: Employee, notify: bool = True) -> EmployeeResponse:
-        if not has_permission(actor, Perm.EMPLOYEES_MANAGE):
+        if not (has_permission(actor, Perm.EMPLOYEES_MANAGE) or has_permission(actor, Perm.EMPLOYEES_INVITE)):
             _forbid("You are not allowed to invite employees.")
         email = data.email.lower().strip()
         if self.repo.get_by_email(email):
@@ -298,6 +298,39 @@ class EmployeeService:
         return buf.getvalue()
 
     # ------------------------------------------------------------------ offboarding
+
+    # ------------------------------------------------------------------ pending invites
+
+    def resend_invite(self, employee_id: uuid.UUID, actor: Employee) -> dict:
+        if not (has_permission(actor, Perm.EMPLOYEES_MANAGE) or has_permission(actor, Perm.EMPLOYEES_INVITE)):
+            _forbid("You are not allowed to send invitations.")
+        emp = self._get(employee_id)
+        if emp.status != "INVITED":
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This person has already signed in.")
+        from app.core.permissions import ROLE_LABELS
+        from app.services.email_service import send_invitation
+        emailed = send_invitation(emp.email, emp.full_name, actor.full_name, ROLE_LABELS.get(emp.role, emp.role))
+        self.audit.log(action="employee_invite_resent", entity_type="employee", entity_id=emp.id, actor_id=actor.id,
+                       metadata={"email": emp.email, "emailed": emailed})
+        return {"emailed": emailed}
+
+    def cancel_invite(self, employee_id: uuid.UUID, actor: Employee) -> None:
+        """Removes an invitation that was never used (no sign-in yet). Used logins must be offboarded instead."""
+        emp = self._get(employee_id)
+        if not can_manage_employee(actor, emp):
+            _forbid("You are not allowed to cancel this invitation.")
+        if emp.status != "INVITED" or emp.last_login_at is not None:
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="This person has signed in; offboard them instead.")
+        info = {"email": emp.email, "employee_code": emp.employee_code}
+        try:
+            self.db.delete(emp)
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            raise HTTPException(status_code=status.HTTP_409_CONFLICT,
+                                detail="Accounts or records are already linked to this person; offboard them instead.")
+        self.audit.log(action="employee_invite_cancelled", entity_type="employee", entity_id=employee_id,
+                       actor_id=actor.id, metadata=info)
 
     def offboard(self, employee_id: uuid.UUID, req: OffboardRequest, actor: Employee) -> dict:
         emp = self._get(employee_id)

@@ -11,6 +11,8 @@ import RegisterAccountPage from './pages/RegisterAccount/RegisterAccountPage';
 import ImportAccountsPage from './pages/Accounts/ImportAccountsPage';
 import MailPage from './pages/Mail/MailPage';
 import HelpPage from './pages/Help/HelpPage';
+import HrOverviewPage from './pages/HR/HrOverviewPage';
+import TeamsPage from './pages/HR/TeamsPage';
 import AccountsListPage from './pages/Accounts/AccountsListPage';
 import TasksPage from './pages/Tasks/TasksPage';
 import DepartmentsPage from './pages/Departments/DepartmentsPage';
@@ -64,6 +66,15 @@ function App() {
               <Route path="/manager" element={<ManagerDashboardPage />} />
             </Route>
 
+            {/* HR: eagle view, team routing, employee directory */}
+            <Route element={<RequirePermission perm="hr:portal" />}>
+              <Route path="/hr" element={<HrOverviewPage />} />
+              <Route path="/hr/teams" element={<TeamsPage />} />
+            </Route>
+            <Route element={<RequirePermission perm="employees:read_all" />}>
+              <Route path="/admin/employees" element={<AdminEmployeesPage />} />
+            </Route>
+
             {/* Super admin console */}
             <Route element={<RequirePermission perm="settings:manage" />}>
               <Route path="/super-admin" element={<SuperAdminConsolePage />} />
@@ -74,7 +85,6 @@ function App() {
               <Route path="/admin" element={<AdminDashboardPage />} />
               <Route path="/admin/security" element={<AdminSecurityPage />} />
               <Route path="/admin/accounts" element={<AdminAccountsPage />} />
-              <Route path="/admin/employees" element={<AdminEmployeesPage />} />
               <Route path="/admin/clients" element={<AdminClientsCampaignsPage />} />
               <Route path="/admin/audit-logs" element={<AdminAuditLogsPage />} />
             </Route>

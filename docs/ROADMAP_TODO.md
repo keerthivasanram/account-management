@@ -64,4 +64,4 @@ Phases 1–5 of the employee workspace are built: navigation, Add / Import accou
 | D4 | **Meta app review** for `instagram_content_publish` (and business verification) before D2/D3 can post to real accounts | You | ☐ |
 | D5 | Set `SUPABASE_SERVICE_ROLE_KEY` on the production backend (Vercel) so media and screenshot uploads work there; local `.env` is done | You | ☐ |
 | D6 | **Company devices only, strongly:** today phones/tablets are refused by user agent (app + API, `BLOCK_MOBILE_DEVICES=true`); a "desktop site" browser can still pass. Enforce the existing `registered_devices` table (approve a laptop once, refuse unknown devices) or use your MDM/managed-browser policy | Code + You (IT) | ☐ |
-| D7 | Remove the test employees EMP-T001…T004 (`*@company.internal`) from the production database at launch; they power the development sign-in buttons until then | You / Code | ☐ |
+| D7 | Remove the test employees EMP-T001…T006 (`*@company.internal`) from the production database at launch; they power the development sign-in buttons until then | You / Code | ☐ |

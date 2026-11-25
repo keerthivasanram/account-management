@@ -13,6 +13,7 @@ import { layoutVariantFor } from '../../layouts/navConfig';
 import { overviewKindFor } from './dashboardModel';
 import { AccountsPanel, ConnectionPanel, Panel, PanelError, StatsRow, WorkloadPanel } from './OverviewPanels';
 import WorkspaceOverview from './WorkspaceOverview';
+import HrOverviewPage from '../HR/HrOverviewPage';
 
 const RECENT_LIMIT = 6;
 
@@ -168,7 +169,8 @@ const TeamWorkspace = ({ isManager }) => {
 // ============================================================== entry
 
 export const OverviewPage = () => {
-  const { employee, isManager } = useAuth();
+  const { employee, isManager, can } = useAuth();
+  if (can('hr:portal') && !can('admin:portal')) return <HrOverviewPage />; // HR: eagle view
   const kind = overviewKindFor(layoutVariantFor(employee));
   return kind === 'operations' ? <OperationsOverview /> : <TeamWorkspace isManager={isManager} />;
 };

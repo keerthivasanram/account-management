@@ -5,6 +5,7 @@ const EMPLOYEE = ['accounts:read_own'];
 const MANAGER = ['accounts:read_own', 'manager:portal'];
 const ADMIN = ['accounts:read_own', 'manager:portal', 'admin:portal'];
 const SUPER = [...ADMIN, 'settings:manage'];
+const HR = ['self:use', 'hr:portal', 'employees:read_all', 'employees:invite'];
 
 const allPaths = (sections) => sections.flatMap((s) => s.links.map((l) => l.to));
 
@@ -12,6 +13,14 @@ describe('layoutVariantFor', () => {
   it('gives admins and super admins the Operations layout', () => {
     expect(layoutVariantFor({ permissions: ADMIN })).toBe('operations');
     expect(layoutVariantFor({ permissions: SUPER })).toBe('operations');
+  });
+
+  it('gives HR the Operations layout with People but no admin sections', () => {
+    expect(layoutVariantFor({ permissions: HR })).toBe('operations');
+    const paths = allPaths(navSectionsFor(HR));
+    expect(paths).toEqual(expect.arrayContaining(['/hr', '/hr/teams', '/admin/employees']));
+    expect(paths).not.toContain('/admin/accounts');
+    expect(paths).not.toContain('/admin/security');
   });
 
   it('gives managers and employees the Team workspace', () => {

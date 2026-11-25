@@ -45,7 +45,8 @@ class LeaveService:
             head = self.employees.get_by_id(employee.department.head_employee_id)
             if head and head.is_active:
                 return [head]
-        return [a for a in self.employees.list(roles=["admin", "super_admin"], is_active=True) if a.id != employee.id]
+        return [a for a in self.employees.list(roles=["hr_senior", "hr_junior", "admin", "super_admin"], is_active=True)
+                if a.id != employee.id]
 
     # ------------------------------------------------------------- balance
 

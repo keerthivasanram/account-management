@@ -193,6 +193,13 @@ export const api = {
     sentNotices: () => apiClient.get('/mail/notices/sent'),
   },
 
+  // HR: eagle view, org structure, team routing
+  hr: {
+    overview: () => apiClient.get('/hr/overview'),
+    org: () => apiClient.get('/hr/org'),
+    move: (data) => apiClient.post('/hr/teams/move', data),
+  },
+
   // Community: idea of the day, kudos, anniversaries
   community: {
     today: () => apiClient.get('/community/today'),
@@ -237,6 +244,8 @@ export const api = {
     getOverview: () => apiClient.get('/admin/overview'),
     listEmployees: (params) => apiClient.get('/admin/employees', { params }),
     inviteEmployee: (data) => apiClient.post('/admin/employees', data),
+    resendInvite: (id) => apiClient.post(`/admin/employees/${id}/resend-invite`),
+    cancelInvite: (id) => apiClient.delete(`/admin/employees/${id}/invite`),
     importEmployees: (file) => {
       const form = new FormData();
       form.append('file', file);

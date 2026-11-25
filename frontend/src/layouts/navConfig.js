@@ -28,18 +28,20 @@ import {
 export const PERM = {
   ADMIN_PORTAL: 'admin:portal',
   MANAGER_PORTAL: 'manager:portal',
+  HR_PORTAL: 'hr:portal',
   SETTINGS_MANAGE: 'settings:manage',
 };
 
 /**
  * Which dashboard shell a user gets.
- *  - 'operations': admins and super admins (A · Operations, dark sidebar)
+ *  - 'operations': admins, super admins and HR (A · Operations, dark sidebar)
  *  - 'team':       managers and employees (B · Team workspace, top navigation)
  *  - 'error':      permissions could not be read; never guess, show a recoverable error
  */
 export const layoutVariantFor = (employee) => {
   if (!employee || !Array.isArray(employee.permissions)) return 'error';
-  return employee.permissions.includes(PERM.ADMIN_PORTAL) ? 'operations' : 'team';
+  const p = employee.permissions;
+  return p.includes(PERM.ADMIN_PORTAL) || p.includes(PERM.HR_PORTAL) ? 'operations' : 'team';
 };
 
 const SECTIONS = [
@@ -64,11 +66,20 @@ const SECTIONS = [
     ],
   },
   {
+    id: 'people',
+    label: 'People',
+    perm: PERM.HR_PORTAL,
+    links: [
+      { to: '/hr', label: 'HR Overview', icon: Activity },
+      { to: '/hr/teams', label: 'Teams', icon: UsersRound },
+      { to: '/admin/employees', label: 'Employees', icon: Users },
+    ],
+  },
+  {
     id: 'management',
     label: 'Management',
     perm: PERM.ADMIN_PORTAL,
     links: [
-      { to: '/admin/employees', label: 'Employees', icon: Users },
       { to: '/admin/accounts', label: 'Assignments', icon: Layers },
       { to: '/admin/clients', label: 'Clients & Campaigns', icon: Briefcase },
     ],

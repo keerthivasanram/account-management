@@ -1,3 +1,4 @@
+import { useSearchParams } from 'react-router-dom';
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -23,7 +24,9 @@ const EMPTY_INVITE = { email: '', full_name: '', role: 'employee', department_id
 const stripEmpty = (obj) => Object.fromEntries(Object.entries(obj).filter(([, v]) => v !== '' && v !== null && v !== undefined));
 
 export const AdminEmployeesPage = () => {
-  const { employee: me, isSuperAdmin } = useAuth();
+  const { employee: me, isSuperAdmin, can } = useAuth();
+  const mayManage = can('employees:manage');
+  const mayInvite = mayManage || can('employees:invite');
   const [employees, setEmployees] = useState([]);
   const [meta, setMeta] = useState({ roles: [], departments: [], managers: [], account_target_min: 50, account_target_max: 60 });
   const [loading, setLoading] = useState(true);
@@ -31,7 +34,9 @@ export const AdminEmployeesPage = () => {
   const [feedback, setFeedback] = useState(null);
 
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  // Deep links from HR Overview: ?status=INVITED filters, ?invite=1 opens the invite form
+  const [searchParams] = useSearchParams();
+  const [statusFilter, setStatusFilter] = useState(searchParams.get('status') || '');
   const [roleFilter, setRoleFilter] = useState('');
   const [deptFilter, setDeptFilter] = useState('');
 
@@ -39,7 +44,7 @@ export const AdminEmployeesPage = () => {
   const [accounts, setAccounts] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
 
-  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(searchParams.get('invite') === '1');
   const [inviteForm, setInviteForm] = useState(EMPTY_INVITE);
   const [editTarget, setEditTarget] = useState(null);
   const [editForm, setEditForm] = useState({});
@@ -72,7 +77,7 @@ export const AdminEmployeesPage = () => {
   const flash = (type, text) => setFeedback({ type, text });
 
   // A super admin can manage anyone; admins cannot manage admins / super admins.
-  const canManage = (emp) => isSuperAdmin || !['admin', 'super_admin'].includes(emp.role);
+  const canManage = (emp) => mayManage && (isSuperAdmin || !['admin', 'super_admin'].includes(emp.role));
 
   const openDetails = async (emp) => {
     setSelected(emp);
@@ -193,6 +198,26 @@ export const AdminEmployeesPage = () => {
     }
   };
 
+  const inviteAction = async (row, kind) => {
+    if (kind === 'cancel' && !window.confirm(`Cancel the invitation for ${row.full_name}? They won't be able to sign in.`)) return;
+    setBusy(true);
+    try {
+      if (kind === 'resend') {
+        const r = await api.admin.resendInvite(row.id);
+        flash('success', r.data?.emailed ? `Invitation sent again to ${row.email}.`
+          : `Invitation re-issued. Email isn't configured, so tell ${row.full_name} to sign in with ${row.email}.`);
+      } else {
+        await api.admin.cancelInvite(row.id);
+        flash('success', `Invitation for ${row.full_name} cancelled.`);
+      }
+      await load();
+    } catch (err) {
+      flash('error', errText(err, 'That didn’t go through.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
       const res = await api.admin.exportEmployees();
@@ -293,8 +318,14 @@ export const AdminEmployeesPage = () => {
         const manageable = canManage(row) && row.id !== me?.id;
         return (
           <div className="flex items-center justify-end gap-1.5" onClick={(e) => e.stopPropagation()}>
+            {row.status === 'INVITED' && mayInvite && (
+              <SecondaryButton size="sm" onClick={() => inviteAction(row, 'resend')}>Resend invite</SecondaryButton>
+            )}
+            {row.status === 'INVITED' && canManage(row) && (
+              <SecondaryButton size="sm" danger onClick={() => inviteAction(row, 'cancel')}>Cancel invite</SecondaryButton>
+            )}
             {canManage(row) && <SecondaryButton size="sm" onClick={() => openEdit(row)}>Edit</SecondaryButton>}
-            {manageable && row.status !== 'OFFBOARDED' && (
+            {manageable && row.status !== 'OFFBOARDED' && row.status !== 'INVITED' && (
               <>
                 <SecondaryButton size="sm" icon={LogOut} title="Force logout" aria-label="Force logout" onClick={() => setConfirm({ kind: 'logout', emp: row })} />
                 <SecondaryButton size="sm" danger onClick={() => { setOffboardTarget(row); setOffboardForm({ reassign_to: row.manager_id || '', reason: '' }); }}>
@@ -318,13 +349,13 @@ export const AdminEmployeesPage = () => {
       <PageHeader
         title="Employee Management"
         description="Onboard, organise and offboard people. Every change is permission-checked and audit-logged."
-        breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'Management' }, { label: 'Employees' }]}
+        breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'People' }, { label: 'Employees' }]}
         actions={
           <>
             <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={handleImport} />
-            <SecondaryButton icon={Download} onClick={handleExport}>Export</SecondaryButton>
-            <SecondaryButton icon={Upload} onClick={() => fileRef.current?.click()} disabled={busy}>Import CSV</SecondaryButton>
-            <PrimaryButton icon={UserPlus} onClick={() => setInviteOpen(true)}>Invite employee</PrimaryButton>
+            {mayManage && <SecondaryButton icon={Download} onClick={handleExport}>Export</SecondaryButton>}
+            {mayManage && <SecondaryButton icon={Upload} onClick={() => fileRef.current?.click()} disabled={busy}>Import CSV</SecondaryButton>}
+            {mayInvite && <PrimaryButton icon={UserPlus} onClick={() => setInviteOpen(true)}>Invite employee</PrimaryButton>}
           </>
         }
       />

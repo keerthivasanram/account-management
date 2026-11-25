@@ -15,7 +15,7 @@ from app.schemas.admin import (
     ApprovalRequest, AssignmentRequest, AdminStatsResponse, EmployeeDetailResponse
 )
 from app.schemas.audit import AuditLogResponse
-from app.core.permissions import Perm, require_permission, ROLE_LABELS, assignable_roles, can_manage_employee
+from app.core.permissions import Perm, require_permission, require_any_permission, ROLE_LABELS, assignable_roles, can_manage_employee
 from app.services.auth_service import require_admin, get_current_employee
 from app.services.admin_service import AdminService
 from app.services.account_service import AccountService
@@ -55,10 +55,29 @@ def list_all_employees(
     return EmployeeService(db).list(status_filter=status_filter, role=role, department_id=department_id,
                                     search=search, skip=skip, limit=limit)
 
+@router.post("/employees/{employee_id}/resend-invite")
+def resend_invite(
+    employee_id: uuid.UUID,
+    actor: Employee = Depends(require_any_permission(Perm.EMPLOYEES_MANAGE, Perm.EMPLOYEES_INVITE)),
+    db: Session = Depends(get_db)
+):
+    """Sends the invitation email again to someone who hasn't signed in yet."""
+    return EmployeeService(db).resend_invite(employee_id, actor)
+
+@router.delete("/employees/{employee_id}/invite", status_code=status.HTTP_204_NO_CONTENT)
+def cancel_invite(
+    employee_id: uuid.UUID,
+    actor: Employee = Depends(require_permission(Perm.EMPLOYEES_MANAGE)),
+    db: Session = Depends(get_db)
+):
+    """Cancels an unused invitation (the person never signed in)."""
+    EmployeeService(db).cancel_invite(employee_id, actor)
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
 @router.post("/employees", response_model=EmployeeResponse, status_code=status.HTTP_201_CREATED)
 def invite_employee(
     data: EmployeeInvite,
-    admin: Employee = Depends(require_permission(Perm.EMPLOYEES_MANAGE)),
+    admin: Employee = Depends(require_any_permission(Perm.EMPLOYEES_MANAGE, Perm.EMPLOYEES_INVITE)),
     db: Session = Depends(get_db)
 ):
     """Invites a new employee. They are linked automatically the first time they sign in with this email."""
