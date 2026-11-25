@@ -28,6 +28,7 @@ from app.repositories.audit_repo import AuditRepository
 from app.repositories.employee_repo import EmployeeRepository
 from app.repositories.notification_repo import NotificationRepository
 from app.services.org_settings_service import OrgSettingsService
+from app.services.period_lock import guard_unlocked
 
 WORKED = {"P", "HD", "S", "MO", "IN"}
 
@@ -188,6 +189,7 @@ class AttendanceRulesService:
         target = self._employee(employee_id)
         if not self._can_roster(actor, target):
             raise HTTPException(status_code=403, detail="You can plan week offs for your own team.")
+        guard_unlocked(self.db, day)
         existing = self.db.query(WeekOff).filter(WeekOff.employee_id == employee_id, WeekOff.date == day).first()
         if off and not existing:
             self.db.add(WeekOff(id=uuid.uuid4(), employee_id=employee_id, date=day, set_by=actor.id))
@@ -211,6 +213,7 @@ class AttendanceRulesService:
         name = (name or "").strip()
         if not name:
             raise HTTPException(status_code=400, detail="Name the holiday.")
+        guard_unlocked(self.db, day)
         if self.db.query(Holiday).filter(Holiday.date == day).first():
             raise HTTPException(status_code=409, detail="There's already a holiday on that date.")
         h = Holiday(id=uuid.uuid4(), date=day, name=name[:120], created_by=actor.id)
@@ -226,6 +229,7 @@ class AttendanceRulesService:
         h = self.db.query(Holiday).filter(Holiday.id == holiday_id).first()
         if not h:
             raise HTTPException(status_code=404, detail="Holiday not found.")
+        guard_unlocked(self.db, h.date)
         self.db.delete(h)
         self.db.commit()
         self.audit.log(action="holiday_removed", entity_type="holiday", entity_id=holiday_id, actor_id=actor.id,
@@ -260,6 +264,7 @@ class AttendanceRulesService:
             raise HTTPException(status_code=400, detail=f"Corrections are allowed for the last {self.rules.window_days} days.")
         if not (reason or "").strip():
             raise HTTPException(status_code=400, detail="Say what happened.")
+        guard_unlocked(self.db, day)
         start, end = self.rules.to_utc(day, check_in), self.rules.to_utc(day, check_out)
         if end <= start:
             raise HTTPException(status_code=400, detail="Clock-out must be after clock-in (shifts crossing midnight aren't supported yet).")
@@ -313,6 +318,7 @@ class AttendanceRulesService:
             raise HTTPException(status_code=403, detail="Only Senior HR or the person's team lead can approve corrections.")
         if c.status != "PENDING":
             raise HTTPException(status_code=409, detail="This correction was already decided.")
+        guard_unlocked(self.db, c.date)
         decision = decision.upper()
         if decision not in ("APPROVED", "REJECTED"):
             raise HTTPException(status_code=400, detail="Choose approve or reject.")

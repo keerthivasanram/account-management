@@ -586,3 +586,23 @@ class AttendanceCorrection(Base):
 
     employee = relationship("Employee", foreign_keys=[employee_id])
     requester = relationship("Employee", foreign_keys=[requested_by])
+
+
+# ==============================================================================
+# MODULE 14 — MONTH CLOSE (payroll inputs)
+# ==============================================================================
+
+class PayrollPeriod(Base):
+    """A calendar month's attendance, locked by Senior HR. The snapshot is what gets exported."""
+    __tablename__ = "payroll_periods"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    month = Column(String(7), unique=True, nullable=False, index=True)  # "2026-11"
+    status = Column(String(20), nullable=False, default="LOCKED")      # LOCKED, REOPENED
+    snapshot = Column(JSONType, nullable=True)                          # rows exported to payroll
+    note = Column(Text, nullable=True)
+    locked_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    locked_at = Column(DateTime(timezone=True), nullable=True)
+    reopened_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reopened_at = Column(DateTime(timezone=True), nullable=True)
+    reopen_reason = Column(Text, nullable=True)

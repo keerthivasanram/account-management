@@ -84,6 +84,8 @@ class LeaveService:
             raise HTTPException(status_code=400, detail="End date cannot be earlier than start date.")
         if leave_days(start, end) > 60:
             raise HTTPException(status_code=400, detail="A single request cannot exceed 60 days.")
+        from app.services.period_lock import guard_range_unlocked
+        guard_range_unlocked(self.db, start, end)
 
         overlap = self.db.query(LeaveRequest).filter(
             LeaveRequest.employee_id == employee.id,
@@ -124,6 +126,8 @@ class LeaveService:
             raise HTTPException(status_code=403, detail="You can only cancel your own leave requests.")
         if lr.status != "PENDING" and not (lr.status == "APPROVED" and lr.start_date > date.today()):
             raise HTTPException(status_code=409, detail="Only pending or future approved leave can be cancelled.")
+        from app.services.period_lock import guard_range_unlocked
+        guard_range_unlocked(self.db, lr.start_date, lr.end_date)
         lr.status = "CANCELLED"
         self.db.commit()
         self.db.refresh(lr)
@@ -148,6 +152,8 @@ class LeaveService:
             raise HTTPException(status_code=403, detail="You can only review leave for your own team.")
         if lr.status != "PENDING":
             raise HTTPException(status_code=409, detail=f"This request was already {lr.status.lower()}.")
+        from app.services.period_lock import guard_range_unlocked
+        guard_range_unlocked(self.db, lr.start_date, lr.end_date)
 
         lr.status = decision
         lr.reviewed_by = reviewer.id

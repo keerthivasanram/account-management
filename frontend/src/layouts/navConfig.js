@@ -24,6 +24,7 @@ import {
   Settings2,
   Activity,
   CalendarDays,
+  FileSpreadsheet,
 } from 'lucide-react';
 
 export const PERM = {
@@ -75,6 +76,7 @@ const SECTIONS = [
       { to: '/hr', label: 'HR Overview', icon: Activity },
       { to: '/hr/teams', label: 'Teams', icon: UsersRound },
       { to: '/attendance/register', label: 'Attendance register', icon: CalendarDays },
+      { to: '/hr/payroll', label: 'Month close', icon: FileSpreadsheet },
       { to: '/admin/employees', label: 'Employees', icon: Users },
     ],
   },

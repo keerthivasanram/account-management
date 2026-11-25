@@ -31,6 +31,7 @@ const TITLES = [
   ['/admin/accounts', 'Account Assignments'],
   ['/admin/employees', 'Employees'],
   ['/hr/teams', 'Teams'],
+  ['/hr/payroll', 'Month close'],
   ['/hr', 'HR Overview'],
   ['/admin/clients', 'Clients & Campaigns'],
   ['/admin/audit-logs', 'Activity Logs'],

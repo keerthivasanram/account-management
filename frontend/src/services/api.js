@@ -202,6 +202,15 @@ export const api = {
     sentNotices: () => apiClient.get('/mail/notices/sent'),
   },
 
+  // Month close (payroll inputs)
+  payroll: {
+    periods: () => apiClient.get('/payroll/periods'),
+    preview: (month) => apiClient.get(`/payroll/${month}/preview`),
+    lock: (month, data) => apiClient.post(`/payroll/${month}/lock`, data),
+    reopen: (month, reason) => apiClient.post(`/payroll/${month}/reopen`, { reason }),
+    exportCsv: (month) => apiClient.get(`/payroll/${month}/export`, { responseType: 'blob' }),
+  },
+
   // HR: eagle view, org structure, team routing
   hr: {
     overview: () => apiClient.get('/hr/overview'),

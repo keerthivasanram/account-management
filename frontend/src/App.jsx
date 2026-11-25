@@ -13,6 +13,7 @@ import MailPage from './pages/Mail/MailPage';
 import HelpPage from './pages/Help/HelpPage';
 import HrOverviewPage from './pages/HR/HrOverviewPage';
 import TeamsPage from './pages/HR/TeamsPage';
+import MonthClosePage from './pages/HR/MonthClosePage';
 import AttendanceRegisterPage from './pages/Attendance/AttendanceRegisterPage';
 import AccountsListPage from './pages/Accounts/AccountsListPage';
 import TasksPage from './pages/Tasks/TasksPage';
@@ -72,6 +73,7 @@ function App() {
             <Route element={<RequirePermission perm="hr:portal" />}>
               <Route path="/hr" element={<HrOverviewPage />} />
               <Route path="/hr/teams" element={<TeamsPage />} />
+              <Route path="/hr/payroll" element={<MonthClosePage />} />
             </Route>
             <Route element={<RequirePermission perm="employees:read_all" />}>
               <Route path="/admin/employees" element={<AdminEmployeesPage />} />
