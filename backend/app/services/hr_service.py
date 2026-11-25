@@ -91,6 +91,8 @@ class HrService:
             "id": str(l.id), "employee_name": l.employee.full_name if l.employee else None, "leave_type": l.leave_type,
             "start_date": l.start_date, "end_date": l.end_date, "days": leave_days(l.start_date, l.end_date), "reason": l.reason,
         } for l in LeaveService(self.db).pending_for_reviewer(viewer)]
+        from app.services.attendance_rules_service import AttendanceRulesService
+        corrections = AttendanceRulesService(self.db).corrections(viewer, "review", "PENDING")
         week_ago = today - timedelta(days=7)
         missed = [{"employee_id": str(r.employee_id), "full_name": r.employee.full_name if r.employee else None, "date": r.date}
                   for r in self.db.query(AttendanceRecord).options(joinedload(AttendanceRecord.employee))
@@ -139,7 +141,7 @@ class HrService:
             "today": {"present": totals["present"] + totals["checked_out"], "on_shift": totals["present"],
                       "on_leave": totals["on_leave"], "not_checked_in": totals["not_checked_in"], "total": len(working),
                       "departments": departments},
-            "waiting": {"invites": invites, "leaves": leaves, "missed_checkouts": missed},
+            "waiting": {"invites": invites, "leaves": leaves, "missed_checkouts": missed, "corrections": corrections},
             "org": org,
             "movement": {"joiners": joiners, "leavers": leavers, "anniversaries": anniversaries[:10]},
             "workload": {"target_min": lo, "target_max": hi, "over": over[:10], "over_count": len(over),

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import CorrectionModal from '../../components/attendance/CorrectionModal';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/ui/PageHeader';
@@ -37,6 +38,7 @@ export const AttendancePage = () => {
 
   // Leave Request Modal State
   const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(searchParams.get('request') === 'leave');
+  const [fixingDay, setFixingDay] = useState(false);
   const [leaveForm, setLeaveForm] = useState({
     leave_type: 'CASUAL',
     start_date: '',
@@ -358,6 +360,15 @@ export const AttendancePage = () => {
           emptyTitle="No leave requests submitted"
           emptyDescription="Submit time-off requests using the Request Leave button."
         />
+      )}
+
+      <p className="text-sm text-slate-600 -mt-2">
+        Forgot to clock in or out?{' '}
+        <button type="button" onClick={() => setFixingDay(true)} className="font-medium text-brand-700 hover:underline">Fix a day</button>
+        {' '}· <Link to="/attendance/register" className="font-medium text-brand-700 hover:underline">See my month</Link>
+      </p>
+      {fixingDay && (
+        <CorrectionModal onClose={() => setFixingDay(false)} onSent={(t) => { setFixingDay(false); setFeedback({ type: 'success', text: t }); }} />
       )}
 
       {/* Request Leave Modal */}

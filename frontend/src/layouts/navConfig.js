@@ -23,6 +23,7 @@ import {
   Crown,
   Settings2,
   Activity,
+  CalendarDays,
 } from 'lucide-react';
 
 export const PERM = {
@@ -63,6 +64,7 @@ const SECTIONS = [
     links: [
       { to: '/manager', label: 'My Team', icon: UsersRound },
       { to: '/manager?tab=approvals', label: 'Approvals Inbox', icon: Inbox },
+      { to: '/attendance/register', label: 'Team attendance', icon: CalendarDays },
     ],
   },
   {
@@ -72,6 +74,7 @@ const SECTIONS = [
     links: [
       { to: '/hr', label: 'HR Overview', icon: Activity },
       { to: '/hr/teams', label: 'Teams', icon: UsersRound },
+      { to: '/attendance/register', label: 'Attendance register', icon: CalendarDays },
       { to: '/admin/employees', label: 'Employees', icon: Users },
     ],
   },
@@ -121,11 +124,15 @@ const SECTIONS = [
 ];
 
 /** Sidebar sections the user may see, with optional badge counts filled in. */
-export const navSectionsFor = (permissions = [], badges = {}) =>
-  SECTIONS.filter((s) => !s.perm || permissions.includes(s.perm)).map((s) => ({
+export const navSectionsFor = (permissions = [], badges = {}) => {
+  const seen = new Set();
+  return SECTIONS.filter((s) => !s.perm || permissions.includes(s.perm)).map((s) => ({
     ...s,
-    links: s.links.map((l) => ({ ...l, badge: l.badgeKey ? badges[l.badgeKey] || 0 : 0 })),
-  }));
+    links: s.links
+      .filter((l) => (seen.has(l.to) ? false : (seen.add(l.to), true)))
+      .map((l) => ({ ...l, badge: l.badgeKey ? badges[l.badgeKey] || 0 : 0 })),
+  })).filter((s) => s.links.length);
+};
 
 // Team workspace: the few daily destinations stay in the bar, the rest go under "More".
 const TEAM_PRIMARY = ['/dashboard', '/accounts', '/social/posts', '/chat', '/manager'];

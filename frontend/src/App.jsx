@@ -13,6 +13,7 @@ import MailPage from './pages/Mail/MailPage';
 import HelpPage from './pages/Help/HelpPage';
 import HrOverviewPage from './pages/HR/HrOverviewPage';
 import TeamsPage from './pages/HR/TeamsPage';
+import AttendanceRegisterPage from './pages/Attendance/AttendanceRegisterPage';
 import AccountsListPage from './pages/Accounts/AccountsListPage';
 import TasksPage from './pages/Tasks/TasksPage';
 import DepartmentsPage from './pages/Departments/DepartmentsPage';
@@ -51,6 +52,7 @@ function App() {
             <Route path="/mail" element={<MailPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
+            <Route path="/attendance/register" element={<AttendanceRegisterPage />} />
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/social/posts" element={<ScheduledPostsPage />} />
             <Route path="/tasks" element={<TasksPage />} />

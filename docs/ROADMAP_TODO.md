@@ -65,3 +65,23 @@ Phases 1–5 of the employee workspace are built: navigation, Add / Import accou
 | D5 | Set `SUPABASE_SERVICE_ROLE_KEY` on the production backend (Vercel) so media and screenshot uploads work there; local `.env` is done | You | ☐ |
 | D6 | **Company devices only, strongly:** today phones/tablets are refused by user agent (app + API, `BLOCK_MOBILE_DEVICES=true`); a "desktop site" browser can still pass. Enforce the existing `registered_devices` table (approve a laptop once, refuse unknown devices) or use your MDM/managed-browser policy | Code + You (IT) | ☐ |
 | D7 | Remove the test employees EMP-T001…T006 (`*@company.internal`) from the production database at launch; they power the development sign-in buttons until then | You / Code | ☐ |
+
+## E. HR attendance rules: details still to decide (added 2026-11-25)
+
+Known: **week offs are rotational** (no fixed day) and **a shift is 10 hours**. Everything below is a setting with a safe placeholder until you decide. Change them in Super Admin → Company policy.
+
+| # | Decide | Placeholder today | Owner | Status |
+|---|---|---|---|---|
+| E1 | Office open / close time, or flexible shifts? | No fixed start: late marks are **off** (`shift_start_time` empty) | You | ☐ |
+| E2 | Grace minutes before a late mark | 15 min (only used once E1 is set) | You | ☐ |
+| E3 | How many hours count as a full day / half day | Full day 10 h, half day 5 h | You | ☐ |
+| E4 | Who plans the rotational week offs and how far ahead (team lead weekly? HR monthly?) | Team leads and HR can both set them on the roster | You | ☐ |
+| E5 | Should a day with no clock-in and no week off be counted **Absent**? | Shown as **No record** until rosters are filled (`absent_without_roster` off) | You | ☐ |
+| E6 | How many week offs per week / month; can they be swapped? | No limit enforced | You | ☐ |
+| E7 | Company holiday list for the year | Empty; HR adds holidays | You | ☐ |
+| E8 | Overtime: is time beyond 10 h tracked or paid? | Hours shown only | You | ☐ |
+| E9 | Night shifts crossing midnight? | Not supported yet (a shift belongs to its clock-in date) | You | ☐ |
+| E10 | Late-mark penalties (e.g. 3 lates = half-day cut)? | None | You | ☐ |
+| E11 | Correction deadline (how long after a day can someone fix it?) | 30 days | You | ☐ |
+| E12 | Payroll cycle (1st–last of month or custom) and export format for the accountant (step 3) | Calendar month, CSV | You | ☐ |
+| E13 | Leave accrual, carry-forward and encashment rules (step 3) | Yearly allowance only (current behaviour) | You | ☐ |

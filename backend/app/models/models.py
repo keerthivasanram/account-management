@@ -2,7 +2,7 @@ import uuid
 from datetime import datetime, date
 from sqlalchemy import (
     Column, String, Text, Boolean, Date, DateTime, Float, Integer,
-    ForeignKey, Index, func
+    ForeignKey, Index, UniqueConstraint, func
 )
 from sqlalchemy.orm import relationship
 from app.core.database import Base
@@ -539,3 +539,50 @@ class Kudos(Base):
 
     sender = relationship("Employee", foreign_keys=[from_id])
     recipient = relationship("Employee", foreign_keys=[to_id])
+
+
+# ==============================================================================
+# MODULE 13 — ATTENDANCE RULES (holidays, rotational week offs, corrections)
+# ==============================================================================
+
+class Holiday(Base):
+    __tablename__ = "holidays"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    date = Column(Date, unique=True, nullable=False, index=True)
+    name = Column(String(120), nullable=False)
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class WeekOff(Base):
+    """A rostered (rotational) week off for one person on one date."""
+    __tablename__ = "week_offs"
+    __table_args__ = (UniqueConstraint("employee_id", "date", name="uq_week_offs_employee_date"),)
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    set_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+
+class AttendanceCorrection(Base):
+    """Request to fix a day's clock-in / clock-out. Approved by the team lead or Senior HR, never the requester."""
+    __tablename__ = "attendance_corrections"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    date = Column(Date, nullable=False, index=True)
+    check_in_at = Column(DateTime(timezone=True), nullable=False)
+    check_out_at = Column(DateTime(timezone=True), nullable=False)
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), nullable=False, default="PENDING", index=True)  # PENDING, APPROVED, REJECTED
+    requested_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    requester = relationship("Employee", foreign_keys=[requested_by])

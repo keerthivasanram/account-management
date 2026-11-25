@@ -70,6 +70,7 @@ class Perm(str, Enum):
     LEAVE_APPROVE_ALL = "leave:approve_all"
     ATTENDANCE_READ_TEAM = "attendance:read_team"
     ATTENDANCE_READ_ALL = "attendance:read_all"
+    ATTENDANCE_MANAGE = "attendance:manage"      # holidays, approve any correction, roster for anyone
 
     # Instagram accounts & clients
     ACCOUNTS_READ_TEAM = "accounts:read_team"
@@ -115,6 +116,7 @@ _HR_JUNIOR: FrozenSet[Perm] = _EMPLOYEE | {
 
 # Senior HR: people, teams, logins, attendance and leave; no Instagram, security or system settings
 _HR_SENIOR: FrozenSet[Perm] = _HR_JUNIOR | {
+    Perm.ATTENDANCE_MANAGE,
     Perm.EMPLOYEES_MANAGE,
     Perm.ROLES_ASSIGN,
     Perm.DEPARTMENTS_MANAGE,
@@ -122,6 +124,7 @@ _HR_SENIOR: FrozenSet[Perm] = _HR_JUNIOR | {
 
 _ADMIN: FrozenSet[Perm] = _MANAGER | {
     Perm.ADMIN_PORTAL,
+    Perm.ATTENDANCE_MANAGE,
     Perm.HR_PORTAL,
     Perm.EMPLOYEES_INVITE,
     Perm.EMPLOYEES_READ_ALL,

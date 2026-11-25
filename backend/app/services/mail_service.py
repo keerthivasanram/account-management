@@ -18,8 +18,9 @@ from app.repositories.audit_repo import AuditRepository
 
 CATEGORIES: Dict[str, set] = {
     "approvals": {"ACCOUNT_APPROVED", "ACCOUNT_REJECTED", "POST_APPROVED", "POST_REJECTED", "TASK_APPROVED",
-                  "CHANGES_REQUESTED", "LEAVE_REVIEWED"},
-    "assignments": {"ACCOUNT_ASSIGNED", "TASK_ASSIGNED", "TASK_REVIEW_REQUESTED", "LEAVE_REQUESTED", "TEAM_CHANGED"},
+                  "CHANGES_REQUESTED", "LEAVE_REVIEWED", "ATTENDANCE_CORRECTION_REVIEWED"},
+    "assignments": {"ACCOUNT_ASSIGNED", "TASK_ASSIGNED", "TASK_REVIEW_REQUESTED", "LEAVE_REQUESTED", "TEAM_CHANGED",
+                    "ATTENDANCE_CORRECTION"},
     "notices": {"NOTICE"},
     "security": {"SECURITY_ALERT", "TOKEN_EXPIRED", "TOKEN_EXPIRING"},
     "support": {"SUPPORT_REPLY", "SUPPORT_STATUS"},

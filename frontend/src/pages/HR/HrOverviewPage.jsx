@@ -100,9 +100,10 @@ const WaitingPanel = ({ waiting, onChanged }) => {
     }
   };
 
-  const empty = !waiting.leaves.length && !waiting.invites.length && !waiting.missed_checkouts.length;
+  const corrections = waiting.corrections || [];
+  const empty = !waiting.leaves.length && !waiting.invites.length && !waiting.missed_checkouts.length && !corrections.length;
   return (
-    <Panel title="Waiting on HR" subtitle="Leave, unused invitations, missed clock-outs">
+    <Panel title="Waiting on HR" subtitle="Leave, corrections, unused invitations, missed clock-outs">
       {msg && <p role="status" className={`mt-1 text-xs ${msg.ok ? 'text-[#15803D]' : 'text-rose-700'}`}>{msg.text}</p>}
       {empty ? <p className="mt-2 text-sm text-slate-500">Nothing waiting. 🎉</p> : (
         <div className="mt-2 space-y-4">
@@ -121,6 +122,15 @@ const WaitingPanel = ({ waiting, onChanged }) => {
                   </li>
                 ))}
               </ul>
+            </section>
+          )}
+          {corrections.length > 0 && (
+            <section aria-label="Attendance corrections">
+              <h3 className="text-xs font-semibold text-slate-500 flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" aria-hidden="true" /> Attendance corrections ({corrections.length})</h3>
+              <ul className="mt-1.5 text-[13px] text-slate-700 space-y-1">
+                {corrections.slice(0, 4).map((c) => <li key={c.id}>{c.employee_name} · {shortDate(c.date)} · {c.check_in}–{c.check_out}</li>)}
+              </ul>
+              <Link to="/attendance/register?tab=corrections" className={`${linkClass} inline-block mt-1`}>Review corrections</Link>
             </section>
           )}
           {waiting.invites.length > 0 && (
@@ -259,7 +269,7 @@ export const HrOverviewPage = () => {
                   {d.workload.over.map((w) => <li key={w.id} className="flex justify-between"><span className="text-slate-700">{w.full_name}</span><span className="text-rose-700 tabular-nums">{w.accounts}</span></li>)}
                 </ul>
               )}
-              <p className="mt-3 text-xs text-slate-500 flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" aria-hidden="true" />Late marks and absences come with attendance rules (next step).</p>
+              <Link to="/attendance/register" className="mt-3 text-xs font-medium text-brand-700 hover:underline flex items-center gap-1.5"><CalendarClock className="w-3.5 h-3.5" aria-hidden="true" />Open the attendance register</Link>
             </Panel>
           </div>
           <Link to="/admin/employees" className="inline-flex items-center gap-1 text-sm font-medium text-brand-700 hover:underline">

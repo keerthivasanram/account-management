@@ -31,7 +31,7 @@ export const ManagerDashboardPage = () => {
   const tab = ['approvals', 'accounts'].includes(params.get('tab')) ? params.get('tab') : 'team';
 
   const [overview, setOverview] = useState(null);
-  const [inbox, setInbox] = useState({ tasks: [], leaves: [], posts: [], accounts: [] });
+  const [inbox, setInbox] = useState({ tasks: [], leaves: [], posts: [], accounts: [], corrections: [] });
   const [teamAccounts, setTeamAccounts] = useState(null);
   const [moving, setMoving] = useState(null); // account id being reassigned
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ export const ManagerDashboardPage = () => {
     try {
       const [ov, ap] = await Promise.all([api.manager.getOverview(), api.manager.getApprovals()]);
       setOverview(ov.data);
-      setInbox({ posts: [], accounts: [], ...ap.data });
+      setInbox({ posts: [], accounts: [], corrections: [], ...ap.data });
     } catch (err) {
       setError(err?.response?.data?.detail || 'Unable to load your team.');
     } finally {
@@ -157,7 +157,7 @@ export const ManagerDashboardPage = () => {
     { header: 'Status', accessor: 'status', render: (m) => <StatusBadge status={m.status} /> },
   ], [overview]);
 
-  const pendingTotal = inbox.tasks.length + inbox.leaves.length + inbox.posts.length + inbox.accounts.length;
+  const pendingTotal = inbox.tasks.length + inbox.leaves.length + inbox.posts.length + inbox.accounts.length + inbox.corrections.length;
   const reasonRequired = (d) => d && (d.action === 'changes' || (d.kind === 'account' && d.action === 'reject'));
 
   return (
@@ -209,6 +209,13 @@ export const ManagerDashboardPage = () => {
           emptyTitle="No team members yet"
           emptyDescription="People appear here when an admin sets you as their team lead or makes you head of their department."
         />
+      )}
+
+      {tab === 'approvals' && !loading && inbox.corrections.length > 0 && (
+        <a href="/attendance/register?tab=corrections" className="flex items-center justify-between gap-3 p-3.5 rounded-xl border border-amber-200 bg-amber-50 text-sm text-amber-900 hover:bg-amber-100">
+          <span><strong>{inbox.corrections.length}</strong> attendance correction{inbox.corrections.length === 1 ? '' : 's'} from your team waiting for approval</span>
+          <span className="font-medium">Review →</span>
+        </a>
       )}
 
       {tab === 'approvals' && !loading && (

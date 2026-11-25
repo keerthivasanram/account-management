@@ -25,6 +25,14 @@ DEFAULTS: Dict[str, Any] = {
     "alert_reassignments_per_hour": 10,
     "alert_copies_per_10_minutes": 30,
     "community_features": True,
+    # Attendance rules (to-do section E: placeholders until the company decides)
+    "shift_hours": 10,                 # a full day
+    "half_day_hours": 5,               # at least this many hours = half day
+    "shift_start_time": "",            # "HH:MM" local; empty = no late marks (no fixed start yet)
+    "late_grace_minutes": 15,
+    "absent_without_roster": False,    # count unrostered no-shows as Absent (else "No record")
+    "correction_window_days": 30,      # how far back attendance can be corrected
+    "utc_offset_minutes": 330,         # company time zone (IST = +5:30; no daylight saving)
     "content_ideas": [
         "Show the process: a behind-the-scenes Reel of how the product is made or packed.",
         "Answer the most common customer question in a 3-slide carousel.",
@@ -50,6 +58,13 @@ DESCRIPTIONS: Dict[str, str] = {
     "alert_reassignments_per_hour": "Alert founders when one person reassigns more Instagram accounts than this within an hour.",
     "alert_copies_per_10_minutes": "Alert when one employee copies more protected fields than this within 10 minutes.",
     "community_features": "Show kudos and work anniversaries in the employee workspace.",
+    "shift_hours": "Hours that make a full working day (shifts are 10 hours).",
+    "half_day_hours": "Hours that count as a half day; less than this is a short day.",
+    "shift_start_time": "Office start time as HH:MM (24h). Leave empty while timings are flexible: late marks stay off.",
+    "late_grace_minutes": "Minutes after the start time before a clock-in counts as late.",
+    "absent_without_roster": "Count a day with no clock-in and no rostered week off as Absent. Keep off until week offs are planned on the roster.",
+    "correction_window_days": "How many days back people can ask to correct their attendance.",
+    "utc_offset_minutes": "Company time zone as minutes from UTC (India = 330).",
     "content_ideas": "Content idea of the day: one is shown on the dashboard each day, in order. One idea per line.",
 }
 
@@ -98,6 +113,20 @@ def _ideas(x):
     return out
 
 
+def _hhmm_or_empty(x):
+    if x in (None, ""):
+        return ""
+    if not isinstance(x, str):
+        raise ValueError("must be HH:MM or empty")
+    try:
+        h, m = (int(p) for p in x.strip().split(":"))
+    except ValueError:
+        raise ValueError("must be HH:MM (24-hour) or empty")
+    if not (0 <= h <= 23 and 0 <= m <= 59):
+        raise ValueError("must be a time between 00:00 and 23:59")
+    return f"{h:02d}:{m:02d}"
+
+
 VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "company_name": _str(120),
     "account_target_min": _int_range(0, 1000),
@@ -109,6 +138,13 @@ VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "alert_reassignments_per_hour": _int_range(1, 10000),
     "alert_copies_per_10_minutes": _int_range(1, 10000),
     "community_features": _bool,
+    "shift_hours": _int_range(1, 24),
+    "half_day_hours": _int_range(1, 24),
+    "shift_start_time": _hhmm_or_empty,
+    "late_grace_minutes": _int_range(0, 240),
+    "absent_without_roster": _bool,
+    "correction_window_days": _int_range(1, 365),
+    "utc_offset_minutes": _int_range(-720, 840),
     "content_ideas": _ideas,
 }
 
@@ -140,6 +176,9 @@ class OrgSettingsService:
             except ValueError as e:
                 raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=f"{k}: {e}")
         merged = {**self.all(), **cleaned}
+        if merged["half_day_hours"] > merged["shift_hours"]:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
+                                detail="half_day_hours cannot exceed shift_hours")
         if merged["account_target_min"] > merged["account_target_max"]:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                                 detail="account_target_min cannot exceed account_target_max")

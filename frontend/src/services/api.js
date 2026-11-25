@@ -155,6 +155,15 @@ export const api = {
     getLeaveBalance: () => apiClient.get('/attendance/leave-balance'),
     reviewLeave: (id, data) => apiClient.patch(`/attendance/leaves/${id}/review`, data),
     cancelLeave: (id) => apiClient.post(`/attendance/leaves/${id}/cancel`),
+    // Rules: monthly register, rotational week-off roster, holidays, corrections
+    register: (params) => apiClient.get('/attendance/register', { params }),
+    setWeekOff: (data) => apiClient.put('/attendance/roster', data),
+    holidays: (year) => apiClient.get('/attendance/holidays', { params: { year } }),
+    addHoliday: (data) => apiClient.post('/attendance/holidays', data),
+    removeHoliday: (id) => apiClient.delete(`/attendance/holidays/${id}`),
+    corrections: (params) => apiClient.get('/attendance/corrections', { params }),
+    requestCorrection: (data) => apiClient.post('/attendance/corrections', data),
+    reviewCorrection: (id, data) => apiClient.patch(`/attendance/corrections/${id}/review`, data),
   },
 
   // Secure Document Management

@@ -25,6 +25,7 @@ const TITLES = [
   ['/mail', 'Mail'],
   ['/help', 'Help & support'],
   ['/documents', 'Company Vault & Documents'],
+  ['/attendance/register', 'Attendance register'],
   ['/attendance', 'Attendance & Shifts'],
   ['/admin/security', 'Security & Settings'],
   ['/admin/accounts', 'Account Assignments'],

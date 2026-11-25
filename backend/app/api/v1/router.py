@@ -17,6 +17,7 @@ from app.api.v1.mail import router as mail_router
 from app.api.v1.support import router as support_router
 from app.api.v1.community import router as community_router
 from app.api.v1.hr import router as hr_router
+from app.api.v1.attendance_rules import router as attendance_rules_router
 from app.api.v1.security import router as security_router
 from app.api.v1.manager import router as manager_router
 from app.api.v1.super_admin import router as super_admin_router
@@ -38,6 +39,7 @@ api_v1_router.include_router(mail_router)
 api_v1_router.include_router(support_router)
 api_v1_router.include_router(community_router)
 api_v1_router.include_router(hr_router)
+api_v1_router.include_router(attendance_rules_router)
 api_v1_router.include_router(security_router)
 api_v1_router.include_router(accounts_router)
 api_v1_router.include_router(integrations_router)

@@ -119,7 +119,10 @@ class ManagerService:
                      .filter(ScheduledPost.status == "PENDING_APPROVAL", ScheduledPost.created_by.in_(team))
                      .order_by(ScheduledPost.scheduled_at.asc()).limit(200).all())
         account_requests = TeamAccountsService(self.db).requests(reviewer)
+        from app.services.attendance_rules_service import AttendanceRulesService
+        corrections = AttendanceRulesService(self.db).corrections(reviewer, "review", "PENDING")
         return {
+            "corrections": corrections,
             "posts": [{
                 "id": str(p.id), "account_username": p.account.username if p.account else None,
                 "creator_name": p.creator.full_name if p.creator else None, "caption": p.caption,
