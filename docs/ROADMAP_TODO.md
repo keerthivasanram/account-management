@@ -11,12 +11,14 @@ Owner: **You** means a deployment/account/legal action only you can take. **Code
 |---|---|---|---|
 | A1 | Set `ENVIRONMENT=production` on Vercel (default `development` leaves dev login shortcuts on) | You | ☐ |
 | A2 | Set secrets: `APP_JWT_SECRET`, a unique `TOKEN_ENCRYPTION_KEY`, `SUPER_ADMIN_EMAILS`; choose `AUTO_PROVISION_EMPLOYEES=false` or `ALLOWED_EMAIL_DOMAINS` | You | ☐ |
-| A3 | Database: run `supabase/01_upgrade_to_007.sql` then `supabase/02_lock_down_data_api.sql` in the Supabase SQL Editor (see `supabase/README.md`), or `alembic upgrade head` + file 02 | You | ☐ |
+| A3 | Database: Supabase project migrated to revision 007 with `alembic upgrade head` (2026-11-25). Future schema changes: `alembic upgrade head` | Code | ☑ |
 | A4 | Email delivery: SMTP sender built for sign-in codes and invitations. **You:** create an SMTP account (Workspace / M365 / SES / Resend / Brevo) and set `SMTP_*`, `FRONTEND_URL` | Code ☑ · You ☐ | ◐ |
 | A5 | Daily token check: GitHub Actions workflow `token-health.yml` built. **You:** add the `DATABASE_URL` repository secret | Code ☑ · You ☐ | ◐ |
 | A6 | Delete obsolete `backend/fix_alembic.py` (untracked; superseded by `alembic/env.py`) | You | ☐ |
-| A7 | Push branch `feat/rbac-and-management-dashboards`, open PR, let CI run | You / Code | ☐ |
-| A8 | Supabase Data API lockdown: RLS on every table + revoke `anon`/`authenticated` (`supabase/02_lock_down_data_api.sql`) | You | ☐ |
+| A7 | Branch `feat/rbac-and-management-dashboards` pushed; open the PR and let CI run | You | ◐ |
+| A8 | Supabase Data API lockdown applied: RLS on all 27 tables, `anon`/`authenticated` revoked (2026-11-25). Re-run `supabase/02_lock_down_data_api.sql` after adding tables | Code | ☑ |
+| A9 | Supabase → Authentication → URL Configuration: set Site URL to the app's address (local `http://localhost:5173`) so confirmation/reset links land on the app | You | ☐ |
+| A10 | Rotate the database password and the founder login password (both were shared in chat) | You | ☐ |
 
 ## B. Security features (from the monitoring plan)
 
