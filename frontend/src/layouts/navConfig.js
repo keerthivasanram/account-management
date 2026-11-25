@@ -1,0 +1,134 @@
+// Single source of truth for authenticated navigation.
+// Both layouts (Operations sidebar, Team top nav) read from here, so a destination
+// added once is reachable everywhere its permission allows. UI checks are cosmetic:
+// every route is re-checked by RequirePermission and every API call by the backend.
+import {
+  LayoutDashboard,
+  Instagram,
+  UserPlus,
+  Share2,
+  Clock,
+  Users,
+  Layers,
+  Briefcase,
+  CheckCircle,
+  History,
+  Shield,
+  MessageSquare,
+  CheckSquare,
+  FolderLock,
+  Building2,
+  UsersRound,
+  Inbox,
+  Crown,
+  Settings2,
+  Activity,
+} from 'lucide-react';
+
+export const PERM = {
+  ADMIN_PORTAL: 'admin:portal',
+  MANAGER_PORTAL: 'manager:portal',
+  SETTINGS_MANAGE: 'settings:manage',
+};
+
+/**
+ * Which dashboard shell a user gets.
+ *  - 'operations': admins and super admins (A · Operations, dark sidebar)
+ *  - 'team':       managers and employees (B · Team workspace, top navigation)
+ *  - 'error':      permissions could not be read; never guess, show a recoverable error
+ */
+export const layoutVariantFor = (employee) => {
+  if (!employee || !Array.isArray(employee.permissions)) return 'error';
+  return employee.permissions.includes(PERM.ADMIN_PORTAL) ? 'operations' : 'team';
+};
+
+const SECTIONS = [
+  {
+    id: 'main',
+    label: 'Main',
+    links: [
+      { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+      { to: '/accounts', label: 'Instagram Accounts', teamLabel: 'My accounts', icon: Instagram },
+      { to: '/register', label: 'Register Account', icon: UserPlus },
+      { to: '/social/posts', label: 'Publishing', icon: Share2 },
+    ],
+  },
+  {
+    id: 'team',
+    label: 'My Team',
+    perm: PERM.MANAGER_PORTAL,
+    links: [
+      { to: '/manager', label: 'My Team', icon: UsersRound },
+      { to: '/manager?tab=approvals', label: 'Approvals Inbox', icon: Inbox },
+    ],
+  },
+  {
+    id: 'management',
+    label: 'Management',
+    perm: PERM.ADMIN_PORTAL,
+    links: [
+      { to: '/admin/employees', label: 'Employees', icon: Users },
+      { to: '/admin/accounts', label: 'Assignments', icon: Layers },
+      { to: '/admin/clients', label: 'Clients & Campaigns', icon: Briefcase },
+    ],
+  },
+  {
+    id: 'administration',
+    label: 'Administration',
+    perm: PERM.ADMIN_PORTAL,
+    links: [
+      { to: '/admin', label: 'Admin Overview', icon: LayoutDashboard },
+      { to: '/admin/accounts?filter=pending', label: 'Approvals', icon: CheckCircle },
+      { to: '/admin/audit-logs', label: 'Activity Logs', icon: History },
+      { to: '/admin/security', label: 'Security & Settings', icon: Shield, badgeKey: 'incidents' },
+    ],
+  },
+  {
+    id: 'super',
+    label: 'Super Admin',
+    perm: PERM.SETTINGS_MANAGE,
+    links: [
+      { to: '/super-admin', label: 'Control Center', icon: Crown },
+      { to: '/super-admin?tab=admins', label: 'Admins & Roles', icon: Users },
+      { to: '/super-admin?tab=settings', label: 'Company Policy', icon: Settings2 },
+      { to: '/super-admin?tab=health', label: 'System Health', icon: Activity },
+      { to: '/super-admin?tab=audit', label: 'Audit Search', icon: History },
+    ],
+  },
+  {
+    id: 'workspace',
+    label: 'Workspace',
+    links: [
+      { to: '/tasks', label: 'Tasks', icon: CheckSquare },
+      { to: '/chat', label: 'Company Chat', icon: MessageSquare },
+      { to: '/documents', label: 'Documents', icon: FolderLock },
+      { to: '/attendance', label: 'Attendance', icon: Clock },
+      { to: '/departments', label: 'Departments', icon: Building2 },
+    ],
+  },
+];
+
+/** Sidebar sections the user may see, with optional badge counts filled in. */
+export const navSectionsFor = (permissions = [], badges = {}) =>
+  SECTIONS.filter((s) => !s.perm || permissions.includes(s.perm)).map((s) => ({
+    ...s,
+    links: s.links.map((l) => ({ ...l, badge: l.badgeKey ? badges[l.badgeKey] || 0 : 0 })),
+  }));
+
+// Team workspace: the few daily destinations stay in the bar, the rest go under "More".
+const TEAM_PRIMARY = ['/dashboard', '/accounts', '/manager', '/tasks', '/attendance'];
+
+/** Top-nav links for the Team workspace: { primary, more }. Nothing permitted is dropped. */
+export const teamNavFor = (permissions = []) => {
+  const all = navSectionsFor(permissions).flatMap((s) => s.links)
+    .map((l) => ({ ...l, label: l.teamLabel || l.label }));
+  const primary = TEAM_PRIMARY.map((to) => all.find((l) => l.to === to)).filter(Boolean);
+  const more = all.filter((l) => !TEAM_PRIMARY.includes(l.to));
+  return { primary, more };
+};
+
+/** Active-state rule shared by both navs (query-string links match exactly). */
+export const isNavLinkActive = (to, location) =>
+  to.includes('?')
+    ? location.pathname + location.search === to
+    : location.pathname === to && !location.search.includes('tab=') && !location.search.includes('filter=');

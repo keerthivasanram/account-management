@@ -13,9 +13,10 @@ export const DataTable = ({
   pagination,
   onRowClick,
   className = '',
+  bare = false, // embedded inside another card: no own border/shadow
 }) => {
   return (
-    <div className={`bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden ${className}`}>
+    <div className={`${bare ? 'bg-white' : 'bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden'} ${className}`}>
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>

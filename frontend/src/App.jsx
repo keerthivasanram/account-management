@@ -7,7 +7,7 @@ import AdminRoute from './layouts/AdminRoute';
 // Pages
 import LandingPage from './pages/Landing/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
-import EmployeeDashboard from './pages/Dashboard/EmployeeDashboard';
+import OverviewPage from './pages/Dashboard/OverviewPage';
 import RegisterAccountPage from './pages/RegisterAccount/RegisterAccountPage';
 import AccountsListPage from './pages/Accounts/AccountsListPage';
 import TasksPage from './pages/Tasks/TasksPage';
@@ -42,7 +42,7 @@ function App() {
 
           {/* Protected Employee Workspace */}
           <Route element={<AppLayout />}>
-            <Route path="/dashboard" element={<EmployeeDashboard />} />
+            <Route path="/dashboard" element={<OverviewPage />} />
             <Route path="/chat" element={<ChatPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/documents" element={<DocumentsPage />} />

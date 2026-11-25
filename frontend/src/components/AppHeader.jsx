@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, NavLink } from 'react-router-dom';
+import logoMark from '../logo-mark.png';
+import { teamNavFor, isNavLinkActive } from '../layouts/navConfig';
+import useDisclosure from '../hooks/useDisclosure';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import {
@@ -12,13 +15,26 @@ import {
   LogOut,
   User,
   Shield,
-  ChevronDown
+  ChevronDown,
+  Menu
 } from 'lucide-react';
 
-export const AppHeader = ({ title = 'Overview' }) => {
+/**
+ * variant 'operations': breadcrumb bar beside the sidebar (menu button opens the drawer below lg).
+ * variant 'team': light top navigation for the Team workspace (menu button opens the link panel below lg).
+ * The menu button's state lives in AppLayout so the drawer/panel and focus return share one disclosure.
+ */
+export const AppHeader = ({ title = 'Overview', variant = 'operations', menuOpen = false, onMenuClick, menuTriggerRef, menuControls }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { employee, logout, isAdmin } = useAuth();
+  const { employee, logout, isAdmin, permissions } = useAuth();
+  const more = useDisclosure();
+  const team = variant === 'team';
+  const teamNav = team ? teamNavFor(permissions) : { primary: [], more: [] };
+  const moreActive = teamNav.more.some((l) => isNavLinkActive(l.to, location));
+
+  // Close the "More" menu after navigating
+  useEffect(() => { more.close(); }, [location.pathname, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
   const [notifications, setNotifications] = useState([]);
   const [showNotifs, setShowNotifs] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -135,22 +151,107 @@ export const AppHeader = ({ title = 'Overview' }) => {
       )}
 
       {/* Main AppHeader (Height 64px, White, Clean Borders) */}
-      <header className="h-16 bg-white/85 backdrop-blur-md border-b border-[#E6EAF0] px-8 flex items-center justify-between gap-4 sticky top-0 z-30 select-none">
-        {/* Left: Breadcrumbs & Page Context */}
+      <header className="h-16 bg-white/90 backdrop-blur-md border-b border-[#E6EAF0] px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30 select-none">
+        {/* Left: menu button + page context (operations) or brand + links (team) */}
         <div className="flex items-center gap-2 min-w-0">
-          <div className="flex items-center gap-1.5 text-[13px] text-slate-400">
-            <span>{breadcrumbSection}</span>
-            <span className="text-slate-300">/</span>
-          </div>
-          <h2 className="text-[13px] font-semibold text-slate-900 truncate">
-            {title}
-          </h2>
+          <button
+            ref={menuTriggerRef}
+            type="button"
+            onClick={onMenuClick}
+            aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+            aria-expanded={menuOpen}
+            aria-controls={menuControls}
+            className="lg:hidden -ml-1 w-10 h-10 shrink-0 inline-flex items-center justify-center rounded-xl text-slate-600 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500"
+          >
+            {menuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
+
+          {team ? (
+            <>
+              <NavLink to="/dashboard" className="flex items-center gap-2 shrink-0 mr-1 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
+                <img src={logoMark} alt="" className="h-7 w-7 object-contain" />
+                <span className="leading-none">
+                  <span className="block text-slate-900 font-bold tracking-[0.08em] text-[15px]">KLARVES</span>
+                  <span className="hidden sm:block text-[9.5px] text-slate-500 mt-1">Employee Platform</span>
+                </span>
+              </NavLink>
+              <span className="hidden sm:inline text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 mr-3">v3.2</span>
+              <nav aria-label="Workspace" className="hidden lg:flex items-center gap-1">
+                {teamNav.primary.map((l) => {
+                  const active = isNavLinkActive(l.to, location);
+                  return (
+                    <NavLink
+                      key={l.to}
+                      to={l.to}
+                      aria-current={active ? 'page' : undefined}
+                      className={`h-9 px-3 inline-flex items-center rounded-lg text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                        active ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      {l.label}
+                    </NavLink>
+                  );
+                })}
+                {teamNav.more.length > 0 && (
+                  <div className="relative">
+                    <button
+                      ref={more.triggerRef}
+                      type="button"
+                      onClick={more.toggle}
+                      aria-expanded={more.open}
+                      aria-controls="team-more-menu"
+                      className={`h-9 px-3 inline-flex items-center gap-1 rounded-lg text-[13px] font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                        moreActive ? 'bg-brand-50 text-brand-700' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100'
+                      }`}
+                    >
+                      More <ChevronDown aria-hidden="true" className={`w-3.5 h-3.5 transition-transform ${more.open ? 'rotate-180' : ''}`} />
+                    </button>
+                    {more.open && (
+                      <div
+                        id="team-more-menu"
+                        ref={more.panelRef}
+                        className="absolute left-0 mt-2 w-56 bg-white border border-[#E6EAF0] rounded-xl shadow-lift py-1.5 z-50"
+                      >
+                        {teamNav.more.map((l) => {
+                          const Icon = l.icon;
+                          const active = isNavLinkActive(l.to, location);
+                          return (
+                            <NavLink
+                              key={l.to}
+                              to={l.to}
+                              aria-current={active ? 'page' : undefined}
+                              className={`mx-1.5 px-2.5 h-9 flex items-center gap-2.5 rounded-lg text-[13px] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500 ${
+                                active ? 'bg-brand-50 text-brand-700 font-medium' : 'text-slate-700 hover:bg-slate-50'
+                              }`}
+                            >
+                              <Icon aria-hidden="true" className="w-4 h-4 text-slate-400" />
+                              {l.label}
+                            </NavLink>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </nav>
+            </>
+          ) : (
+            <>
+              <div className="hidden sm:flex items-center gap-1.5 text-[13px] text-slate-400">
+                <span>{breadcrumbSection}</span>
+                <span className="text-slate-300">/</span>
+              </div>
+              <h2 className="text-[13px] font-semibold text-slate-900 truncate">
+                {title}
+              </h2>
+            </>
+          )}
         </div>
 
         {/* Right Action Cluster */}
         <div className="flex items-center gap-3">
           {/* Quick Search */}
-          <div className="relative hidden md:block w-72">
+          <div className={`relative w-72 ${team ? 'hidden' : 'hidden xl:block'}`}>
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
@@ -170,6 +271,8 @@ export const AppHeader = ({ title = 'Overview' }) => {
               onClick={() => setShowNotifs(!showNotifs)}
               className="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition-colors relative cursor-pointer"
               title="Notifications"
+              aria-label={unreadCount > 0 ? `Notifications, ${unreadCount} unread` : 'Notifications'}
+              aria-expanded={showNotifs}
             >
               <Bell className="w-[18px] h-[18px]" />
               {unreadCount > 0 && (
@@ -245,6 +348,8 @@ export const AppHeader = ({ title = 'Overview' }) => {
           <div className="relative">
             <button
               onClick={() => setShowProfileMenu(!showProfileMenu)}
+              aria-label="Account menu"
+              aria-expanded={showProfileMenu}
               className="flex items-center gap-2.5 pl-1.5 pr-2 py-1.5 hover:bg-slate-100 rounded-xl transition-colors cursor-pointer"
             >
               <div className="w-8 h-8 rounded-full bg-brand-50 ring-1 ring-brand-200 flex items-center justify-center text-xs font-semibold text-brand-700">

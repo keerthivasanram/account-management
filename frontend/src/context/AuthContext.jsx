@@ -5,33 +5,48 @@ import { supabaseAuth, isSupabaseConfigured } from '../services/supabase';
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-  const [employee, setEmployee] = useState(() => {
-    const saved = localStorage.getItem('auth_user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [employee, setEmployee] = useState(null);
   const [token, setToken] = useState(() => localStorage.getItem('auth_token'));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Synchronize profile on load if token exists
-  useEffect(() => {
-    const initAuth = async () => {
-      const storedToken = localStorage.getItem('auth_token');
-      if (storedToken) {
-        try {
-          const res = await api.employees.getMyProfile();
-          setEmployee(res.data);
-          localStorage.setItem('auth_user', JSON.stringify(res.data));
-        } catch (err) {
-          console.warn('Session verification failed, logging out:', err);
-          logout();
-        }
-      }
-      setLoading(false);
-    };
+  // Permissions must come from a fresh /employees/me before any privileged navigation renders.
+  // A cached profile is never trusted for that. 401/403 signs out; any other failure is
+  // surfaced as profileError so the layout can offer a retry instead of guessing a role.
+  const [profileError, setProfileError] = useState(null);
 
-    initAuth();
-  }, []);
+  const loadProfile = async () => {
+    const storedToken = localStorage.getItem('auth_token');
+    if (!storedToken) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    setProfileError(null);
+    try {
+      const res = await api.employees.getMyProfile();
+      if (!Array.isArray(res.data?.permissions)) {
+        throw new Error('Your permissions could not be read.');
+      }
+      setEmployee(res.data);
+      localStorage.setItem('auth_user', JSON.stringify(res.data));
+    } catch (err) {
+      const code = err.response?.status;
+      if (code === 401 || code === 403) {
+        console.warn('Session rejected, signing out:', err);
+        logout();
+      } else {
+        setEmployee(null);
+        setProfileError(err.response?.data?.detail || err.message || 'Could not load your profile.');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    loadProfile();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loginWithSupabase = async (email, password) => {
     setError(null);
@@ -178,6 +193,7 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('auth_user');
     setToken(null);
     setEmployee(null);
+    setProfileError(null);
   };
 
   // Permissions come from the backend (/employees/me). UI checks are cosmetic;
@@ -205,6 +221,8 @@ export const AuthProvider = ({ children }) => {
         loginWithDev,
         loginWithMfa,
         completeOAuthLogin,
+        profileError,
+        retryProfile: loadProfile,
         logout,
         refreshProfile: async () => {
           if (token) {
