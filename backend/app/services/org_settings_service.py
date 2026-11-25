@@ -33,6 +33,7 @@ DEFAULTS: Dict[str, Any] = {
     "absent_without_roster": False,    # count unrostered no-shows as Absent (else "No record")
     "correction_window_days": 30,      # how far back attendance can be corrected
     "utc_offset_minutes": 330,         # company time zone (IST = +5:30; no daylight saving)
+    "junior_hr_leave_limit_days": 3,   # longer leave needs Senior HR (to-do E16)
     "content_ideas": [
         "Show the process: a behind-the-scenes Reel of how the product is made or packed.",
         "Answer the most common customer question in a 3-slide carousel.",
@@ -65,6 +66,7 @@ DESCRIPTIONS: Dict[str, str] = {
     "absent_without_roster": "Count a day with no clock-in and no rostered week off as Absent. Keep off until week offs are planned on the roster.",
     "correction_window_days": "How many days back people can ask to correct their attendance.",
     "utc_offset_minutes": "Company time zone as minutes from UTC (India = 330).",
+    "junior_hr_leave_limit_days": "Longest leave (in days) Junior HR may approve; longer requests go to Senior HR.",
     "content_ideas": "Content idea of the day: one is shown on the dashboard each day, in order. One idea per line.",
 }
 
@@ -145,6 +147,7 @@ VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "absent_without_roster": _bool,
     "correction_window_days": _int_range(1, 365),
     "utc_offset_minutes": _int_range(-720, 840),
+    "junior_hr_leave_limit_days": _int_range(0, 60),
     "content_ideas": _ideas,
 }
 

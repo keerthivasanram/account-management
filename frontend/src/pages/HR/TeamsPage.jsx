@@ -31,6 +31,10 @@ const Person = ({ m, selectable, checked, onToggle }) => (
 export const TeamsPage = () => {
   const { can } = useAuth();
   const canMove = can('employees:manage');
+  // Junior HR: same picker, but it sends a request to Senior HR instead of moving people
+  const canRequest = !canMove && can('hr:portal');
+  const selectable = canMove || canRequest;
+  const [reason, setReason] = useState('');
   const [org, setOrg] = useState(null);
   const [error, setError] = useState(null);
   const [q, setQ] = useState('');
@@ -52,7 +56,28 @@ export const TeamsPage = () => {
   const allPeople = useMemo(() => (org ? [...org.unassigned, ...org.teams.flatMap((t) => t.members)] : []), [org]);
   const nameOf = (id) => allPeople.find((p) => p.id === id)?.full_name;
 
+  const requestMove = async (managerId) => {
+    if (reason.trim().length < 3) { setMsg({ ok: false, text: 'Add a short reason for Senior HR.' }); return; }
+    setBusy(true);
+    setMsg(null);
+    try {
+      for (const id of selected) {
+        // eslint-disable-next-line no-await-in-loop
+        await api.hr.requestChange({ employee_id: id, kind: 'TEAM', manager_id: managerId || undefined, remove_from_team: !managerId,
+          department_id: dept || undefined, reason: reason.trim() });
+      }
+      setMsg({ ok: true, text: `${plural(selected.size, 'request')} sent to Senior HR. You’ll get Mail when they decide.` });
+      clear();
+      setReason('');
+    } catch (err) {
+      setMsg({ ok: false, text: errText(err, 'The request didn’t go through.') });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const move = async (managerId) => {
+    if (canRequest) return requestMove(managerId);
     setBusy(true);
     setMsg(null);
     try {
@@ -77,7 +102,7 @@ export const TeamsPage = () => {
     <div className="space-y-5 pb-24">
       <PageHeader
         title="Teams"
-        description={canMove ? 'Who reports to whom. Tick people to move them to another team lead or department.' : 'Who reports to whom across the company.'}
+        description={canMove ? 'Who reports to whom. Tick people to move them to another team lead or department.' : 'Who reports to whom. Tick people to ask Senior HR to move them.'}
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'People' }, { label: 'Teams' }]}
       />
 
@@ -108,7 +133,7 @@ export const TeamsPage = () => {
               <h2 className="text-[15px] font-semibold text-slate-900 flex items-center gap-2"><UserMinus className="w-4 h-4 text-amber-700" aria-hidden="true" /> Without a team lead ({org.unassigned.length})</h2>
               {unassigned.length === 0 ? <p className="mt-2 text-sm text-slate-500">{q ? 'No matches.' : 'Everyone has a team lead.'}</p> : (
                 <ul className="mt-2 space-y-0.5">
-                  {unassigned.map((m) => <Person key={m.id} m={m} selectable={canMove} checked={selected.has(m.id)} onToggle={() => toggle(m.id)} />)}
+                  {unassigned.map((m) => <Person key={m.id} m={m} selectable={selectable} checked={selected.has(m.id)} onToggle={() => toggle(m.id)} />)}
                 </ul>
               )}
             </section>
@@ -120,13 +145,13 @@ export const TeamsPage = () => {
                     <h2 className="text-[15px] font-semibold text-slate-900 truncate flex items-center gap-2"><UsersRound className="w-4 h-4 text-brand-700 shrink-0" aria-hidden="true" />{t.lead.full_name}</h2>
                     <p className="text-xs text-slate-500">Team Lead{t.lead.department_name ? ` · ${t.lead.department_name}` : ''} · {plural(t.members.length, 'member')}</p>
                   </div>
-                  {canMove && selected.size > 0 && (
-                    <SecondaryButton size="sm" icon={ArrowRightLeft} disabled={busy} onClick={() => move(t.lead.id)}>Move here</SecondaryButton>
+                  {selectable && selected.size > 0 && (
+                    <SecondaryButton size="sm" icon={ArrowRightLeft} disabled={busy} onClick={() => move(t.lead.id)}>{canRequest ? 'Request here' : 'Move here'}</SecondaryButton>
                   )}
                 </div>
                 {t.shown.length === 0 ? <p className="mt-2 text-sm text-slate-500">{q ? 'No matches.' : 'Nobody on this team yet.'}</p> : (
                   <ul className="mt-2 space-y-0.5">
-                    {t.shown.map((m) => <Person key={m.id} m={m} selectable={canMove} checked={selected.has(m.id)} onToggle={() => toggle(m.id)} />)}
+                    {t.shown.map((m) => <Person key={m.id} m={m} selectable={selectable} checked={selected.has(m.id)} onToggle={() => toggle(m.id)} />)}
                   </ul>
                 )}
               </section>
@@ -136,7 +161,7 @@ export const TeamsPage = () => {
       )}
 
       {/* action bar */}
-      {canMove && selected.size > 0 && org && (
+      {selectable && selected.size > 0 && org && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 lg:left-[calc(50%+8rem)] z-40 w-[calc(100%-2rem)] max-w-3xl bg-white border border-[#E6EAF0] rounded-xl shadow-lift p-3 flex flex-col md:flex-row md:items-center gap-3" role="region" aria-label="Move selected people">
           <p className="text-sm text-slate-900 font-medium md:mr-auto">
             {plural(selected.size, 'person', 'people')} selected
@@ -150,9 +175,13 @@ export const TeamsPage = () => {
             <option value="">Keep department</option>
             {org.departments.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
           </select>
+          {canRequest && (
+            <input aria-label="Reason for Senior HR" value={reason} onChange={(e) => setReason(e.target.value)} maxLength={1000}
+              placeholder="Reason for Senior HR" className="enterprise-input h-9 text-sm md:w-48" />
+          )}
           <div className="flex gap-2">
-            <PrimaryButton size="sm" icon={ArrowRightLeft} loading={busy} disabled={!target} onClick={() => move(target)}>Move</PrimaryButton>
-            <SecondaryButton size="sm" disabled={busy} onClick={() => move(null)}>Remove from team</SecondaryButton>
+            <PrimaryButton size="sm" icon={ArrowRightLeft} loading={busy} disabled={!target} onClick={() => move(target)}>{canRequest ? 'Request move' : 'Move'}</PrimaryButton>
+            <SecondaryButton size="sm" disabled={busy} onClick={() => move(null)}>{canRequest ? 'Request removal' : 'Remove from team'}</SecondaryButton>
             <SecondaryButton size="sm" onClick={clear} aria-label="Clear selection"><X className="w-4 h-4" /></SecondaryButton>
           </div>
         </div>

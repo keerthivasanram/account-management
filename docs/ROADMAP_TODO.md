@@ -87,3 +87,4 @@ Known: **week offs are rotational** (no fixed day) and **a shift is 10 hours**. 
 | E13 | Leave accrual, carry-forward and encashment rules (step 3) | Yearly allowance only (current behaviour) | You | ☐ |
 | E14 | **Unpaid (loss-of-pay) days formula** for the payroll export | Unpaid = absent days + ½ for each half day / short day. "No record" days are **not** counted; they're flagged as *unaccounted* to resolve before locking | You | ☐ |
 | E15 | Who may reopen a locked month | Senior HR / admins, with a reason (audit-logged, founders get Mail) | You | ☐ |
+| E16 | Longest leave Junior HR may approve on their own | 3 days (`junior_hr_leave_limit_days`); longer goes to Senior HR | You | ☐ |

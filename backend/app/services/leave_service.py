@@ -150,6 +150,10 @@ class LeaveService:
             raise HTTPException(status_code=403, detail="Separation of duties: you cannot review your own leave.")
         if not can_approve_leave(reviewer, lr.employee):
             raise HTTPException(status_code=403, detail="You can only review leave for your own team.")
+        if reviewer.role == "hr_junior":
+            limit = OrgSettingsService(self.db).get("junior_hr_leave_limit_days")
+            if leave_days(lr.start_date, lr.end_date) > limit:
+                raise HTTPException(status_code=403, detail=f"Leave longer than {limit} days needs Senior HR.")
         if lr.status != "PENDING":
             raise HTTPException(status_code=409, detail=f"This request was already {lr.status.lower()}.")
         from app.services.period_lock import guard_range_unlocked

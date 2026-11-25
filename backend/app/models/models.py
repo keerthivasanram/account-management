@@ -606,3 +606,26 @@ class PayrollPeriod(Base):
     reopened_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
     reopened_at = Column(DateTime(timezone=True), nullable=True)
     reopen_reason = Column(Text, nullable=True)
+
+
+# ==============================================================================
+# MODULE 15 — PEOPLE CHANGE REQUESTS (Junior HR prepares, Senior HR approves)
+# ==============================================================================
+
+class PeopleChangeRequest(Base):
+    __tablename__ = "people_change_requests"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    kind = Column(String(20), nullable=False)                 # ROLE | TEAM
+    employee_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    payload = Column(JSONType, nullable=False)                # {"role": ...} | {"manager_id": ..., "department_id": ...}
+    reason = Column(Text, nullable=False)
+    status = Column(String(20), nullable=False, default="PENDING", index=True)  # PENDING, APPROVED, REJECTED
+    requested_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_by = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True)
+    reviewed_at = Column(DateTime(timezone=True), nullable=True)
+    remarks = Column(Text, nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    employee = relationship("Employee", foreign_keys=[employee_id])
+    requester = relationship("Employee", foreign_keys=[requested_by])

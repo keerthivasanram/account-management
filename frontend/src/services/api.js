@@ -216,6 +216,10 @@ export const api = {
     overview: () => apiClient.get('/hr/overview'),
     org: () => apiClient.get('/hr/org'),
     move: (data) => apiClient.post('/hr/teams/move', data),
+    // Junior HR prepares role / team changes; Senior HR approves
+    changeRequests: (params) => apiClient.get('/hr/change-requests', { params }),
+    requestChange: (data) => apiClient.post('/hr/change-requests', data),
+    reviewChange: (id, data) => apiClient.patch(`/hr/change-requests/${id}/review`, data),
   },
 
   // Community: idea of the day, kudos, anniversaries

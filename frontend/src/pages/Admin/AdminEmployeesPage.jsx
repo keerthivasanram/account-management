@@ -27,6 +27,8 @@ export const AdminEmployeesPage = () => {
   const { employee: me, isSuperAdmin, can } = useAuth();
   const mayManage = can('employees:manage');
   const mayInvite = mayManage || can('employees:invite');
+  const mayRequest = !mayManage && can('hr:portal'); // Junior HR asks Senior HR
+  const [roleRequest, setRoleRequest] = useState(null); // { emp, role, reason }
   const [employees, setEmployees] = useState([]);
   const [meta, setMeta] = useState({ roles: [], departments: [], managers: [], account_target_min: 50, account_target_max: 60 });
   const [loading, setLoading] = useState(true);
@@ -218,6 +220,20 @@ export const AdminEmployeesPage = () => {
     }
   };
 
+  const sendRoleRequest = async (e) => {
+    e.preventDefault();
+    setBusy(true);
+    try {
+      await api.hr.requestChange({ employee_id: roleRequest.emp.id, kind: 'ROLE', role: roleRequest.role, reason: roleRequest.reason.trim() });
+      flash('success', `Request sent to Senior HR. You’ll get Mail when they decide.`);
+      setRoleRequest(null);
+    } catch (err) {
+      flash('error', errText(err, 'The request didn’t go through.'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleExport = async () => {
     try {
       const res = await api.admin.exportEmployees();
@@ -325,6 +341,11 @@ export const AdminEmployeesPage = () => {
               <SecondaryButton size="sm" danger onClick={() => inviteAction(row, 'cancel')}>Cancel invite</SecondaryButton>
             )}
             {canManage(row) && <SecondaryButton size="sm" onClick={() => openEdit(row)}>Edit</SecondaryButton>}
+            {mayRequest && ['employee', 'manager'].includes(row.role) && row.status === 'ACTIVE' && row.id !== me?.id && (
+              <SecondaryButton size="sm" onClick={() => setRoleRequest({ emp: row, role: row.role === 'manager' ? 'employee' : 'manager', reason: '' })}>
+                Request role change
+              </SecondaryButton>
+            )}
             {manageable && row.status !== 'OFFBOARDED' && row.status !== 'INVITED' && (
               <>
                 <SecondaryButton size="sm" icon={LogOut} title="Force logout" aria-label="Force logout" onClick={() => setConfirm({ kind: 'logout', emp: row })} />
@@ -529,6 +550,28 @@ export const AdminEmployeesPage = () => {
             <div className="flex justify-end gap-2">
               <SecondaryButton onClick={() => setEditTarget(null)}>Cancel</SecondaryButton>
               <PrimaryButton type="submit" loading={busy}>Save changes</PrimaryButton>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      {roleRequest && (
+        <Modal isOpen onClose={() => setRoleRequest(null)} title={`Request a role change for ${roleRequest.emp.full_name}`} maxWidth="max-w-md">
+          <form onSubmit={sendRoleRequest} className="space-y-4">
+            <p className="text-sm text-[#64748B]">Senior HR approves role changes. They’ll get your request with the reason.</p>
+            <FormField label="New role" id="rr_role">
+              <select id="rr_role" className="enterprise-input w-full" value={roleRequest.role} onChange={(e) => setRoleRequest({ ...roleRequest, role: e.target.value })}>
+                <option value="manager">Team Lead</option>
+                <option value="employee">Employee</option>
+              </select>
+            </FormField>
+            <FormField label="Why?" required id="rr_reason">
+              <textarea id="rr_reason" rows={3} required minLength={3} maxLength={1000} className="enterprise-input w-full min-h-[80px]"
+                value={roleRequest.reason} onChange={(e) => setRoleRequest({ ...roleRequest, reason: e.target.value })} />
+            </FormField>
+            <div className="flex justify-end gap-2">
+              <SecondaryButton onClick={() => setRoleRequest(null)}>Cancel</SecondaryButton>
+              <PrimaryButton type="submit" loading={busy} disabled={roleRequest.role === roleRequest.emp.role || roleRequest.reason.trim().length < 3}>Send request</PrimaryButton>
             </div>
           </form>
         </Modal>

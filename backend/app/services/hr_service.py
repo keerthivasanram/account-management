@@ -87,10 +87,14 @@ class HrService:
             "id": str(e.id), "full_name": e.full_name, "email": e.email, "role_label": ROLE_LABELS.get(e.role, e.role),
             "invited_at": e.created_at, "days_waiting": (datetime.now(timezone.utc) - _aware(e.created_at)).days if e.created_at else 0,
         } for e in people if e.status == "INVITED"], key=lambda x: -x["days_waiting"])
+        junior_limit = OrgSettingsService(self.db).get("junior_hr_leave_limit_days") if viewer.role == Role.HR_JUNIOR.value else None
         leaves = [{
             "id": str(l.id), "employee_name": l.employee.full_name if l.employee else None, "leave_type": l.leave_type,
             "start_date": l.start_date, "end_date": l.end_date, "days": leave_days(l.start_date, l.end_date), "reason": l.reason,
+            "can_decide": junior_limit is None or leave_days(l.start_date, l.end_date) <= junior_limit,
         } for l in LeaveService(self.db).pending_for_reviewer(viewer)]
+        from app.services.people_change_service import PeopleChangeService
+        change_requests = PeopleChangeService(self.db).list(viewer, status="PENDING")
         from app.services.attendance_rules_service import AttendanceRulesService
         corrections = AttendanceRulesService(self.db).corrections(viewer, "review", "PENDING")
         week_ago = today - timedelta(days=7)
@@ -141,7 +145,8 @@ class HrService:
             "today": {"present": totals["present"] + totals["checked_out"], "on_shift": totals["present"],
                       "on_leave": totals["on_leave"], "not_checked_in": totals["not_checked_in"], "total": len(working),
                       "departments": departments},
-            "waiting": {"invites": invites, "leaves": leaves, "missed_checkouts": missed, "corrections": corrections},
+            "waiting": {"invites": invites, "leaves": leaves, "missed_checkouts": missed, "corrections": corrections,
+                        "change_requests": change_requests},
             "org": org,
             "movement": {"joiners": joiners, "leavers": leavers, "anniversaries": anniversaries[:10]},
             "workload": {"target_min": lo, "target_max": hi, "over": over[:10], "over_count": len(over),

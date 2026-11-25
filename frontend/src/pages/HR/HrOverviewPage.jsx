@@ -80,8 +80,14 @@ const WaitingPanel = ({ waiting, onChanged }) => {
     e.preventDefault();
     setBusy(true);
     try {
-      await api.attendance.reviewLeave(decision.leave.id, { status: decision.action, remarks: remarks.trim() || undefined });
-      setMsg({ ok: true, text: `Leave ${decision.action === 'APPROVED' ? 'approved' : 'rejected'}. ${decision.leave.employee_name} was notified.` });
+      const word = decision.action === 'APPROVED' ? 'approved' : 'rejected';
+      if (decision.kind === 'change') {
+        await api.hr.reviewChange(decision.item.id, { status: decision.action, remarks: remarks.trim() || undefined });
+        setMsg({ ok: true, text: `Change ${word}. ${decision.item.requested_by_name || 'The requester'} was notified.` });
+      } else {
+        await api.attendance.reviewLeave(decision.item.id, { status: decision.action, remarks: remarks.trim() || undefined });
+        setMsg({ ok: true, text: `Leave ${word}. ${decision.item.employee_name} was notified.` });
+      }
       setDecision(null);
       onChanged();
     } catch (err) {
@@ -101,7 +107,8 @@ const WaitingPanel = ({ waiting, onChanged }) => {
   };
 
   const corrections = waiting.corrections || [];
-  const empty = !waiting.leaves.length && !waiting.invites.length && !waiting.missed_checkouts.length && !corrections.length;
+  const changes = waiting.change_requests || [];
+  const empty = !waiting.leaves.length && !waiting.invites.length && !waiting.missed_checkouts.length && !corrections.length && !changes.length;
   return (
     <Panel title="Waiting on HR" subtitle="Leave, corrections, unused invitations, missed clock-outs">
       {msg && <p role="status" className={`mt-1 text-xs ${msg.ok ? 'text-[#15803D]' : 'text-rose-700'}`}>{msg.text}</p>}
@@ -115,10 +122,33 @@ const WaitingPanel = ({ waiting, onChanged }) => {
                   <li key={l.id} className="rounded-lg ring-1 ring-slate-100 p-2.5">
                     <p className="text-[13px] font-medium text-slate-900">{l.employee_name} · {plural(l.days, 'day')} {l.leave_type.toLowerCase()}</p>
                     <p className="text-xs text-slate-500">{shortDate(l.start_date)} → {shortDate(l.end_date)} · “{l.reason}”</p>
-                    <div className="mt-2 flex gap-2">
-                      <SecondaryButton size="sm" danger onClick={() => { setRemarks(''); setDecision({ leave: l, action: 'REJECTED' }); }}>Reject</SecondaryButton>
-                      <PrimaryButton size="sm" onClick={() => { setRemarks(''); setDecision({ leave: l, action: 'APPROVED' }); }}>Approve</PrimaryButton>
-                    </div>
+                    {l.can_decide === false ? (
+                      <p className="mt-1.5 text-xs text-amber-800">Longer than your limit: Senior HR decides this one.</p>
+                    ) : (
+                      <div className="mt-2 flex gap-2">
+                        <SecondaryButton size="sm" danger onClick={() => { setRemarks(''); setDecision({ kind: 'leave', item: l, action: 'REJECTED' }); }}>Reject</SecondaryButton>
+                        <PrimaryButton size="sm" onClick={() => { setRemarks(''); setDecision({ kind: 'leave', item: l, action: 'APPROVED' }); }}>Approve</PrimaryButton>
+                      </div>
+                    )}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {changes.length > 0 && (
+            <section aria-label="Change requests">
+              <h3 className="text-xs font-semibold text-slate-500 flex items-center gap-1.5"><UsersRound className="w-3.5 h-3.5" aria-hidden="true" /> {changes.some((c) => c.can_review) ? 'Change requests' : 'Your requests, waiting for Senior HR'} ({changes.length})</h3>
+              <ul className="mt-1.5 space-y-2">
+                {changes.slice(0, 5).map((c) => (
+                  <li key={c.id} className="rounded-lg ring-1 ring-slate-100 p-2.5">
+                    <p className="text-[13px] font-medium text-slate-900">{c.summary}</p>
+                    <p className="text-xs text-slate-500">“{c.reason}”{c.requested_by_name && !c.mine ? ` · from ${c.requested_by_name}` : ''}</p>
+                    {c.can_review && (
+                      <div className="mt-2 flex gap-2">
+                        <SecondaryButton size="sm" danger onClick={() => { setRemarks(''); setDecision({ kind: 'change', item: c, action: 'REJECTED' }); }}>Reject</SecondaryButton>
+                        <PrimaryButton size="sm" onClick={() => { setRemarks(''); setDecision({ kind: 'change', item: c, action: 'APPROVED' }); }}>Approve</PrimaryButton>
+                      </div>
+                    )}
                   </li>
                 ))}
               </ul>
@@ -160,7 +190,7 @@ const WaitingPanel = ({ waiting, onChanged }) => {
         </div>
       )}
       {decision && (
-        <Modal isOpen onClose={() => setDecision(null)} title={`${decision.action === 'APPROVED' ? 'Approve' : 'Reject'} leave for ${decision.leave.employee_name}`} maxWidth="max-w-md">
+        <Modal isOpen onClose={() => setDecision(null)} title={decision.kind === 'change' ? `${decision.action === 'APPROVED' ? 'Approve' : 'Reject'}: ${decision.item.summary}` : `${decision.action === 'APPROVED' ? 'Approve' : 'Reject'} leave for ${decision.item.employee_name}`} maxWidth="max-w-md">
           <form onSubmit={decide} className="space-y-4">
             <FormField label={decision.action === 'REJECTED' ? 'Reason (shared with them)' : 'Note (optional)'} id="hr_leave_note">
               <textarea id="hr_leave_note" rows={3} value={remarks} onChange={(e) => setRemarks(e.target.value)} className="enterprise-input w-full min-h-[80px]" />
