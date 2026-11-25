@@ -65,6 +65,13 @@ def get_my_dashboard_stats(
     current_employee: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db)
 ):
-    """Returns dashboard statistics (total, connected, pending, approved, rejected) for the current employee."""
+    """Returns dashboard statistics (total, connected, pending, approved, rejected) for the current employee,
+    plus the company's per-person account target so employees can see "x of 60 assigned"."""
+    from app.services.org_settings_service import OrgSettingsService
     acc_service = AccountService(db)
-    return acc_service.get_dashboard_counts(current_employee)
+    org = OrgSettingsService(db)
+    return {
+        **acc_service.get_dashboard_counts(current_employee),
+        "account_target_min": org.get("account_target_min"),
+        "account_target_max": org.get("account_target_max"),
+    }

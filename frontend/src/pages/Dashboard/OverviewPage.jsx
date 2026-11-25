@@ -12,7 +12,7 @@ import useResource from '../../hooks/useResource';
 import { layoutVariantFor } from '../../layouts/navConfig';
 import { overviewKindFor } from './dashboardModel';
 import { AccountsPanel, ConnectionPanel, Panel, PanelError, StatsRow, WorkloadPanel } from './OverviewPanels';
-import { LeavePanel, MyTasksPanel, TodayPanel, UpdatesPanel } from './WorkdayPanels';
+import WorkspaceOverview from './WorkspaceOverview';
 
 const RECENT_LIMIT = 6;
 
@@ -158,70 +158,10 @@ const TeamPanel = ({ team }) => {
   );
 };
 
-const TeamOverview = ({ isManager }) => {
-  const navigate = useNavigate();
-  const { employee } = useAuth();
-  const { stats, accounts, profile } = useCommonResources();
-  // Managers may read their own team snapshot (which also carries the company account target).
+// Employees and managers: "My workspace" (managers also get their team snapshot).
+const TeamWorkspace = ({ isManager }) => {
   const team = useResource(() => api.manager.getOverview().then((r) => r.data), [], { enabled: isManager });
-  const capacity = isManager
-    ? { ...team, data: team.data ? { min: team.data.account_target_min, max: team.data.account_target_max } : null }
-    : null;
-
-  // The workday: all personal endpoints (the server scopes them to the caller).
-  const shift = useResource(() => api.attendance.getSummary().then((r) => r.data));
-  const myTasks = useResource(() => api.tasks.list({ my_tasks_only: true }).then((r) => r.data || []));
-  const leave = useResource(() => api.attendance.getLeaveBalance().then((r) => r.data));
-  const updates = useResource(() => api.notifications.list().then((r) => r.data || []));
-
-  const first = (employee?.full_name || '').split(/\s+/)[0];
-
-  return (
-    <div className="space-y-6">
-      <PageHeader
-        title={first ? `${first}'s workspace` : 'My workspace'}
-        description={isManager
-          ? 'Your day, your team and what is waiting on you.'
-          : 'Your shift, your tasks, your leave and your Instagram accounts.'}
-        actions={
-          <div className="flex flex-wrap items-center gap-2.5">
-            <DatePill />
-            <SecondaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>Add account</SecondaryButton>
-          </div>
-        }
-      />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <MyTasksPanel resource={myTasks} className="lg:col-span-2 min-w-0" />
-        {/* On phones the shift panel comes first: clocking in is the first thing in the day */}
-        <div className="contents lg:block lg:space-y-6">
-          <TodayPanel resource={shift} className="order-first lg:order-none" />
-          <LeavePanel resource={leave} />
-        </div>
-      </div>
-
-      <StatsRow resource={stats} items={statItems('My accounts')} label="Your account totals" />
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-        <AccountsPanel
-          className="lg:col-span-2 min-w-0"
-          resource={accounts}
-          total={stats.data?.total}
-          title="Your accounts"
-          subtitle="Instagram accounts you registered or are assigned to"
-          emptyTitle="No accounts assigned to you yet."
-          emptyText="When an admin assigns you an Instagram account it will appear here. If you manage an account that isn't in Klarves yet, you can register it."
-          emptyAction={<SecondaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>Add an account</SecondaryButton>}
-        />
-        <div className="space-y-6 lg:col-start-3 lg:row-start-1">
-          {isManager && <TeamPanel team={team} />}
-          <UpdatesPanel resource={updates} />
-          <WorkloadPanel profile={profile} capacity={capacity} />
-          <ConnectionPanel resource={stats} subtitle="Your accounts only" />
-        </div>
-      </div>
-    </div>
-  );
+  return <WorkspaceOverview teamPanel={isManager ? <TeamPanel team={team} /> : null} />;
 };
 
 // ============================================================== entry
@@ -229,7 +169,7 @@ const TeamOverview = ({ isManager }) => {
 export const OverviewPage = () => {
   const { employee, isManager } = useAuth();
   const kind = overviewKindFor(layoutVariantFor(employee));
-  return kind === 'operations' ? <OperationsOverview /> : <TeamOverview isManager={isManager} />;
+  return kind === 'operations' ? <OperationsOverview /> : <TeamWorkspace isManager={isManager} />;
 };
 
 export default OverviewPage;

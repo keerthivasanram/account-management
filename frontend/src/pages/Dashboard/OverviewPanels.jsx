@@ -33,8 +33,8 @@ export const PanelError = ({ message, onRetry, compact = false }) => (
 
 const Skeleton = ({ className = '' }) => <div className={`animate-pulse rounded-md bg-slate-100 ${className}`} />;
 
-export const Panel = ({ title, subtitle, action, children, className = '', bodyClassName = 'p-5', headerBorder = false }) => (
-  <section className={`bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden ${className}`} aria-label={title}>
+export const Panel = ({ title, label, subtitle, action, children, className = '', bodyClassName = 'p-5', headerBorder = false }) => (
+  <section className={`bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden ${className}`} aria-label={label || (typeof title === 'string' ? title : undefined)}>
     {(title || action) && (
       <div className={`px-5 pt-4 ${headerBorder ? 'pb-3.5 border-b border-slate-100' : 'pb-0'} flex items-start justify-between gap-3`}>
         <div className="min-w-0">
