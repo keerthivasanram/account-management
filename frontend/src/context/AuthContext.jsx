@@ -70,6 +70,39 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Called on /auth/callback after Google (or any Supabase OAuth provider) redirects back.
+  // supabase-js reads the session from the URL; the backend then decides who this is.
+  const completeOAuthLogin = async () => {
+    setError(null);
+    setLoading(true);
+    try {
+      const session = await supabaseAuth.getSession();
+      const sessionToken = session?.access_token;
+      if (!sessionToken) {
+        throw new Error('Google sign-in did not complete. Please try again.');
+      }
+      localStorage.setItem('auth_token', sessionToken);
+      setToken(sessionToken);
+      try {
+        const res = await api.employees.getMyProfile();
+        setEmployee(res.data);
+        localStorage.setItem('auth_user', JSON.stringify(res.data));
+        return res.data;
+      } catch (profErr) {
+        localStorage.removeItem('auth_token');
+        setToken(null);
+        await supabaseAuth.signOut().catch(() => {});
+        throw profErr;
+      }
+    } catch (err) {
+      const msg = err.response?.data?.detail || err.message || 'Google sign-in failed';
+      setError(msg);
+      throw new Error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Development-only shortcut. The backend returns 404 outside development and
   // always uses the role stored in the database.
   const loginWithDev = async (email, fullName = '') => {
@@ -171,6 +204,7 @@ export const AuthProvider = ({ children }) => {
         loginWithSupabase,
         loginWithDev,
         loginWithMfa,
+        completeOAuthLogin,
         logout,
         refreshProfile: async () => {
           if (token) {

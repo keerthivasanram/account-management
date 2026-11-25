@@ -23,6 +23,7 @@ import AdminClientsCampaignsPage from './pages/Admin/AdminClientsCampaignsPage';
 import AdminAuditLogsPage from './pages/Admin/AdminAuditLogsPage';
 import AdminSecurityPage from './pages/Admin/AdminSecurityPage';
 import OAuthCallbackPage from './pages/OAuthCallback/OAuthCallbackPage';
+import AuthCallbackPage from './pages/Login/AuthCallbackPage';
 import ProfilePage from './pages/Profile/ProfilePage';
 import ManagerDashboardPage from './pages/Manager/ManagerDashboardPage';
 import SuperAdminConsolePage from './pages/SuperAdmin/SuperAdminConsolePage';
@@ -37,6 +38,7 @@ function App() {
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
+          <Route path="/auth/callback" element={<AuthCallbackPage />} />
 
           {/* Protected Employee Workspace */}
           <Route element={<AppLayout />}>
