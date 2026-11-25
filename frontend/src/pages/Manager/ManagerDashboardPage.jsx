@@ -12,7 +12,8 @@ import ErrorState from '../../components/ui/ErrorState';
 import EmptyState from '../../components/ui/EmptyState';
 import Modal from '../../components/Modal';
 import FormField from '../../components/ui/FormField';
-import { UsersRound, UserCheck, Plane, Inbox, AlertTriangle, CheckSquare } from 'lucide-react';
+import { UsersRound, UserCheck, Plane, Inbox, AlertTriangle, CheckSquare, Share2, Instagram, ArrowRightLeft } from 'lucide-react';
+import { formatSchedule } from '../Social/publishingModel';
 
 const TODAY_LABEL = {
   PRESENT: { text: 'At work', status: 'ACTIVE' },
@@ -27,10 +28,12 @@ const fmtDate = (d) => (d ? new Date(d).toLocaleDateString() : '—');
 export const ManagerDashboardPage = () => {
   const { employee } = useAuth();
   const [params, setParams] = useSearchParams();
-  const tab = params.get('tab') === 'approvals' ? 'approvals' : 'team';
+  const tab = ['approvals', 'accounts'].includes(params.get('tab')) ? params.get('tab') : 'team';
 
   const [overview, setOverview] = useState(null);
-  const [inbox, setInbox] = useState({ tasks: [], leaves: [] });
+  const [inbox, setInbox] = useState({ tasks: [], leaves: [], posts: [], accounts: [] });
+  const [teamAccounts, setTeamAccounts] = useState(null);
+  const [moving, setMoving] = useState(null); // account id being reassigned
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [feedback, setFeedback] = useState(null);
@@ -44,7 +47,7 @@ export const ManagerDashboardPage = () => {
     try {
       const [ov, ap] = await Promise.all([api.manager.getOverview(), api.manager.getApprovals()]);
       setOverview(ov.data);
-      setInbox(ap.data);
+      setInbox({ posts: [], accounts: [], ...ap.data });
     } catch (err) {
       setError(err?.response?.data?.detail || 'Unable to load your team.');
     } finally {
@@ -54,6 +57,31 @@ export const ManagerDashboardPage = () => {
 
   useEffect(() => { load(); }, []);
 
+  const loadAccounts = async () => {
+    try {
+      setTeamAccounts((await api.manager.teamAccounts()).data || []);
+    } catch (err) {
+      setFeedback({ ok: false, text: err?.response?.data?.detail || 'Team accounts could not be loaded.' });
+      setTeamAccounts([]);
+    }
+  };
+  useEffect(() => { if (tab === 'accounts' && teamAccounts === null) loadAccounts(); }, [tab]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const reassign = async (acc, toId) => {
+    if (!toId || toId === acc.assignee_id) return;
+    setMoving(acc.id);
+    try {
+      await api.manager.reassign(acc.id, toId);
+      const to = overview?.members.find((m) => m.id === toId)?.full_name || (toId === employee?.id ? 'you' : 'them');
+      setFeedback({ ok: true, text: `@${acc.username} is now assigned to ${to}. They were notified.` });
+      await Promise.all([loadAccounts(), load()]);
+    } catch (err) {
+      setFeedback({ ok: false, text: err?.response?.data?.detail || 'The account could not be moved.' });
+    } finally {
+      setMoving(null);
+    }
+  };
+
   const openDecision = (kind, item, action) => {
     setRemarks('');
     setDecision({ kind, item, action });
@@ -62,10 +90,15 @@ export const ManagerDashboardPage = () => {
   const submitDecision = async (e) => {
     e.preventDefault();
     const { kind, item, action } = decision;
-    if (kind === 'task' && action === 'changes' && !remarks.trim()) return;
+    const needsReason = action === 'changes' || (kind === 'account' && action === 'reject');
+    if (needsReason && !remarks.trim()) return;
     setBusy(true);
     try {
-      if (kind === 'leave') {
+      if (kind === 'post') {
+        await api.socialPosts.review(item.id, action === 'approve' ? { status: 'APPROVED' } : { status: 'REJECTED', remarks: remarks.trim() });
+      } else if (kind === 'account') {
+        await api.manager.reviewAccount(item.id, { approval_status: action === 'approve' ? 'approved' : 'rejected', remarks: remarks.trim() || undefined });
+      } else if (kind === 'leave') {
         await api.attendance.reviewLeave(item.id, { status: action === 'approve' ? 'APPROVED' : 'REJECTED', remarks: remarks || undefined });
       } else if (action === 'approve') {
         await api.tasks.approve(item.id, { remarks: remarks || undefined });
@@ -124,7 +157,8 @@ export const ManagerDashboardPage = () => {
     { header: 'Status', accessor: 'status', render: (m) => <StatusBadge status={m.status} /> },
   ], [overview]);
 
-  const pendingTotal = inbox.tasks.length + inbox.leaves.length;
+  const pendingTotal = inbox.tasks.length + inbox.leaves.length + inbox.posts.length + inbox.accounts.length;
+  const reasonRequired = (d) => d && (d.action === 'changes' || (d.kind === 'account' && d.action === 'reject'));
 
   return (
     <div className="space-y-6">
@@ -149,14 +183,14 @@ export const ManagerDashboardPage = () => {
             subtext={`${overview.not_checked_in} not checked in`} />
           <MetricCard label="On leave" value={overview.on_leave_today} icon={Plane} />
           <MetricCard label="Waiting on you" value={pendingTotal} icon={Inbox}
-            subtext={`${overview.pending_task_reviews} tasks · ${overview.pending_leave_requests} leave`} />
+            subtext={[[inbox.posts.length, 'post'], [inbox.accounts.length, 'account'], [inbox.tasks.length, 'task']].map(([n, w]) => `${n} ${w}${n === 1 ? '' : 's'}`).concat(`${inbox.leaves.length} leave`).join(' · ')} />
           <MetricCard label="Needs attention" value={overview.overdue_tasks + overview.workload_flags} icon={AlertTriangle}
             subtext={`${overview.overdue_tasks} overdue · ${overview.workload_flags} workload`} />
         </div>
       )}
 
       <div className="flex gap-1 border-b border-[#E5E7EB]">
-        {[['team', 'Team roster'], ['approvals', `Approvals (${pendingTotal})`]].map(([key, label]) => (
+        {[['team', 'Team roster'], ['approvals', `Approvals (${pendingTotal})`], ['accounts', 'Team accounts']].map(([key, label]) => (
           <button
             key={key}
             onClick={() => setParams(key === 'team' ? {} : { tab: key })}
@@ -173,12 +207,62 @@ export const ManagerDashboardPage = () => {
           data={overview?.members || []}
           loading={loading}
           emptyTitle="No team members yet"
-          emptyDescription="People appear here when an admin sets you as their manager or makes you head of their department."
+          emptyDescription="People appear here when an admin sets you as their team lead or makes you head of their department."
         />
       )}
 
       {tab === 'approvals' && !loading && (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+          <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft" aria-label="Posts awaiting approval">
+            <header className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2">
+              <Share2 className="w-4 h-4 text-[#64748B]" aria-hidden="true" />
+              <h2 className="text-sm font-semibold text-slate-900">Posts awaiting approval ({inbox.posts.length})</h2>
+            </header>
+            {inbox.posts.length === 0 ? (
+              <EmptyState title="No posts to review" description="Posts your team submits for approval land here." />
+            ) : (
+              <ul className="divide-y divide-[#E5E7EB]">
+                {inbox.posts.map((p) => (
+                  <li key={p.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">@{p.account_username} · {p.creator_name}</p>
+                      <p className="text-xs text-[#64748B] line-clamp-1">{formatSchedule(p.scheduled_at)} · “{p.caption}”</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <SecondaryButton size="sm" onClick={() => openDecision('post', p, 'changes')}>Send back</SecondaryButton>
+                      <PrimaryButton size="sm" onClick={() => openDecision('post', p, 'approve')}>Approve</PrimaryButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
+          <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft" aria-label="Account requests">
+            <header className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2">
+              <Instagram className="w-4 h-4 text-[#64748B]" aria-hidden="true" />
+              <h2 className="text-sm font-semibold text-slate-900">Account requests ({inbox.accounts.length})</h2>
+            </header>
+            {inbox.accounts.length === 0 ? (
+              <EmptyState title="No account requests" description="Instagram accounts your team adds wait here for approval." />
+            ) : (
+              <ul className="divide-y divide-[#E5E7EB]">
+                {inbox.accounts.map((a) => (
+                  <li key={a.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium text-slate-900 truncate">@{a.username}</p>
+                      <p className="text-xs text-[#64748B]">Added by {a.registered_by_name} · {(a.account_type || '').toLowerCase()}{a.niche ? ` · ${a.niche}` : ''} · {fmtDate(a.requested_at)}</p>
+                    </div>
+                    <div className="flex gap-2 shrink-0">
+                      <SecondaryButton size="sm" danger onClick={() => openDecision('account', a, 'reject')}>Reject</SecondaryButton>
+                      <PrimaryButton size="sm" onClick={() => openDecision('account', a, 'approve')}>Approve</PrimaryButton>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
+
           <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft">
             <header className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2">
               <CheckSquare className="w-4 h-4 text-[#64748B]" />
@@ -235,22 +319,68 @@ export const ManagerDashboardPage = () => {
         </div>
       )}
 
+      {tab === 'accounts' && (
+        <section className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft" aria-label="Team accounts">
+          <header className="px-4 py-3 border-b border-[#E5E7EB] flex items-center gap-2">
+            <ArrowRightLeft className="w-4 h-4 text-[#64748B]" aria-hidden="true" />
+            <h2 className="text-sm font-semibold text-slate-900">Team accounts{teamAccounts ? ` (${teamAccounts.length})` : ''}</h2>
+            <span className="text-xs text-[#64748B] ml-auto hidden sm:inline">Move an account to someone else on your team, for example while someone is on leave.</span>
+          </header>
+          {teamAccounts === null ? (
+            <div className="p-4 space-y-2" aria-busy="true"><div className="h-10 rounded bg-slate-100 animate-pulse" /><div className="h-10 rounded bg-slate-100 animate-pulse" /></div>
+          ) : teamAccounts.length === 0 ? (
+            <EmptyState title="No team accounts" description="Accounts assigned to you or your team appear here." />
+          ) : (
+            <ul className="divide-y divide-[#E5E7EB]">
+              {teamAccounts.map((a) => (
+                <li key={a.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-slate-900 truncate">@{a.username}</p>
+                    <p className="text-xs text-[#64748B]">Assigned to {a.assignee_id === employee?.id ? 'you' : a.assignee_name}</p>
+                  </div>
+                  <label className="flex items-center gap-2 shrink-0 text-xs text-[#64748B]">
+                    Move to
+                    <select
+                      aria-label={`Move @${a.username} to`}
+                      value=""
+                      disabled={moving === a.id}
+                      onChange={(e) => reassign(a, e.target.value)}
+                      className="enterprise-input h-8 text-xs cursor-pointer"
+                    >
+                      <option value="">{moving === a.id ? 'Moving…' : 'Choose a person'}</option>
+                      {a.assignee_id !== employee?.id && <option value={employee?.id}>Me ({employee?.full_name})</option>}
+                      {(overview?.members || []).filter((m) => m.id !== a.assignee_id && m.status === 'ACTIVE').map((m) => (
+                        <option key={m.id} value={m.id}>{m.full_name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      )}
+
       {decision && (
         <Modal isOpen onClose={() => setDecision(null)} title={
           decision.kind === 'leave'
             ? `${decision.action === 'approve' ? 'Approve' : 'Reject'} leave for ${decision.item.employee_name}`
-            : `${decision.action === 'approve' ? 'Approve' : 'Request changes on'} “${decision.item.title}”`
+            : decision.kind === 'post'
+              ? `${decision.action === 'approve' ? 'Approve' : 'Send back'} post for @${decision.item.account_username}`
+              : decision.kind === 'account'
+                ? `${decision.action === 'approve' ? 'Approve' : 'Reject'} @${decision.item.username}`
+                : `${decision.action === 'approve' ? 'Approve' : 'Request changes on'} “${decision.item.title}”`
         }>
           <form onSubmit={submitDecision} className="space-y-4">
             <FormField
-              label={decision.action === 'changes' ? 'What needs to change?' : 'Remarks (optional)'}
-              required={decision.action === 'changes'}
+              label={decision.action === 'changes' ? 'What needs to change?' : reasonRequired(decision) ? 'Why is it rejected?' : 'Remarks (optional)'}
+              required={reasonRequired(decision)}
             >
               <textarea
                 className="enterprise-input w-full min-h-[90px]"
                 value={remarks}
                 maxLength={1000}
-                required={decision.action === 'changes'}
+                required={reasonRequired(decision)}
                 onChange={(e) => setRemarks(e.target.value)}
               />
             </FormField>

@@ -117,7 +117,7 @@ export const AttendancePage = () => {
     try {
       setActionLoading(true);
       await api.attendance.requestLeave(leaveForm);
-      setFeedback({ type: 'success', text: 'Leave request submitted for manager review.' });
+      setFeedback({ type: 'success', text: 'Leave request sent to your team lead for review.' });
       setIsLeaveModalOpen(false);
       setLeaveForm({ leave_type: 'CASUAL', start_date: '', end_date: '', reason: '' });
       fetchData();

@@ -30,7 +30,7 @@ def list_posts(
     (managers), or everything (admins)."""
     statuses = [s.strip().upper() for s in status_filter.split(",") if s.strip()] if status_filter else None
     svc = PostService(db)
-    return svc.to_responses(svc.list(current_employee, statuses, account_id, mine_only=mine))
+    return svc.to_responses(svc.list(current_employee, statuses, account_id, mine_only=mine), current_employee)
 
 
 @router.post("/media")
@@ -57,7 +57,7 @@ def create_post(
 @router.get("/{post_id}", response_model=ScheduledPostResponse)
 def get_post(post_id: uuid.UUID, current_employee: Employee = Depends(get_current_employee), db: Session = Depends(get_db)):
     svc = PostService(db)
-    return svc.to_response(svc.get(current_employee, post_id))
+    return svc.to_response(svc.get(current_employee, post_id), current_employee)
 
 
 @router.patch("/{post_id}", response_model=ScheduledPostResponse)
@@ -83,12 +83,12 @@ def delete_post(post_id: uuid.UUID, current_employee: Employee = Depends(get_cur
 def review_post(
     post_id: uuid.UUID,
     payload: PostReviewRequest,
-    reviewer: Employee = Depends(require_permission(Perm.ACCOUNTS_MANAGE_ALL)),
+    reviewer: Employee = Depends(get_current_employee),
     db: Session = Depends(get_db),
 ):
-    """Admin: approve (schedules it) or send back with a reason. Never your own post."""
+    """Admins, or the author's team lead: approve (schedules it) or send back with a reason. Never your own post."""
     svc = PostService(db)
-    return svc.to_response(svc.review(reviewer, post_id, payload.status, payload.remarks))
+    return svc.to_response(svc.review(reviewer, post_id, payload.status, payload.remarks), reviewer)
 
 
 @router.post("/{post_id}/publish-now", response_model=ScheduledPostResponse)

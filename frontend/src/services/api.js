@@ -62,6 +62,10 @@ export const api = {
   manager: {
     getOverview: () => apiClient.get('/manager/overview'),
     getApprovals: () => apiClient.get('/manager/approvals'),
+    // Team lead: team account requests and reassignment within the team
+    reviewAccount: (id, data) => apiClient.patch(`/manager/accounts/${id}/approval`, data),
+    teamAccounts: () => apiClient.get('/manager/accounts'),
+    reassign: (id, employeeId) => apiClient.post(`/manager/accounts/${id}/assign`, { employee_id: employeeId }),
   },
 
   // Super admin console

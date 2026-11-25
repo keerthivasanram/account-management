@@ -89,14 +89,14 @@ def create_conversation(
     allowed_ids = {e.id for e in contacts_for(db, current_employee)}
     if payload.type == "DIRECT":
         if payload.member_ids and payload.member_ids[0] not in allowed_ids:
-            raise HTTPException(status_code=403, detail="You can message your manager, your department and your team.")
+            raise HTTPException(status_code=403, detail="You can message your team lead, your department and your team.")
     else:
         if payload.type not in ("PROJECT", "DEPARTMENT", "ANNOUNCEMENT"):
             raise HTTPException(status_code=400, detail="Group type must be PROJECT, DEPARTMENT or ANNOUNCEMENT.")
         if payload.type == "ANNOUNCEMENT" and not has_permission(current_employee, Perm.ADMIN_PORTAL):
             raise HTTPException(status_code=403, detail="Only administrators can create announcement channels.")
         if not has_permission(current_employee, Perm.MANAGER_PORTAL):
-            raise HTTPException(status_code=403, detail="Ask your manager to create a group.")
+            raise HTTPException(status_code=403, detail="Ask your team lead to create a group.")
         outside = [m for m in payload.member_ids if m not in allowed_ids and m != current_employee.id]
         if outside:
             raise HTTPException(status_code=403, detail="Groups can only include people you work with.")

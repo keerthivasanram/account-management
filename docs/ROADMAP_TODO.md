@@ -51,3 +51,15 @@ One Windows PC, one Mac, two employees on different teams:
 2. A manager from the other team is denied.
 3. When the employee stops sharing, the stream ends immediately.
 4. Every saved screenshot has a traceable viewer and a deletion date.
+
+## D. Employee workspace follow-ups (added 2026-11-25)
+
+Phases 1–5 of the employee workspace are built: navigation, Add / Import accounts, Publishing, My workspace dashboard, Mail, Help & support, Team messages, kudos / anniversaries / content idea.
+
+| # | Item | Owner | Status |
+|---|---|---|---|
+| D1 | **End-to-end test, one employee:** add an account → admin approves → approval arrives in Mail → create and schedule a post → admin approves → post shows on the dashboard. Run against a disposable test database, not production | Code | ☐ |
+| D2 | **Real Instagram publishing:** call Meta's content-publishing API (create media container → publish; poll status for Reels), mark FAILED with Meta's reason. Today "Publish now" only marks a post as published | Code | ☐ |
+| D3 | **Scheduled publishing job:** publish approved posts at their time (Vercel Cron or a worker hitting a protected endpoint), with retries and a FAILED state | Code | ☐ |
+| D4 | **Meta app review** for `instagram_content_publish` (and business verification) before D2/D3 can post to real accounts | You | ☐ |
+| D5 | Set `SUPABASE_SERVICE_ROLE_KEY` on the production backend (Vercel) so media and screenshot uploads work there; local `.env` is done | You | ☐ |

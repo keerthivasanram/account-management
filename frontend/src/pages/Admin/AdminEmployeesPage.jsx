@@ -255,12 +255,12 @@ export const AdminEmployeesPage = () => {
     },
     { header: 'Role', accessor: 'role', render: (row) => <StatusBadge status={row.role} text={row.role_label} /> },
     {
-      header: 'Department / Manager',
+      header: 'Department / Team lead',
       accessor: 'department_name',
       render: (row) => (
         <div className="text-xs">
           <p className="text-slate-900">{row.department_name || '—'}</p>
-          <p className="text-[#64748B]">{row.manager_name ? `Reports to ${row.manager_name}` : 'No manager'}</p>
+          <p className="text-[#64748B]">{row.manager_name ? `Reports to ${row.manager_name}` : 'No team lead'}</p>
         </div>
       ),
     },
@@ -380,7 +380,7 @@ export const AdminEmployeesPage = () => {
                 ['Role', selected.role_label],
                 ['Status', selected.status],
                 ['Department', selected.department_name || '—'],
-                ['Manager', selected.manager_name || '—'],
+                ['Team lead', selected.manager_name || '—'],
                 ['Direct reports', selected.direct_reports_count],
                 ['Job title', selected.job_title || '—'],
                 ['Joined', selected.joined_on || (selected.created_at && new Date(selected.created_at).toLocaleDateString()) || '—'],

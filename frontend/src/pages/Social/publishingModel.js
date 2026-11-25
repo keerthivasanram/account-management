@@ -29,7 +29,8 @@ export const MEDIA_TYPES = [
 
 export const CAPTION_MAX = 2200;
 
-/** What the viewer can do with a post. reviewer = has accounts:manage_all. */
+/** What the viewer can do with a post. The server says per post whether you may review it
+ *  (admins: anyone's; team leads: their team's; never your own); `reviewer` is a fallback. */
 export const postActionsFor = (post, me, reviewer = false) => {
   const mine = Boolean(me && post.created_by === me.id);
   const editable = post.status === 'DRAFT' || post.status === 'REJECTED';
@@ -37,7 +38,7 @@ export const postActionsFor = (post, me, reviewer = false) => {
     edit: mine && editable,
     submit: mine && editable,
     remove: mine && (editable || post.status === 'PENDING_APPROVAL'),
-    review: reviewer && !mine && post.status === 'PENDING_APPROVAL',
+    review: !mine && post.status === 'PENDING_APPROVAL' && (post.can_review ?? reviewer),
   };
 };
 

@@ -48,7 +48,7 @@ export const ProfilePage = () => {
     ['Employee ID', employee.employee_code],
     ['Role', employee.role_label || employee.role],
     ['Department', employee.department_name || '—'],
-    ['Manager', employee.manager_name || '—'],
+    ['Team lead', employee.manager_name || '—'],
     ['Job title', employee.job_title || '—'],
     ['Joined', employee.joined_on || '—'],
   ];
@@ -57,7 +57,7 @@ export const ProfilePage = () => {
     <div className="space-y-6 max-w-4xl">
       <PageHeader
         title="My Profile"
-        description="Your details as HR sees them. Role, department and manager are managed by administrators."
+        description="Your details as HR sees them. Role, department and team lead are set by administrators."
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'My Profile' }]}
       />
 

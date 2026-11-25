@@ -257,6 +257,7 @@ const EMPTY_TEXT = {
 export const ScheduledPostsPage = () => {
   const { employee, can } = useAuth();
   const reviewer = can('accounts:manage_all');
+  const teamLead = can('manager:portal');
   const [params, setParams] = useSearchParams();
   const tab = tabById(params.get('tab')).id;
 
@@ -321,7 +322,7 @@ export const ScheduledPostsPage = () => {
     <div className="space-y-6">
       <PageHeader
         title="Publishing"
-        description={reviewer ? 'Create posts, review what your people submit, and follow what’s scheduled.' : 'Create posts for your accounts, send them for approval, and follow them until they’re live.'}
+        description={reviewer || teamLead ? 'Create posts, review what your team submits, and follow what’s scheduled.' : 'Create posts for your accounts, send them for approval, and follow them until they’re live.'}
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'Publishing' }]}
         actions={<PrimaryButton size="sm" icon={Plus} onClick={() => setComposer({})}>Create post</PrimaryButton>}
       />

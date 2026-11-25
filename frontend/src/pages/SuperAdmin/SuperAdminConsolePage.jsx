@@ -173,7 +173,7 @@ const AdminsTab = ({ flash }) => {
                         onChange={(e) => setRole(a.id, e.target.value, a.full_name)}>
                         <option value="super_admin">Super Admin</option>
                         <option value="admin">Admin</option>
-                        <option value="manager">Demote to Manager</option>
+                        <option value="manager">Demote to Team Lead</option>
                         <option value="employee">Demote to Employee</option>
                       </select>
                     )}

@@ -44,4 +44,5 @@ class ScheduledPostResponse(BaseModel):
     published_at: Optional[datetime] = None
     review_note: Optional[str] = None    # reviewer's reason when REJECTED
     error_message: Optional[str] = None  # publishing failure reason when FAILED
+    can_review: bool = False             # the viewer may approve / send back this post
     created_at: datetime

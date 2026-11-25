@@ -79,14 +79,14 @@ export const ARTICLES = [
     id: 'missing-page', category: 'ACCESS', title: 'I can’t see a page or an account',
     body: [
       'You only see accounts assigned to you, and pages your role allows.',
-      'If you should have access, ask your manager or an administrator to assign the account or update your role.',
+      'If you should have access, ask your team lead or an administrator to assign the account or update your role.',
     ],
   },
   {
     id: 'leave', category: 'OTHER', title: 'Clock in, clock out and request leave',
     body: [
       'Clock in from Quick links on your dashboard, or from Attendance.',
-      'To take time off, choose Request leave. Your manager reviews it and you get a Mail with the decision.',
+      'To take time off, choose Request leave. Your team lead reviews it and you get a Mail with the decision.',
     ],
     to: '/attendance', action: 'Attendance',
   },

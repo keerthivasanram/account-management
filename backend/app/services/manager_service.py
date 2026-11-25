@@ -84,6 +84,8 @@ class ManagerService:
             "overdue_tasks": sum(overdue.values()),
             "pending_task_reviews": len(approvals["tasks"]),
             "pending_leave_requests": len(approvals["leaves"]),
+            "pending_post_reviews": len(approvals["posts"]),
+            "pending_account_requests": len(approvals["accounts"]),
             "workload_flags": sum(1 for m in members if m["workload"] in ("OVER", "UNDER")),
             "account_target_min": lo,
             "account_target_max": hi,
@@ -106,7 +108,24 @@ class ManagerService:
         tasks = [t for t in q.order_by(Task.updated_at.asc()).limit(200).all() if can_review_task(reviewer, t)]
 
         leaves = LeaveService(self.db).pending_for_reviewer(reviewer)
+
+        # Team posts awaiting approval and team account requests (team leads decide these too)
+        from app.models.models import ScheduledPost
+        from app.services.team_accounts_service import TeamAccountsService
+        team = [e.id for e in self.employees.list_team(reviewer)]
+        posts = []
+        if team:
+            posts = (self.db.query(ScheduledPost).options(joinedload(ScheduledPost.account), joinedload(ScheduledPost.creator))
+                     .filter(ScheduledPost.status == "PENDING_APPROVAL", ScheduledPost.created_by.in_(team))
+                     .order_by(ScheduledPost.scheduled_at.asc()).limit(200).all())
+        account_requests = TeamAccountsService(self.db).requests(reviewer)
         return {
+            "posts": [{
+                "id": str(p.id), "account_username": p.account.username if p.account else None,
+                "creator_name": p.creator.full_name if p.creator else None, "caption": p.caption,
+                "media_type": p.media_type, "scheduled_at": p.scheduled_at,
+            } for p in posts],
+            "accounts": account_requests,
             "tasks": [{
                 "id": str(t.id), "title": t.title, "priority": t.priority, "due_date": t.due_date,
                 "project_name": t.project.name if t.project else None,

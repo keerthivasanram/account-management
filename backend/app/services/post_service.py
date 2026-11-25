@@ -19,7 +19,7 @@ from fastapi import HTTPException
 from sqlalchemy import or_
 from sqlalchemy.orm import Session, joinedload
 
-from app.core.permissions import Perm, has_permission
+from app.core.permissions import Perm, has_permission, is_manager_of
 from app.models.models import AccountAssignment, Employee, InstagramAccount, ScheduledPost
 from app.repositories.audit_repo import AuditRepository
 from app.repositories.employee_repo import EmployeeRepository
@@ -94,7 +94,7 @@ class PostService:
 
     # ------------------------------------------------------------------ responses
 
-    def to_responses(self, posts: Iterable[ScheduledPost]) -> List[ScheduledPostResponse]:
+    def to_responses(self, posts: Iterable[ScheduledPost], viewer: Optional[Employee] = None) -> List[ScheduledPostResponse]:
         posts = list(posts)
         previews = self.storage.signed_urls(p.media_url for p in posts)
         out = []
@@ -112,11 +112,12 @@ class PostService:
                 review_note=p.error_message if p.status == "REJECTED" else None,
                 error_message=p.error_message if p.status == "FAILED" else None,
                 created_at=p.created_at,
+                can_review=bool(viewer) and p.status == "PENDING_APPROVAL" and self.can_review(viewer, p),
             ))
         return out
 
-    def to_response(self, post: ScheduledPost) -> ScheduledPostResponse:
-        return self.to_responses([post])[0]
+    def to_response(self, post: ScheduledPost, viewer: Optional[Employee] = None) -> ScheduledPostResponse:
+        return self.to_responses([post], viewer)[0]
 
     # ------------------------------------------------------------------ queries
 
@@ -204,12 +205,22 @@ class PostService:
 
     # ------------------------------------------------------------------ review
 
+    def can_review(self, reviewer: Employee, post: ScheduledPost) -> bool:
+        """Admins review any post; team leads review posts by people on their team. Never your own."""
+        if post.created_by == reviewer.id:
+            return False
+        if has_permission(reviewer, Perm.ACCOUNTS_MANAGE_ALL):
+            return True
+        return has_permission(reviewer, Perm.MANAGER_PORTAL) and is_manager_of(reviewer, post.creator)
+
     def review(self, reviewer: Employee, post_id: uuid.UUID, decision: str, remarks: Optional[str]) -> ScheduledPost:
         if decision not in ("APPROVED", "REJECTED"):
             raise HTTPException(status_code=400, detail="Review status must be APPROVED or REJECTED.")
         post = self._get_visible(reviewer, post_id)
         if post.created_by == reviewer.id:
             raise HTTPException(status_code=403, detail="Someone else has to approve your own post.")
+        if not self.can_review(reviewer, post):
+            raise HTTPException(status_code=403, detail="Only an admin or the author's team lead can review this post.")
         if post.status != "PENDING_APPROVAL":
             raise HTTPException(status_code=409, detail="Only posts awaiting approval can be reviewed.")
         note = (remarks or "").strip()

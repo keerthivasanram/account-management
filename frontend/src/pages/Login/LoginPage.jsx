@@ -11,7 +11,7 @@ const DEV_LOGIN_ENABLED = import.meta.env.DEV || import.meta.env.VITE_ENABLE_DEV
 const DEV_ACCOUNTS = [
   { email: 'superadmin@company.internal', name: 'Founder (Super Admin)', label: 'Super Admin' },
   { email: 'admin@company.internal', name: 'System Administrator', label: 'Admin (HR / Ops)' },
-  { email: 'manager1@company.internal', name: 'Priya Nair', label: 'Manager (Marketing)' },
+  { email: 'manager1@company.internal', name: 'Priya Nair', label: 'Team Lead (Marketing)' },
   { email: 'employee1@company.internal', name: 'Sarah Jenkins', label: 'Employee' },
 ];
 

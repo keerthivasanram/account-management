@@ -41,7 +41,7 @@ export const GiveKudos = ({ onClose, onSent, defaultTo = '' }) => {
       <form onSubmit={send} className="space-y-4">
         {error && <p role="alert" className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2.5">{error}</p>}
         {people && people.length === 0 && !error ? (
-          <p className="text-sm text-slate-600">There’s nobody to thank yet. You can give kudos to your manager, department and team.</p>
+          <p className="text-sm text-slate-600">There’s nobody to thank yet. You can give kudos to your team lead, department and team.</p>
         ) : (
           <>
             <FormField label="Who" required id="k_to">

@@ -120,7 +120,8 @@ const TeamPanel = ({ team }) => {
     return <Panel title="Your team"><PanelError message={team.error} onRetry={team.reload} /></Panel>;
   }
   const t = team.data;
-  const waiting = t ? (t.pending_task_reviews || 0) + (t.pending_leave_requests || 0) : 0;
+  const waiting = t ? (t.pending_task_reviews || 0) + (t.pending_leave_requests || 0)
+    + (t.pending_post_reviews || 0) + (t.pending_account_requests || 0) : 0;
   return (
     <Panel
       title="Your team"

@@ -38,6 +38,10 @@ describe('post actions', () => {
     expect(postActionsFor(post({ status: 'PENDING_APPROVAL' }), me, true).review).toBe(false);
     expect(postActionsFor(post({ status: 'PENDING_APPROVAL', created_by: 'x' }), me, false).review).toBe(false);
   });
+  it('the server decides who reviews (team leads: their team only)', () => {
+    expect(postActionsFor(post({ status: 'PENDING_APPROVAL', created_by: 'x', can_review: true }), me, false).review).toBe(true);
+    expect(postActionsFor(post({ status: 'PENDING_APPROVAL', created_by: 'x', can_review: false }), me, true).review).toBe(false);
+  });
   it('non-authors get no edit controls', () => {
     expect(postActionsFor(post({ created_by: 'x' }), me)).toEqual({ edit: false, submit: false, remove: false, review: false });
   });

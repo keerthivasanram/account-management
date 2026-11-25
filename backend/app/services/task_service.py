@@ -131,7 +131,7 @@ class TaskService:
     def create_task(self, data: TaskCreate, creator: Employee) -> TaskResponse:
         can_all = has_permission(creator, Perm.TASKS_REVIEW_ALL)
         if not can_all and not has_permission(creator, Perm.TASKS_REVIEW_TEAM):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only managers and administrators can create tasks.")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Only team leads and administrators can create tasks.")
 
         project = self.project_repo.get_by_id(data.project_id)
         if not project:

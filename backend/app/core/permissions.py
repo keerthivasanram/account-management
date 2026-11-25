@@ -36,7 +36,7 @@ ROLE_RANK: Dict[str, int] = {
 ROLE_LABELS: Dict[str, str] = {
     Role.SUPER_ADMIN.value: "Super Admin",
     Role.ADMIN.value: "Admin",
-    Role.MANAGER.value: "Manager",
+    Role.MANAGER.value: "Team Lead",
     Role.EMPLOYEE.value: "Employee",
 }
 

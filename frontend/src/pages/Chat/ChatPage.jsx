@@ -74,12 +74,12 @@ const NewConversation = ({ canGroup, isAdmin, onClose, onCreated }) => {
         )}
         {error && <p role="alert" className="text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-lg p-2.5">{error}</p>}
         {!contacts ? <div className="h-10 rounded bg-slate-100 animate-pulse" /> : contacts.length === 0 ? (
-          <p className="text-sm text-slate-600">There’s nobody you can message yet. You can message your manager and your department once an administrator sets them on your profile.</p>
+          <p className="text-sm text-slate-600">There’s nobody you can message yet. You can message your team lead and your department once an administrator sets them on your profile.</p>
         ) : mode === 'DIRECT' ? (
           <FormField label="Message" required id="c_to">
             <select id="c_to" value={target} onChange={(e) => setTarget(e.target.value)} required className="enterprise-input w-full cursor-pointer">
               <option value="">Choose a person</option>
-              {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}{c.is_manager ? ' (your manager)' : ''}{c.job_title ? ` · ${c.job_title}` : ''}</option>)}
+              {contacts.map((c) => <option key={c.id} value={c.id}>{c.full_name}{c.is_manager ? ' (your team lead)' : ''}{c.job_title ? ` · ${c.job_title}` : ''}</option>)}
             </select>
           </FormField>
         ) : (
@@ -227,7 +227,7 @@ export const ChatPage = () => {
     <div className="space-y-5">
       <PageHeader
         title="Team messages"
-        description="Talk with your manager, your team and project groups. Share links to accounts, tasks and posts."
+        description="Talk with your team lead, your team and project groups. Share links to accounts, tasks and posts."
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'Team messages' }]}
         actions={
           <div className="flex flex-wrap gap-2">
@@ -248,7 +248,7 @@ export const ChatPage = () => {
               <div className="p-6 text-center my-auto">
                 <MessageSquare className="w-8 h-8 text-slate-300 mx-auto" aria-hidden="true" />
                 <p className="mt-2 text-sm font-medium text-slate-900">No conversations yet</p>
-                <p className="text-xs text-slate-500 mt-1">Start one with your manager or a teammate.</p>
+                <p className="text-xs text-slate-500 mt-1">Start one with your team lead or a teammate.</p>
                 <SecondaryButton size="sm" icon={Plus} className="mt-3" onClick={() => setCreating(true)}>New conversation</SecondaryButton>
               </div>
             ) : (
