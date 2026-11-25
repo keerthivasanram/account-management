@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
-// Landing page for Supabase OAuth (Google). Not the Meta/Instagram callback (/oauth/callback).
+// Return page for Supabase sign-in (Google or email link). Not the Meta/Instagram callback (/oauth/callback).
 const readProviderError = () => {
   const params = new URLSearchParams(window.location.search);
   const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
@@ -39,7 +39,7 @@ export const AuthCallbackPage = () => {
               <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
               <span>{error}</span>
             </div>
-            <Link to="/login" className="inline-block text-sm font-medium text-brand-700 hover:underline">
+            <Link to="/" className="inline-block text-sm font-medium text-brand-700 hover:underline">
               Back to sign in
             </Link>
           </>

@@ -5,7 +5,6 @@ import AppLayout from './layouts/AppLayout';
 import AdminRoute from './layouts/AdminRoute';
 
 // Pages
-import LandingPage from './pages/Landing/LandingPage';
 import LoginPage from './pages/Login/LoginPage';
 import OverviewPage from './pages/Dashboard/OverviewPage';
 import RegisterAccountPage from './pages/RegisterAccount/RegisterAccountPage';
@@ -35,8 +34,8 @@ function App() {
       <BrowserRouter>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<LandingPage />} />
-          <Route path="/login" element={<LoginPage />} />
+          <Route path="/" element={<LoginPage />} />
+          <Route path="/login" element={<Navigate to="/" replace />} />
           <Route path="/oauth/callback" element={<OAuthCallbackPage />} />
           <Route path="/auth/callback" element={<AuthCallbackPage />} />
 

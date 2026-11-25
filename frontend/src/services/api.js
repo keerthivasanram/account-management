@@ -27,10 +27,11 @@ apiClient.interceptors.response.use(
   (error) => {
     if (error.response && error.response.status === 401) {
       // Optional: clear token if invalid
-      if (window.location.pathname !== '/login') {
+      // Expired/invalid session: drop it and return to the sign-in page (the front page)
+      if (window.location.pathname !== '/') {
         localStorage.removeItem('auth_token');
         localStorage.removeItem('auth_user');
-        window.location.href = '/login';
+        window.location.href = '/';
       }
     }
     return Promise.reject(error);

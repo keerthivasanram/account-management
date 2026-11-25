@@ -12,7 +12,7 @@ export const RequirePermission = ({ perm, title = 'Access Restricted', message }
   const { employee, can, loading } = useAuth();
 
   if (loading) return null;
-  if (!employee) return <Navigate to="/login" replace />;
+  if (!employee) return <Navigate to="/" replace />;
 
   if (!can(perm)) {
     return (
