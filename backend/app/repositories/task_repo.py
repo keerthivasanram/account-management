@@ -30,7 +30,9 @@ class TaskRepository:
         priority: Optional[str] = None,
         search: Optional[str] = None,
         skip: int = 0,
-        limit: int = 100
+        limit: int = 100,
+        visible_assignee_ids: Optional[List[UUID]] = None,
+        visible_creator_id: Optional[UUID] = None,
     ) -> List[Task]:
         query = (
             self.db.query(Task)
@@ -42,6 +44,12 @@ class TaskRepository:
             )
         )
 
+        # Visibility scope (None = unrestricted): tasks assigned to someone in the list, or created by the viewer
+        if visible_assignee_ids is not None:
+            cond = Task.assigned_to.in_(visible_assignee_ids or [None])
+            if visible_creator_id is not None:
+                cond = cond | (Task.created_by == visible_creator_id)
+            query = query.filter(cond)
         if project_id:
             query = query.filter(Task.project_id == project_id)
         if assigned_to:

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/ui/PageHeader';
@@ -29,11 +30,13 @@ export const AttendancePage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('attendance'); // 'attendance' | 'leaves'
+  // Deep links from the dashboard: ?tab=leaves opens the leave tab, ?request=leave opens the request form.
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(searchParams.get('tab') === 'leaves' ? 'leaves' : 'attendance'); // 'attendance' | 'leaves'
   const [feedback, setFeedback] = useState(null);
 
   // Leave Request Modal State
-  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
+  const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(searchParams.get('request') === 'leave');
   const [leaveForm, setLeaveForm] = useState({
     leave_type: 'CASUAL',
     start_date: '',
@@ -74,7 +77,7 @@ export const AttendancePage = () => {
       setFeedback({ type: 'success', text: 'Clocked in successfully for today\'s shift.' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to check in.');
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Clock-in failed. Try again.' });
     } finally {
       setActionLoading(false);
     }
@@ -87,7 +90,7 @@ export const AttendancePage = () => {
       setFeedback({ type: 'success', text: 'Clocked out successfully.' });
       fetchData();
     } catch (err) {
-      alert(err.response?.data?.detail || 'Failed to check out.');
+      setFeedback({ type: 'error', text: err.response?.data?.detail || 'Clock-out failed. Try again.' });
     } finally {
       setActionLoading(false);
     }
@@ -107,7 +110,7 @@ export const AttendancePage = () => {
   const handleRequestLeave = async (e) => {
     e.preventDefault();
     if (!leaveForm.start_date || !leaveForm.end_date || !leaveForm.reason.trim()) {
-      alert('Please fill out all required fields.');
+      setFeedback({ type: 'error', text: 'Choose a leave type, both dates and a reason.' });
       return;
     }
 
@@ -234,8 +237,8 @@ export const AttendancePage = () => {
     <div className="space-y-6">
       {/* 1. Page Header */}
       <PageHeader
-        title="Attendance & Leave Management"
-        description="Shift tracking, biometric verification logs, and self-service time-off approvals."
+        title="Attendance & leave"
+        description="Clock in and out, see your hours, and request time off."
         breadcrumbs={[
           { label: 'Overview', to: '/dashboard' },
           { label: 'Workspace' },
@@ -251,7 +254,7 @@ export const AttendancePage = () => {
                 disabled={actionLoading}
                 icon={LogOut}
               >
-                Clock Out
+                Clock out
               </SecondaryButton>
             ) : (
               <PrimaryButton
@@ -260,7 +263,7 @@ export const AttendancePage = () => {
                 disabled={actionLoading}
                 icon={LogIn}
               >
-                Clock In (Shift Start)
+                Clock in
               </PrimaryButton>
             )}
             <SecondaryButton
@@ -268,7 +271,7 @@ export const AttendancePage = () => {
               onClick={() => setIsLeaveModalOpen(true)}
               icon={Plus}
             >
-              Request Leave
+              Request leave
             </SecondaryButton>
           </div>
         }

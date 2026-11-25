@@ -17,6 +17,7 @@ if TEST_SQLALCHEMY_DATABASE_URL.startswith("postgres"):
     TEST_SQLALCHEMY_DATABASE_URL = TEST_SQLALCHEMY_DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1).replace("postgres://", "postgresql+psycopg2://", 1)
 os.environ["DATABASE_URL"] = TEST_SQLALCHEMY_DATABASE_URL
 os.environ["DEV_AUTH_BYPASS"] = "true"
+os.environ["AUTO_PROVISION_EMPLOYEES"] = "true"  # tests assume the default; a local .env may switch it off
 os.environ["TOKEN_ENCRYPTION_KEY"] = "v7yv-Xz6V_wZJ39gQ5t0Q8_1Jz9r-3m3e91uGz_lZpY="
 
 import pytest
