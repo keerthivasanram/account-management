@@ -6,7 +6,7 @@ import React, { useState } from 'react';
  * per-column hover tooltip with a hit target taller than the mark, selective labels
  * (max + last only), and a table view for screen readers / exact values.
  */
-const ACCENT = '#15803D'; // brand-600, validated: contrast >= 3:1 on white
+const ACCENT = '#028266'; // brand-600 (mockup active edge), validated: contrast >= 3:1 on white
 const GRID = '#E5E7EB';
 const INK_MUTED = '#64748B';
 const INK = '#0F172A';

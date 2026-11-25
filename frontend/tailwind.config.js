@@ -11,25 +11,28 @@ export default {
         mono: ['JetBrains Mono', 'monospace'],
       },
       colors: {
-        // Brand green (original KLARVES primary #166534 = brand-700)
+        // Brand teal-green, sampled from the locked Operations mockup (active nav = #06725D)
         brand: {
-          50: '#F0FDF4',
-          100: '#DCFCE7',
-          200: '#BBF7D0',
-          300: '#86EFAC',
-          400: '#4ADE80',
-          500: '#16A34A',
-          600: '#15803D',
-          700: '#166534',
-          800: '#14532D',
-          900: '#0F3D22',
+          50: '#EDFAF6',
+          100: '#D2F3E9',
+          200: '#A6E6D3',
+          300: '#6FD2B7',
+          400: '#2FB596',
+          500: '#0A967A',
+          600: '#028266',
+          700: '#06725D',
+          800: '#085D4C',
+          900: '#084B3E',
         },
-        // Sidebar shell: deep green
+        // Sidebar shell: deep teal-navy from the mockup
         shell: {
-          900: '#0B2F27',
-          800: '#0F3A30',
-          700: '#15483B',
-          600: '#1C5A4A',
+          900: '#0A252E',
+          800: '#0F2F39',
+          700: '#163B46',
+          600: '#2D424B',
+          muted: '#8B9CA3',
+          text: '#E7E9EB',
+          accent: '#05B7B4',
         },
         // Design System Palette
         app: {

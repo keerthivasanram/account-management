@@ -51,7 +51,7 @@ export const OAuthCallbackPage = () => {
   }, [searchParams, navigate]);
 
   return (
-    <div className="min-h-screen bg-[#F4F6FA] flex flex-col items-center justify-center p-6 text-center select-none">
+    <div className="min-h-screen bg-[#F5F6F9] flex flex-col items-center justify-center p-6 text-center select-none">
       <div className="w-full max-w-md bg-white border border-[#E6EAF0] rounded-xl shadow-soft p-8 space-y-6">
         <div className="w-12 h-12 rounded-lg bg-brand-50 border border-brand-200 flex items-center justify-center text-brand-700 mx-auto">
           <Instagram className="w-6 h-6" />

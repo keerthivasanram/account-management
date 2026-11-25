@@ -6,7 +6,7 @@ import React, { useState } from 'react';
  * (emphasis, not identity). Bars <= 12px, 4px rounded data-end, value at the tip in text ink,
  * hover tooltip on the whole row, table view built in.
  */
-const ACCENT = '#15803D'; // brand-600, validated: contrast >= 3:1 on white
+const ACCENT = '#028266'; // brand-600 (mockup active edge), validated: contrast >= 3:1 on white
 const RECEDE = '#94A3B8';
 
 export const BarList = ({ rows, labelKey = 'label', valueKey = 'count', highlight, unit = '', emptyText = 'No data yet' }) => {

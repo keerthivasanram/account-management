@@ -52,14 +52,14 @@ export const AppSidebar = ({ onClose, className = '' }) => {
         to={item.to}
         onClick={onClose}
         aria-current={active ? 'page' : undefined}
-        className={`group relative h-9 pl-3 pr-2.5 flex items-center justify-between rounded-lg text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300 ${
+        className={`group relative h-9 pl-3 pr-2.5 flex items-center justify-between rounded-lg text-[13px] transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent ${
           active
-            ? 'bg-brand-600 text-white font-medium shadow-sm shadow-black/20'
-            : 'text-emerald-50/75 hover:text-white hover:bg-white/[0.06]'
+            ? 'bg-brand-700 text-white font-medium ring-1 ring-inset ring-brand-600 shadow-sm shadow-black/30'
+            : 'text-shell-text/80 hover:text-white hover:bg-white/[0.06]'
         }`}
       >
         <div className="flex items-center gap-3 min-w-0">
-          <Icon aria-hidden="true" className={`w-[17px] h-[17px] shrink-0 ${active ? 'text-white' : 'text-emerald-100/60 group-hover:text-white'}`} />
+          <Icon aria-hidden="true" className={`w-[17px] h-[17px] shrink-0 ${active ? 'text-white' : 'text-shell-muted group-hover:text-white'}`} />
           <span className="truncate">{item.label}</span>
         </div>
         {item.badge > 0 && (
@@ -81,11 +81,11 @@ export const AppSidebar = ({ onClose, className = '' }) => {
     >
       {/* Brand */}
       <div className="h-16 px-5 flex items-center justify-between gap-2.5 border-b border-white/10">
-        <NavLink to="/dashboard" onClick={onClose} className="flex items-center gap-2.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300">
+        <NavLink to="/dashboard" onClick={onClose} className="flex items-center gap-2.5 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent">
           <img src={logoMark} alt="" className="h-7 w-7 object-contain" />
           <span className="leading-none">
             <span className="block text-white font-bold tracking-[0.08em] text-[15px]">KLARVES</span>
-            <span className="block text-[9.5px] text-emerald-100/60 mt-1">Employee Platform</span>
+            <span className="block text-[9.5px] text-shell-muted mt-1">Employee Platform</span>
           </span>
         </NavLink>
         {onClose ? (
@@ -93,12 +93,12 @@ export const AppSidebar = ({ onClose, className = '' }) => {
             type="button"
             onClick={onClose}
             aria-label="Close navigation"
-            className="p-2 -mr-2 text-emerald-100/70 hover:text-white hover:bg-white/10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+            className="p-2 -mr-2 text-shell-muted hover:text-white hover:bg-white/10 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent"
           >
             <X className="w-5 h-5" />
           </button>
         ) : (
-          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-white/10 text-emerald-50/80">v3.2</span>
+          <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-shell-600 text-shell-text/80">v3.2</span>
         )}
       </div>
 
@@ -115,7 +115,7 @@ export const AppSidebar = ({ onClose, className = '' }) => {
                 onClick={() => toggleSection(sec.id)}
                 aria-expanded={open}
                 aria-controls={listId}
-                className="w-full px-3 mb-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-emerald-100/50 uppercase flex items-center justify-between hover:text-white transition-colors cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+                className="w-full px-3 mb-1.5 text-[10.5px] font-semibold tracking-[0.12em] text-shell-muted uppercase flex items-center justify-between hover:text-white transition-colors cursor-pointer rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent"
               >
                 <span>{sec.label}</span>
                 <ChevronDown aria-hidden="true" className={`w-3.5 h-3.5 transition-transform duration-200 ${open ? '' : '-rotate-90'}`} />
@@ -129,13 +129,13 @@ export const AppSidebar = ({ onClose, className = '' }) => {
       {/* User */}
       <div className="p-3 border-t border-white/10">
         <div className="p-2.5 rounded-xl bg-white/[0.06] flex items-center justify-between gap-2">
-          <NavLink to="/profile" onClick={onClose} className="flex items-center gap-2.5 min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300">
-            <div className="w-9 h-9 rounded-full bg-brand-600 ring-2 ring-white/10 flex items-center justify-center text-white font-semibold text-xs shrink-0">
+          <NavLink to="/profile" onClick={onClose} className="flex items-center gap-2.5 min-w-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent">
+            <div className="w-9 h-9 rounded-full bg-brand-700 ring-2 ring-white/10 flex items-center justify-center text-white font-semibold text-xs shrink-0">
               {initials}
             </div>
             <div className="min-w-0">
               <p className="text-[13px] font-medium text-white truncate">{employee?.full_name || 'Signed in'}</p>
-              <p className="text-[11px] text-emerald-100/60 truncate">{employee?.role_label || employee?.employee_code || ''}</p>
+              <p className="text-[11px] text-shell-muted truncate">{employee?.role_label || employee?.employee_code || ''}</p>
             </div>
           </NavLink>
           <button
@@ -143,7 +143,7 @@ export const AppSidebar = ({ onClose, className = '' }) => {
             onClick={logout}
             aria-label="Sign out"
             title="Sign out"
-            className="p-2 text-emerald-100/60 hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-300"
+            className="p-2 text-shell-muted hover:text-white hover:bg-white/10 rounded-lg transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-shell-accent"
           >
             <LogOut className="w-4 h-4" />
           </button>

@@ -34,7 +34,7 @@ const TITLES = [
 
 /** Shown when /employees/me fails: no navigation is rendered until permissions are known. */
 const ProfileErrorScreen = ({ message, onRetry, onSignOut }) => (
-  <div className="min-h-screen bg-[#F4F6FA] flex items-center justify-center p-4">
+  <div className="min-h-screen bg-[#F5F6F9] flex items-center justify-center p-4">
     <div role="alert" className="w-full max-w-md bg-white border border-[#E6EAF0] rounded-2xl shadow-soft p-7 text-center">
       <div className="w-12 h-12 mx-auto rounded-xl bg-amber-50 ring-1 ring-amber-100 text-amber-700 flex items-center justify-center mb-4">
         <AlertTriangle className="w-6 h-6" aria-hidden="true" />
@@ -74,7 +74,7 @@ export const AppLayout = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#F4F6FA] flex items-center justify-center">
+      <div className="min-h-screen bg-[#F5F6F9] flex items-center justify-center">
         <LoadingSpinner text="Authenticating session..." size="lg" />
       </div>
     );
@@ -106,7 +106,7 @@ export const AppLayout = () => {
   if (variant === 'operations') {
     return (
       <SecurityShield>
-        <div className="flex min-h-screen bg-[#F4F6FA] text-slate-900 relative">
+        <div className="flex min-h-screen bg-[#F5F6F9] text-slate-900 relative">
           <SecurityWatermark />
           {/* Desktop sidebar */}
           <Sidebar className="hidden lg:flex h-screen sticky top-0" />
