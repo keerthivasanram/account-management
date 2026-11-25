@@ -275,6 +275,7 @@ class Notification(Base):
     type = Column(String(50), nullable=False, default="INFO")  # TASK_ASSIGNED, TASK_REVIEW_REQUESTED, TASK_APPROVED, CHANGES_REQUESTED, SECURITY_ALERT
     link_url = Column(String(255), nullable=True)
     is_read = Column(Boolean, nullable=False, default=False)
+    archived_at = Column(DateTime(timezone=True), nullable=True, index=True)  # Mail: archived items leave the inbox
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
 
     recipient = relationship("Employee", back_populates="notifications")
@@ -483,3 +484,41 @@ class OrgSetting(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
 
     updater = relationship("Employee")
+
+
+# ==============================================================================
+# MODULE 11 — HELP & SUPPORT
+# ==============================================================================
+
+class SupportTicket(Base):
+    __tablename__ = "support_tickets"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    reference = Column(String(20), unique=True, nullable=False, index=True)  # e.g. SUP-0042, shown to people
+    created_by = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    category = Column(String(30), nullable=False, default="OTHER")  # ACCOUNT_SETUP, PUBLISHING, ACCESS, OTHER
+    subject = Column(String(200), nullable=False)
+    description = Column(Text, nullable=False)
+    attachment_ref = Column(Text, nullable=True)  # private storage reference (screenshot)
+    status = Column(String(20), nullable=False, default="OPEN", index=True)  # OPEN, IN_PROGRESS, RESOLVED, CLOSED
+    assigned_to = Column(GUID, ForeignKey("employees.id", ondelete="SET NULL"), nullable=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    creator = relationship("Employee", foreign_keys=[created_by])
+    assignee = relationship("Employee", foreign_keys=[assigned_to])
+    messages = relationship("SupportTicketMessage", back_populates="ticket", cascade="all, delete-orphan",
+                            order_by="SupportTicketMessage.created_at")
+
+
+class SupportTicketMessage(Base):
+    __tablename__ = "support_ticket_messages"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    ticket_id = Column(GUID, ForeignKey("support_tickets.id", ondelete="CASCADE"), nullable=False, index=True)
+    author_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False)
+    body = Column(Text, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
+    ticket = relationship("SupportTicket", back_populates="messages")
+    author = relationship("Employee")

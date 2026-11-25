@@ -164,6 +164,22 @@ class AdminService:
             metadata={"remarks": req.remarks, "new_status": status_val}
         )
 
+        # Mail: the person who registered the account hears the decision
+        if status_val in ("approved", "rejected"):
+            from app.repositories.notification_repo import NotificationRepository
+            handle = f"@{account.username}"
+            if status_val == "approved":
+                msg = f"{admin.full_name} approved {handle}. You can connect it and start publishing."
+            else:
+                msg = f"{admin.full_name} rejected {handle}." + (f" Reason: {req.remarks}" if req.remarks else "")
+            NotificationRepository(self.db).create(
+                recipient_id=account.registered_by,
+                title=f"Account {status_val}: {handle}",
+                message=msg,
+                type=f"ACCOUNT_{status_val.upper()}",
+                link_url="/accounts",
+            )
+
         return {
             "success": True,
             "account_id": account.id,
@@ -198,6 +214,15 @@ class AdminService:
                 "assigned_to_code": target_emp.employee_code,
                 "assigned_to_name": target_emp.full_name
             }
+        )
+
+        from app.repositories.notification_repo import NotificationRepository
+        NotificationRepository(self.db).create(
+            recipient_id=target_emp.id,
+            title=f"Account assigned: @{account.username}",
+            message=f"{admin.full_name} assigned @{account.username} to you.",
+            type="ACCOUNT_ASSIGNED",
+            link_url="/accounts",
         )
 
         return {

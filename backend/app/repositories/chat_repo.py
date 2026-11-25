@@ -1,3 +1,4 @@
+from sqlalchemy import func
 import uuid
 import re
 from typing import List, Optional, Tuple
@@ -59,7 +60,7 @@ class ChatRepository:
             .join(ConversationMember)
             .filter(ConversationMember.employee_id.in_([emp1_id, emp2_id]))
             .group_by(Conversation.id)
-            .having(self.db.func.count(ConversationMember.id) == 2)
+            .having(func.count(ConversationMember.id) == 2)
             .first()
         )
         if existing:

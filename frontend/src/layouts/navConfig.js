@@ -101,7 +101,7 @@ const SECTIONS = [
     label: 'Workspace',
     links: [
       { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-      { to: '/chat', label: 'Company Chat', teamLabel: 'Team messages', icon: MessageSquare },
+      { to: '/chat', label: 'Team messages', icon: MessageSquare },
       { to: '/documents', label: 'Documents', icon: FolderLock },
       { to: '/attendance', label: 'Attendance', icon: Clock },
       { to: '/departments', label: 'Departments', icon: Building2 },

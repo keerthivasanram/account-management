@@ -208,11 +208,13 @@ const MailPreview = ({ notes }) => {
   const list = notes.data ? notes.data.slice(0, 3) : null;
   const unread = notes.data ? notes.data.filter((n) => !n.is_read).length : 0;
   return (
-    <Panel label="Mail" title={<span className="flex items-center gap-2"><Mail className="w-4 h-4 text-slate-500" aria-hidden="true" /> Mail {unread > 0 && <span className="text-xs font-medium text-rose-700">{unread} unread</span>}</span>}>
+    <Panel label="Mail" title={<span className="flex items-center gap-2"><Mail className="w-4 h-4 text-slate-500" aria-hidden="true" /> Mail {unread > 0 && <span className="text-xs font-medium text-rose-700">{unread} unread</span>}</span>}
+      action={<Link to="/mail" className={linkClass}>View all</Link>}>
       {!list ? <Skeleton className="h-12 mt-2" /> : list.length === 0 ? <p className="mt-1 text-sm text-slate-500">No mail yet.</p> : (
         <ul className="mt-1 divide-y divide-slate-100">
           {list.map((n) => (
-            <li key={n.id} className="py-2.5 flex gap-2.5">
+            <li key={n.id}>
+              <Link to={`/mail?id=${n.id}`} className="py-2.5 flex gap-2.5 rounded-lg hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500">
               <span className={`mt-1.5 w-1.5 h-1.5 rounded-full shrink-0 ${n.is_read ? 'bg-transparent' : 'bg-brand-600'}`} aria-hidden="true" />
               <span className="min-w-0 flex-1">
                 <span className="flex justify-between gap-2">
@@ -221,6 +223,7 @@ const MailPreview = ({ notes }) => {
                 </span>
                 <span className="block text-xs text-slate-500 line-clamp-2">{n.message}</span>
               </span>
+              </Link>
             </li>
           ))}
         </ul>

@@ -9,7 +9,9 @@ class NotificationRepository:
         self.db = db
 
     def list_for_employee(self, employee_id: UUID, unread_only: bool = False, limit: int = 50) -> List[Notification]:
-        query = self.db.query(Notification).filter(Notification.recipient_id == employee_id)
+        # Archived mail leaves the bell / dashboard too; it stays findable under Mail > Archived.
+        query = self.db.query(Notification).filter(Notification.recipient_id == employee_id,
+                                                   Notification.archived_at.is_(None))
         if unread_only:
             query = query.filter(Notification.is_read == False)
         return query.order_by(Notification.created_at.desc()).limit(limit).all()

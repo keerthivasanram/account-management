@@ -128,6 +128,7 @@ export const api = {
   // Company-Managed Internal Messaging
   chat: {
     listConversations: () => apiClient.get('/chat/conversations'),
+    contacts: () => apiClient.get('/chat/contacts'),
     createConversation: (data) => apiClient.post('/chat/conversations', data),
     getMessages: (conversationId) => apiClient.get(`/chat/conversations/${conversationId}/messages`),
     sendMessage: (conversationId, content) => apiClient.post(`/chat/conversations/${conversationId}/messages`, { content }),
@@ -172,6 +173,30 @@ export const api = {
   },
 
   // In-App Notifications
+  // Mail: your own inbox (approvals, assignments, notices, support replies)
+  mail: {
+    list: (params) => apiClient.get('/mail', { params }),
+    unreadCount: () => apiClient.get('/mail/unread-count'),
+    update: (id, data) => apiClient.patch(`/mail/${id}`, data),
+    readAll: () => apiClient.post('/mail/read-all'),
+    sendNotice: (data) => apiClient.post('/mail/notices', data),
+    sentNotices: () => apiClient.get('/mail/notices/sent'),
+  },
+
+  // Help & support tickets
+  support: {
+    list: (params) => apiClient.get('/support/tickets', { params }),
+    get: (id) => apiClient.get(`/support/tickets/${id}`),
+    create: (data) => apiClient.post('/support/tickets', data),
+    reply: (id, body) => apiClient.post(`/support/tickets/${id}/messages`, { body }),
+    update: (id, data) => apiClient.patch(`/support/tickets/${id}`, data),
+    uploadAttachment: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/support/attachments', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
+  },
+
   notifications: {
     list: (params) => apiClient.get('/notifications', { params }),
     markRead: (id) => apiClient.patch(`/notifications/${id}/read`),

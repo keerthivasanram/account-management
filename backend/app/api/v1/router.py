@@ -13,6 +13,8 @@ from app.api.v1.attendance import router as attendance_router
 from app.api.v1.documents import router as documents_router
 from app.api.v1.social_posts import router as social_posts_router
 from app.api.v1.notifications import router as notifications_router
+from app.api.v1.mail import router as mail_router
+from app.api.v1.support import router as support_router
 from app.api.v1.security import router as security_router
 from app.api.v1.manager import router as manager_router
 from app.api.v1.super_admin import router as super_admin_router
@@ -30,6 +32,8 @@ api_v1_router.include_router(attendance_router)
 api_v1_router.include_router(documents_router)
 api_v1_router.include_router(social_posts_router)
 api_v1_router.include_router(notifications_router)
+api_v1_router.include_router(mail_router)
+api_v1_router.include_router(support_router)
 api_v1_router.include_router(security_router)
 api_v1_router.include_router(accounts_router)
 api_v1_router.include_router(integrations_router)

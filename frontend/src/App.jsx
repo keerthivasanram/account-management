@@ -9,6 +9,8 @@ import LoginPage from './pages/Login/LoginPage';
 import OverviewPage from './pages/Dashboard/OverviewPage';
 import RegisterAccountPage from './pages/RegisterAccount/RegisterAccountPage';
 import ImportAccountsPage from './pages/Accounts/ImportAccountsPage';
+import MailPage from './pages/Mail/MailPage';
+import HelpPage from './pages/Help/HelpPage';
 import AccountsListPage from './pages/Accounts/AccountsListPage';
 import TasksPage from './pages/Tasks/TasksPage';
 import DepartmentsPage from './pages/Departments/DepartmentsPage';
@@ -44,6 +46,8 @@ function App() {
           <Route element={<AppLayout />}>
             <Route path="/dashboard" element={<OverviewPage />} />
             <Route path="/chat" element={<ChatPage />} />
+            <Route path="/mail" element={<MailPage />} />
+            <Route path="/help" element={<HelpPage />} />
             <Route path="/attendance" element={<AttendancePage />} />
             <Route path="/documents" element={<DocumentsPage />} />
             <Route path="/social/posts" element={<ScheduledPostsPage />} />
