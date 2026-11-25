@@ -18,7 +18,6 @@ Owner: **You** means a deployment/account/legal action only you can take. **Code
 | A7 | Branch `feat/rbac-and-management-dashboards` pushed; open the PR and let CI run | You | ◐ |
 | A8 | Supabase Data API lockdown applied: RLS on all 27 tables, `anon`/`authenticated` revoked (2026-11-25). Re-run `supabase/02_lock_down_data_api.sql` after adding tables | Code | ☑ |
 | A9 | Supabase → Authentication → URL Configuration: set Site URL to the app's address (local `http://localhost:5173`) so confirmation/reset links land on the app | You | ☐ |
-| A10 | Rotate the database password and the founder login password (both were shared in chat) | You | ☐ |
 
 ## B. Security features (from the monitoring plan)
 
