@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   AlertTriangle, CalendarCheck, CalendarClock, CalendarPlus, ChevronRight, Clock, FolderLock, ImagePlus,
-  Layers, ListChecks, LogIn, LogOut, Mail, MessageSquare, Plus, Upload, User, UserPlus,
+  Layers, Lightbulb, ListChecks, LogIn, LogOut, Mail, MessageSquare, PartyPopper, Plus, Upload, User, UserPlus,
 } from 'lucide-react';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -15,6 +15,8 @@ import { shiftView } from './dashboardModel';
 import { attentionItems, capacityLine, todaysWork, upcomingPosts, workspaceSummary } from './workspaceModel';
 import { statusLabel } from '../Tasks/tasksModel';
 import { STATUS_TEXT, formatSchedule, isVideo } from '../Social/publishingModel';
+import GiveKudos from '../../components/community/GiveKudos';
+import { celebrationText, kudosLine } from '../../components/community/communityModel';
 
 const linkClass = 'text-xs font-medium text-brand-700 hover:underline shrink-0 rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand-500';
 const Skeleton = ({ className = '' }) => <div className={`animate-pulse rounded-md bg-slate-100 ${className}`} aria-hidden="true" />;
@@ -308,6 +310,66 @@ const QuickLinks = ({ shift }) => {
   );
 };
 
+// ---------------------------------------------------------------- idea of the day + team corner
+
+const IdeaCard = ({ community }) => {
+  const navigate = useNavigate();
+  const idea = community.data?.idea;
+  if (community.error || (community.data && !idea)) return null; // optional extra; never blocks the page
+  return (
+    <section aria-label="Content idea of the day" className="rounded-xl border border-brand-200 bg-brand-50 p-5 flex flex-col sm:flex-row sm:items-center gap-4">
+      <span className="w-11 h-11 rounded-xl bg-white text-brand-700 flex items-center justify-center shrink-0 ring-1 ring-brand-100">
+        <Lightbulb className="w-5 h-5" aria-hidden="true" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="text-xs font-semibold uppercase tracking-wide text-brand-700">Content idea of the day</p>
+        {idea ? <p className="mt-1 text-sm text-slate-800">{idea}</p> : <Skeleton className="h-5 mt-1" />}
+      </div>
+      <SecondaryButton size="sm" icon={Plus} onClick={() => navigate('/social/posts')} className="shrink-0">Create a post</SecondaryButton>
+    </section>
+  );
+};
+
+const TeamCorner = ({ community }) => {
+  const [giving, setGiving] = useState(false);
+  const [sent, setSent] = useState(null);
+  const d = community.data;
+  if (community.error || (d && !d.community_enabled)) return null;
+  const kudos = d?.kudos || [];
+  const cel = d?.celebrations || [];
+  return (
+    <Panel label="Team corner" title={<span className="flex items-center gap-2"><PartyPopper className="w-4 h-4 text-slate-500" aria-hidden="true" /> Team corner</span>}
+      action={<button type="button" onClick={() => setGiving(true)} className={linkClass}>Give kudos</button>}>
+      {!d ? <Skeleton className="h-12 mt-2" /> : (
+        <>
+          {sent && <p role="status" className="mt-1 text-xs text-[#15803D]">{sent}</p>}
+          {cel.length > 0 && (
+            <ul className="mt-2 space-y-1.5" aria-label="Work anniversaries">
+              {cel.slice(0, 3).map((c) => (
+                <li key={c.employee_id} className="text-[13px] text-slate-700 flex gap-2"><span aria-hidden="true">🎂</span>{celebrationText(c)}</li>
+              ))}
+            </ul>
+          )}
+          <h3 className="mt-3 text-xs font-semibold text-slate-500">This week’s kudos</h3>
+          {kudos.length === 0 ? (
+            <p className="mt-1 text-sm text-slate-500">No kudos yet this week. Thank someone who helped you.</p>
+          ) : (
+            <ul className="mt-1.5 space-y-2.5">
+              {kudos.slice(0, 4).map((k) => (
+                <li key={k.id} className="text-[13px]">
+                  <span className="block text-xs text-slate-500">{kudosLine(k)}</span>
+                  <span className="block text-slate-800">“{k.message}”</span>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+      {giving && <GiveKudos onClose={() => setGiving(false)} onSent={(t) => { setGiving(false); setSent(t); community.reload(); }} />}
+    </Panel>
+  );
+};
+
 // ---------------------------------------------------------------- page
 
 export const WorkspaceOverview = ({ teamPanel = null }) => {
@@ -321,6 +383,7 @@ export const WorkspaceOverview = ({ teamPanel = null }) => {
   const notes = useResource(() => api.notifications.list().then((r) => r.data || []));
   const convos = useResource(() => api.chat.listConversations().then((r) => r.data || []));
   const shift = useResource(() => api.attendance.getSummary().then((r) => r.data));
+  const community = useResource(() => api.community.today().then((r) => r.data));
 
   const attention = attentionItems(accounts.data || [], posts.data || [], employee);
   const assigned = employee?.assigned_accounts_count ?? (accounts.data || []).length;
@@ -350,6 +413,7 @@ export const WorkspaceOverview = ({ teamPanel = null }) => {
         <div className="lg:col-span-2 space-y-6 min-w-0">
           <TodaysWork tasks={tasks} />
           <UpcomingPosts posts={posts} />
+          <IdeaCard community={community} />
           {teamPanel}
         </div>
         <div className="space-y-6 min-w-0">
@@ -363,6 +427,7 @@ export const WorkspaceOverview = ({ teamPanel = null }) => {
           />
           <MailPreview notes={notes} />
           <MessagesPreview convos={convos} meId={employee?.id} />
+          <TeamCorner community={community} />
           <QuickLinks shift={shift} />
         </div>
       </div>

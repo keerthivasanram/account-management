@@ -183,6 +183,12 @@ export const api = {
     sentNotices: () => apiClient.get('/mail/notices/sent'),
   },
 
+  // Community: idea of the day, kudos, anniversaries
+  community: {
+    today: () => apiClient.get('/community/today'),
+    giveKudos: (data) => apiClient.post('/community/kudos', data),
+  },
+
   // Help & support tickets
   support: {
     list: (params) => apiClient.get('/support/tickets', { params }),

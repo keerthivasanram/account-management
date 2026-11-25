@@ -188,6 +188,8 @@ const AdminsTab = ({ flash }) => {
   );
 };
 
+const NEWLINE = String.fromCharCode(10);
+
 /* ------------------------------------------------------------------ Settings */
 const SettingsTab = ({ flash }) => {
   const [items, setItems] = useState(null);
@@ -226,6 +228,18 @@ const SettingsTab = ({ flash }) => {
     }
     if (typeof s.default === 'number') {
       return <input type="number" className="enterprise-input w-40" value={v} onChange={(e) => setDraft({ ...draft, [s.key]: e.target.value === '' ? '' : Number(e.target.value) })} />;
+    }
+    if (Array.isArray(s.default)) {
+      // List settings (e.g. content ideas): one item per line
+      const text = Array.isArray(v) ? v.join(NEWLINE) : v;
+      return (
+        <div>
+          <textarea rows={8} className="w-full text-sm text-slate-900 p-2.5 border border-[#E5E7EB] rounded-lg focus:outline-none focus:border-brand-700 focus:ring-1 focus:ring-brand-700"
+            aria-label={s.key.replace(/_/g, ' ')} value={text}
+            onChange={(e) => setDraft({ ...draft, [s.key]: e.target.value.split(NEWLINE) })} />
+          <p className="text-xs text-[#64748B] mt-1">{(Array.isArray(v) ? v : []).filter((x) => x.trim()).length} items · one per line</p>
+        </div>
+      );
     }
     if (typeof s.default === 'object') {
       return (

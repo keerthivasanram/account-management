@@ -23,6 +23,7 @@ CATEGORIES: Dict[str, set] = {
     "notices": {"NOTICE"},
     "security": {"SECURITY_ALERT", "TOKEN_EXPIRED", "TOKEN_EXPIRING"},
     "support": {"SUPPORT_REPLY", "SUPPORT_STATUS"},
+    "kudos": {"KUDOS"},
 }
 KNOWN = set().union(*CATEGORIES.values())
 

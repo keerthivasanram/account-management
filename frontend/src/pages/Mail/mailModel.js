@@ -5,6 +5,7 @@ export const CATEGORIES = [
   { id: 'notices', label: 'Company notices' },
   { id: 'support', label: 'Support' },
   { id: 'security', label: 'Security' },
+  { id: 'kudos', label: 'Kudos' },
   { id: 'other', label: 'Other' },
 ];
 

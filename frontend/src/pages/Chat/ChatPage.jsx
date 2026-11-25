@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Hash, Link2, MessageSquare, Plus, Send, Users, X } from 'lucide-react';
+import { ArrowLeft, Hash, Link2, MessageSquare, PartyPopper, Plus, Send, Users, X } from 'lucide-react';
+import GiveKudos from '../../components/community/GiveKudos';
 import { api } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import PageHeader from '../../components/ui/PageHeader';
@@ -170,6 +171,8 @@ export const ChatPage = () => {
   const [sending, setSending] = useState(false);
   const [creating, setCreating] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [kudos, setKudos] = useState(false);
+  const [notice, setNotice] = useState(null);
   const endRef = useRef(null);
   const inputRef = useRef(null);
 
@@ -226,8 +229,14 @@ export const ChatPage = () => {
         title="Team messages"
         description="Talk with your manager, your team and project groups. Share links to accounts, tasks and posts."
         breadcrumbs={[{ label: 'Overview', to: '/dashboard' }, { label: 'Team messages' }]}
-        actions={<PrimaryButton size="sm" icon={Plus} onClick={() => setCreating(true)}>New conversation</PrimaryButton>}
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <SecondaryButton size="sm" icon={PartyPopper} onClick={() => setKudos(true)}>Give kudos</SecondaryButton>
+            <PrimaryButton size="sm" icon={Plus} onClick={() => setCreating(true)}>New conversation</PrimaryButton>
+          </div>
+        }
       />
+      {notice && <p role="status" className="text-sm text-[#15803D]">{notice}</p>}
 
       {error ? <ErrorState message={error} onRetry={loadConvos} /> : (
         <div className="bg-white border border-[#E6EAF0] rounded-xl shadow-soft overflow-hidden h-[calc(100vh-15rem)] min-h-[480px] md:grid md:grid-cols-[300px_1fr]">
@@ -321,6 +330,7 @@ export const ChatPage = () => {
         <NewConversation canGroup={can('manager:portal')} isAdmin={can('admin:portal')} onClose={() => setCreating(false)}
           onCreated={(c) => { setCreating(false); loadConvos().then(() => setActiveId(c.id)); }} />
       )}
+      {kudos && <GiveKudos onClose={() => setKudos(false)} onSent={(t) => { setKudos(false); setNotice(t); }} />}
       {sharing && (
         <SharePicker onClose={() => setSharing(false)} onPick={(snippet) => {
           setSharing(false);

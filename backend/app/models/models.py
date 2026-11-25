@@ -522,3 +522,20 @@ class SupportTicketMessage(Base):
 
     ticket = relationship("SupportTicket", back_populates="messages")
     author = relationship("Employee")
+
+
+# ==============================================================================
+# MODULE 12 — COMMUNITY (kudos)
+# ==============================================================================
+
+class Kudos(Base):
+    __tablename__ = "kudos"
+
+    id = Column(GUID, primary_key=True, default=uuid.uuid4)
+    from_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    to_id = Column(GUID, ForeignKey("employees.id", ondelete="CASCADE"), nullable=False, index=True)
+    message = Column(String(280), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False, index=True)
+
+    sender = relationship("Employee", foreign_keys=[from_id])
+    recipient = relationship("Employee", foreign_keys=[to_id])

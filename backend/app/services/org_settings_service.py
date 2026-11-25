@@ -24,6 +24,19 @@ DEFAULTS: Dict[str, Any] = {
     "token_expiry_warning_days": 7,
     "alert_reassignments_per_hour": 10,
     "alert_copies_per_10_minutes": 30,
+    "community_features": True,
+    "content_ideas": [
+        "Show the process: a behind-the-scenes Reel of how the product is made or packed.",
+        "Answer the most common customer question in a 3-slide carousel.",
+        "Before and after: one photo of the problem, one of the result.",
+        "Feature a customer: repost a review with their permission and a thank-you.",
+        "A 15-second tip your audience can use today, with the tip in the first line of the caption.",
+        "Meet the team: introduce one person behind the brand.",
+        "This or that: a two-option Story poll about the product.",
+        "Myth vs fact about the niche, as a carousel.",
+        "Show the product in use in an everyday setting, no studio.",
+        "Count down to the next launch or offer with a Story sticker.",
+    ],
 }
 
 DESCRIPTIONS: Dict[str, str] = {
@@ -36,6 +49,8 @@ DESCRIPTIONS: Dict[str, str] = {
     "token_expiry_warning_days": "Warn this many days before a Meta access token expires.",
     "alert_reassignments_per_hour": "Alert founders when one person reassigns more Instagram accounts than this within an hour.",
     "alert_copies_per_10_minutes": "Alert when one employee copies more protected fields than this within 10 minutes.",
+    "community_features": "Show kudos and work anniversaries in the employee workspace.",
+    "content_ideas": "Content idea of the day: one is shown on the dashboard each day, in order. One idea per line.",
 }
 
 
@@ -72,6 +87,17 @@ def _leave(x):
     return {**DEFAULTS["leave_allowance_days"], **out}
 
 
+def _ideas(x):
+    if not isinstance(x, list):
+        raise ValueError("must be a list of ideas")
+    out = [i.strip() for i in x if isinstance(i, str) and i.strip()]
+    if not 1 <= len(out) <= 200:
+        raise ValueError("needs between 1 and 200 ideas")
+    if any(len(i) > 280 for i in out):
+        raise ValueError("each idea must be 280 characters or fewer")
+    return out
+
+
 VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "company_name": _str(120),
     "account_target_min": _int_range(0, 1000),
@@ -82,6 +108,8 @@ VALIDATORS: Dict[str, Callable[[Any], Any]] = {
     "token_expiry_warning_days": _int_range(1, 60),
     "alert_reassignments_per_hour": _int_range(1, 10000),
     "alert_copies_per_10_minutes": _int_range(1, 10000),
+    "community_features": _bool,
+    "content_ideas": _ideas,
 }
 
 
