@@ -9,6 +9,7 @@ import SecurityWatermark from '../components/SecurityWatermark';
 import SecurityShield from '../components/SecurityShield';
 import useDisclosure from '../hooks/useDisclosure';
 import { useApplyTheme } from '../hooks/useTheme';
+import { BLOCKED_PATH, isMobileDevice } from '../utils/device';
 import { layoutVariantFor, teamNavFor, isNavLinkActive } from './navConfig';
 
 const TITLES = [
@@ -73,9 +74,18 @@ export const AppLayout = () => {
   const location = useLocation();
   const nav = useDisclosure();
   useApplyTheme(); // dark mode applies inside the signed-in app only
+  const mobile = isMobileDevice();
+
+  // Company software: a session that reaches a phone is ended and the person sees why
+  // (also covers iPads in desktop mode, which the server can't tell apart from a Mac)
+  useEffect(() => { if (mobile) logout(); }, [mobile]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close the drawer / menu whenever the route changes
   useEffect(() => { nav.close(); }, [location.pathname, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  if (mobile) {
+    return <Navigate to={BLOCKED_PATH} replace />;
+  }
 
   if (loading) {
     return (

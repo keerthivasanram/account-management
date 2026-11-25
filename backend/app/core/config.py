@@ -67,6 +67,8 @@ class Settings(BaseSettings):
 
     # Onboarding policy. When False, only invited employees (or SUPER_ADMIN_EMAILS) can sign in.
     AUTO_PROVISION_EMPLOYEES: bool = True
+    # Company software: refuse API use from phones and tablets
+    BLOCK_MOBILE_DEVICES: bool = True
     # Optional comma-separated allowlist of email domains for auto-provisioning, e.g. "klarves.com"
     ALLOWED_EMAIL_DOMAINS: str = ""
 

@@ -184,16 +184,17 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = async () => {
-    try {
-      await supabaseAuth.signOut();
-    } catch (err) {
-      console.error('Logout error:', err);
-    }
+    // Clear the local session first so it's gone even if the network call below is slow or fails
     localStorage.removeItem('auth_token');
     localStorage.removeItem('auth_user');
     setToken(null);
     setEmployee(null);
     setProfileError(null);
+    try {
+      await supabaseAuth.signOut();
+    } catch (err) {
+      console.error('Logout error:', err);
+    }
   };
 
   // Permissions come from the backend (/employees/me). UI checks are cosmetic;

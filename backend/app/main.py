@@ -232,6 +232,12 @@ app = FastAPI(
     lifespan=lifespan
 )
 
+# Phones/tablets are refused (added before CORS so CORS stays outermost and the 403 still
+# carries CORS headers the browser can read)
+if settings.BLOCK_MOBILE_DEVICES:
+    from app.security.device_policy import MobileBlockMiddleware
+    app.add_middleware(MobileBlockMiddleware)
+
 # CORS Middleware
 app.add_middleware(
     CORSMiddleware,

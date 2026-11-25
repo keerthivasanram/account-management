@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { supabaseAuth } from '../../services/supabase';
+import { BLOCKED_PATH, isMobileDevice } from '../../utils/device';
 
 // Return page for Supabase sign-in (Google or email link). Not the Meta/Instagram callback (/oauth/callback).
 const readProviderError = () => {
@@ -19,6 +21,12 @@ export const AuthCallbackPage = () => {
   useEffect(() => {
     if (started.current) return; // StrictMode runs effects twice in dev
     started.current = true;
+
+    if (isMobileDevice()) {
+      // A sign-in link opened on a phone: drop the session and explain instead
+      supabaseAuth.signOut().finally(() => navigate(BLOCKED_PATH, { replace: true }));
+      return;
+    }
 
     const providerError = readProviderError();
     if (providerError) {

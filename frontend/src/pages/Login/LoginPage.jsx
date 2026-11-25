@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { AlertCircle, ArrowLeft, Mail, MailCheck, ShieldCheck, UserCheck } from 'lucide-react';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { AlertCircle, ArrowLeft, Laptop, Mail, MailCheck, ShieldCheck, UserCheck } from 'lucide-react';
+import { MOBILE_BLOCKED_MESSAGE, isMobileDevice } from '../../utils/device';
 import { useAuth } from '../../context/AuthContext';
 import { supabaseAuth } from '../../services/supabase';
 import logoMark from '../../logo-mark.png';
@@ -42,10 +43,21 @@ export const LoginPage = () => {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [showDev, setShowDev] = useState(false);
+  const [searchParams] = useSearchParams();
+  const mobile = isMobileDevice();
+  // Phones/tablets: the page shows, but every sign-in path explains it's company-computer only
+  const [mobileBlocked, setMobileBlocked] = useState(searchParams.get('blocked') === 'mobile');
 
-  if (!loading && employee) return <Navigate to="/dashboard" replace />;
+  if (!loading && employee && !mobile) return <Navigate to="/dashboard" replace />;
+
+  const blockOnMobile = () => {
+    if (!mobile) return false;
+    setMobileBlocked(true);
+    return true;
+  };
 
   const handleGoogle = async () => {
+    if (blockOnMobile()) return;
     setError(null);
     setBusy(true);
     try {
@@ -58,6 +70,7 @@ export const LoginPage = () => {
 
   const handleEmail = async (e) => {
     e.preventDefault();
+    if (blockOnMobile()) return;
     const clean = email.trim().toLowerCase();
     if (!clean) return;
     setError(null);
@@ -74,6 +87,7 @@ export const LoginPage = () => {
   };
 
   const handleDevLogin = async (devEmail, name) => {
+    if (blockOnMobile()) return;
     setError(null);
     setBusy(true);
     try {
@@ -126,7 +140,17 @@ export const LoginPage = () => {
                 Sign in with your approved Google account or work email.
               </p>
 
-              {shownError && (
+              {mobileBlocked && (
+                <div role="alert" className="mt-7 max-w-[420px] flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-[15px] text-amber-900">
+                  <Laptop className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+                  <span>
+                    <span className="block font-semibold">Use your company computer</span>
+                    {MOBILE_BLOCKED_MESSAGE}
+                  </span>
+                </div>
+              )}
+
+              {shownError && !mobileBlocked && (
                 <div role="alert" className="mt-7 max-w-[420px] flex items-start gap-2.5 rounded-xl border border-rose-200 bg-rose-50 p-3.5 text-sm text-rose-700">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
                   <span>{shownError}</span>
@@ -137,13 +161,13 @@ export const LoginPage = () => {
                 <p className="mt-10 max-w-[420px] text-sm text-slate-600">
                   Sign-in isn&apos;t configured yet. Please contact your administrator.
                 </p>
-              ) : mode === 'choose' ? (
+              ) : mode === 'choose' || mobile ? (
                 <div className="mt-10 space-y-3.5">
                   <button type="button" onClick={handleGoogle} disabled={busy} className={optionButton}>
                     <GoogleIcon />
                     Continue with Google
                   </button>
-                  <button type="button" onClick={() => { setMode('email'); setError(null); }} disabled={busy} className={optionButton}>
+                  <button type="button" onClick={() => { if (blockOnMobile()) return; setMode('email'); setError(null); }} disabled={busy} className={optionButton}>
                     <Mail className="w-6 h-6 text-slate-600" aria-hidden="true" />
                     Continue with email
                   </button>

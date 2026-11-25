@@ -25,6 +25,12 @@ apiClient.interceptors.request.use(
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
+    if (error.response?.status === 403 && error.response.data?.code === 'MOBILE_BLOCKED') {
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      if (window.location.pathname !== '/') window.location.href = '/?blocked=mobile';
+      return Promise.reject(error);
+    }
     if (error.response && error.response.status === 401) {
       // Optional: clear token if invalid
       // Expired/invalid session: drop it and return to the sign-in page (the front page)

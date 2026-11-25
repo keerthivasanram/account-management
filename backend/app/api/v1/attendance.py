@@ -36,9 +36,11 @@ def get_attendance_summary(
         hours = today_rec.total_hours
         status_str = "CHECKED_OUT" if today_rec.check_out_at else "CHECKED_IN"
 
-    recent = repo.list_employee_attendance(current_employee.id, limit=31)
-    present_days = len(recent)
-    total_hours = sum(r.total_hours or 0.0 for r in recent)
+    # Calendar month to date (previously this counted the last 31 shifts, whatever month they were in)
+    from datetime import date as _date
+    month = repo.list_month(current_employee.id, _date.today().replace(day=1))
+    present_days = len(month)
+    total_hours = sum(r.total_hours or 0.0 for r in month)
 
     return AttendanceSummary(
         today_status=status_str,
