@@ -158,9 +158,17 @@ export const api = {
   // Social Media Management & Scheduled Publishing
   socialPosts: {
     list: (params) => apiClient.get('/social/posts', { params }),
+    get: (id) => apiClient.get(`/social/posts/${id}`),
     create: (data) => apiClient.post('/social/posts', data),
+    update: (id, data) => apiClient.patch(`/social/posts/${id}`, data),
+    remove: (id) => apiClient.delete(`/social/posts/${id}`),
     review: (id, data) => apiClient.patch(`/social/posts/${id}/review`, data),
     publishNow: (id) => apiClient.post(`/social/posts/${id}/publish-now`),
+    uploadMedia: (file) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/social/posts/media', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+    },
   },
 
   // In-App Notifications
