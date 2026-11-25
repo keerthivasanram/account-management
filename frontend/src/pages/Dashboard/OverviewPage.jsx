@@ -86,7 +86,7 @@ const OperationsOverview = () => {
           <div className="flex items-center gap-2.5">
             <DatePill />
             <SecondaryButton size="sm" onClick={reloadAll} icon={RefreshCw} aria-label="Refresh overview" title="Refresh" />
-            <PrimaryButton size="sm" onClick={() => navigate('/register')} icon={UserPlus}>Register account</PrimaryButton>
+            <PrimaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>Add account</PrimaryButton>
           </div>
         }
       />
@@ -102,7 +102,7 @@ const OperationsOverview = () => {
           subtitle="Latest Instagram accounts across the company"
           emptyTitle="No Instagram accounts registered"
           emptyText="Nobody has registered an Instagram account yet. Register the first one to start connecting and assigning accounts."
-          emptyAction={<PrimaryButton size="sm" onClick={() => navigate('/register')} icon={UserPlus}>Register account</PrimaryButton>}
+          emptyAction={<PrimaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>Add account</PrimaryButton>}
         />
         <div className="space-y-6 lg:col-start-3 lg:row-start-1">
           <ConnectionPanel resource={stats} subtitle="All company accounts" />
@@ -186,7 +186,7 @@ const TeamOverview = ({ isManager }) => {
         actions={
           <div className="flex flex-wrap items-center gap-2.5">
             <DatePill />
-            <SecondaryButton size="sm" onClick={() => navigate('/register')} icon={UserPlus}>Register account</SecondaryButton>
+            <SecondaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>Add account</SecondaryButton>
           </div>
         }
       />
@@ -211,7 +211,7 @@ const TeamOverview = ({ isManager }) => {
           subtitle="Instagram accounts you registered or are assigned to"
           emptyTitle="No accounts assigned to you yet."
           emptyText="When an admin assigns you an Instagram account it will appear here. If you manage an account that isn't in Klarves yet, you can register it."
-          emptyAction={<SecondaryButton size="sm" onClick={() => navigate('/register')} icon={UserPlus}>Register an account</SecondaryButton>}
+          emptyAction={<SecondaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>Add an account</SecondaryButton>}
         />
         <div className="space-y-6 lg:col-start-3 lg:row-start-1">
           {isManager && <TeamPanel team={team} />}

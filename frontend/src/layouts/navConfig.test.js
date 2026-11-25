@@ -51,7 +51,8 @@ describe('teamNavFor', () => {
     for (const perms of [EMPLOYEE, MANAGER]) {
       const { primary, more } = teamNavFor(perms);
       const reachable = [...primary, ...more].map((l) => l.to).sort();
-      expect(reachable).toEqual(allPaths(navSectionsFor(perms)).sort());
+      const expected = navSectionsFor(perms).flatMap((s) => s.links).filter((l) => !l.teamHidden).map((l) => l.to);
+      expect(reachable).toEqual(expected.sort());
     }
   });
 

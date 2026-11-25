@@ -188,12 +188,12 @@ export const RegisterAccountPage = () => {
     <div className="max-w-3xl mx-auto space-y-6">
       {/* 1. Page Header */}
       <PageHeader
-        title="Register Instagram Account"
-        description="Add a new Instagram business or creator account to the organization fleet."
+        title="Add account"
+        description="Add an Instagram business or creator account you manage. It is assigned to you and goes to an admin for approval."
         breadcrumbs={[
           { label: 'Overview', to: '/dashboard' },
-          { label: 'Instagram Accounts', to: '/accounts' },
-          { label: 'Register Account' },
+          { label: 'My accounts', to: '/accounts' },
+          { label: 'Add account' },
         ]}
       />
 

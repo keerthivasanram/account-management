@@ -47,9 +47,10 @@ const SECTIONS = [
     id: 'main',
     label: 'Main',
     links: [
-      { to: '/dashboard', label: 'Overview', icon: LayoutDashboard },
+      { to: '/dashboard', label: 'Overview', teamLabel: 'Dashboard', icon: LayoutDashboard },
       { to: '/accounts', label: 'Instagram Accounts', teamLabel: 'My accounts', icon: Instagram },
-      { to: '/register', label: 'Register Account', icon: UserPlus },
+      // Employees reach Add / Import from the My accounts page, so the team bar hides it.
+      { to: '/accounts/new', label: 'Add account', icon: UserPlus, teamHidden: true },
       { to: '/social/posts', label: 'Publishing', icon: Share2 },
     ],
   },
@@ -100,7 +101,7 @@ const SECTIONS = [
     label: 'Workspace',
     links: [
       { to: '/tasks', label: 'Tasks', icon: CheckSquare },
-      { to: '/chat', label: 'Company Chat', icon: MessageSquare },
+      { to: '/chat', label: 'Company Chat', teamLabel: 'Team messages', icon: MessageSquare },
       { to: '/documents', label: 'Documents', icon: FolderLock },
       { to: '/attendance', label: 'Attendance', icon: Clock },
       { to: '/departments', label: 'Departments', icon: Building2 },
@@ -116,11 +117,12 @@ export const navSectionsFor = (permissions = [], badges = {}) =>
   }));
 
 // Team workspace: the few daily destinations stay in the bar, the rest go under "More".
-const TEAM_PRIMARY = ['/dashboard', '/accounts', '/manager', '/tasks', '/attendance'];
+const TEAM_PRIMARY = ['/dashboard', '/accounts', '/social/posts', '/chat', '/manager'];
 
-/** Top-nav links for the Team workspace: { primary, more }. Nothing permitted is dropped. */
+/** Top-nav links for the Team workspace: { primary, more }. Nothing permitted is dropped
+ *  (teamHidden links are reached from inside their parent page). */
 export const teamNavFor = (permissions = []) => {
-  const all = navSectionsFor(permissions).flatMap((s) => s.links)
+  const all = navSectionsFor(permissions).flatMap((s) => s.links).filter((l) => !l.teamHidden)
     .map((l) => ({ ...l, label: l.teamLabel || l.label }));
   const primary = TEAM_PRIMARY.map((to) => all.find((l) => l.to === to)).filter(Boolean);
   const more = all.filter((l) => !TEAM_PRIMARY.includes(l.to));

@@ -82,6 +82,12 @@ export const api = {
     getById: (id) => apiClient.get(`/accounts/${id}`),
     update: (id, data) => apiClient.patch(`/accounts/${id}`, data),
     getStatus: (id) => apiClient.get(`/accounts/${id}/status`),
+    importTemplate: () => apiClient.get('/accounts/import/template', { responseType: 'blob' }),
+    importCsv: (file, dryRun = true) => {
+      const form = new FormData();
+      form.append('file', file);
+      return apiClient.post('/accounts/import', form, { params: { dry_run: dryRun }, headers: { 'Content-Type': 'multipart/form-data' } });
+    },
   },
 
   // Meta OAuth Integrations

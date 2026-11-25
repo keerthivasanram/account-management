@@ -16,6 +16,7 @@ import Protected from '../../components/ui/Protected';
 import {
   Instagram,
   UserPlus,
+  Upload,
   ExternalLink,
   Zap,
   RefreshCw,
@@ -444,15 +445,15 @@ export const AccountsListPage = () => {
     <div className="space-y-6">
       {/* 1. Page Header */}
       <PageHeader
-        title="Instagram Accounts"
+        title={isAdmin ? 'Instagram Accounts' : 'My accounts'}
         description={
           isAdmin
             ? 'Complete enterprise directory of managed accounts, employee allocations, and Meta OAuth tokens.'
-            : 'Assigned accounts allocated to your portfolio with official Meta OAuth status.'
+            : 'Instagram accounts assigned to you, with their connection and approval status.'
         }
         breadcrumbs={[
           { label: 'Overview', to: '/dashboard' },
-          { label: 'Instagram Accounts' },
+          { label: isAdmin ? 'Instagram Accounts' : 'My accounts' },
         ]}
         actions={
           <div className="flex items-center gap-3">
@@ -461,12 +462,11 @@ export const AccountsListPage = () => {
                 {selectedIds.size} selected
               </span>
             )}
-            <PrimaryButton
-              size="sm"
-              onClick={() => navigate('/register')}
-              icon={UserPlus}
-            >
-              Register Account
+            <SecondaryButton size="sm" onClick={() => navigate('/accounts/import')} icon={Upload}>
+              Import accounts
+            </SecondaryButton>
+            <PrimaryButton size="sm" onClick={() => navigate('/accounts/new')} icon={UserPlus}>
+              Add account
             </PrimaryButton>
           </div>
         }

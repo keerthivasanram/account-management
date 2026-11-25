@@ -8,6 +8,7 @@ import AdminRoute from './layouts/AdminRoute';
 import LoginPage from './pages/Login/LoginPage';
 import OverviewPage from './pages/Dashboard/OverviewPage';
 import RegisterAccountPage from './pages/RegisterAccount/RegisterAccountPage';
+import ImportAccountsPage from './pages/Accounts/ImportAccountsPage';
 import AccountsListPage from './pages/Accounts/AccountsListPage';
 import TasksPage from './pages/Tasks/TasksPage';
 import DepartmentsPage from './pages/Departments/DepartmentsPage';
@@ -48,7 +49,9 @@ function App() {
             <Route path="/social/posts" element={<ScheduledPostsPage />} />
             <Route path="/tasks" element={<TasksPage />} />
             <Route path="/departments" element={<DepartmentsPage />} />
-            <Route path="/register" element={<RegisterAccountPage />} />
+            <Route path="/accounts/new" element={<RegisterAccountPage />} />
+            <Route path="/accounts/import" element={<ImportAccountsPage />} />
+            <Route path="/register" element={<Navigate to="/accounts/new" replace />} />
             <Route path="/accounts" element={<AccountsListPage />} />
             <Route path="/profile" element={<ProfilePage />} />
 
