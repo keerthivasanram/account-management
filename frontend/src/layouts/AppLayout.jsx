@@ -8,6 +8,7 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import SecurityWatermark from '../components/SecurityWatermark';
 import SecurityShield from '../components/SecurityShield';
 import useDisclosure from '../hooks/useDisclosure';
+import { useApplyTheme } from '../hooks/useTheme';
 import { layoutVariantFor, teamNavFor, isNavLinkActive } from './navConfig';
 
 const TITLES = [
@@ -68,6 +69,7 @@ export const AppLayout = () => {
   const { employee, loading, profileError, retryProfile, logout, permissions } = useAuth();
   const location = useLocation();
   const nav = useDisclosure();
+  useApplyTheme(); // dark mode applies inside the signed-in app only
 
   // Close the drawer / menu whenever the route changes
   useEffect(() => { nav.close(); }, [location.pathname, location.search]); // eslint-disable-line react-hooks/exhaustive-deps

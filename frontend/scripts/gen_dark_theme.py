@@ -1,0 +1,133 @@
+"""Generates src/styles/dark-theme.css: maps the app's light utility classes to dark tokens.
+
+Run after adding a new colour class to a page:  python scripts/gen_dark_theme.py
+"""
+import re
+
+import os
+OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'src', 'styles', 'dark-theme.css')
+
+# Dark tokens: teal-navy family, continuous with the #0A252E sidebar
+T = {
+    'page': 'var(--k-page)', 'surface': 'var(--k-surface)', 'subtle': 'var(--k-subtle)', 'muted-bg': 'var(--k-muted-bg)',
+    'border': 'var(--k-border)', 'border-strong': 'var(--k-border-strong)',
+    'ink': 'var(--k-ink)', 'ink2': 'var(--k-ink-2)', 'ink3': 'var(--k-ink-3)', 'ink4': 'var(--k-ink-4)',
+}
+
+ROOT = """:root.dark {
+  color-scheme: dark;
+  --k-page: #0B1A20;
+  --k-surface: #10232A;
+  --k-subtle: #142C34;
+  --k-muted-bg: #1A3640;
+  --k-border: #21404A;
+  --k-border-strong: #2E5361;
+  --k-ink: #E7EEF0;
+  --k-ink-2: #C3D1D6;
+  --k-ink-3: #93A8AF;
+  --k-ink-4: #6C848C;
+  --k-brand-text: #3FD0AA;
+  --k-good: #4ADE80;   --k-good-bg: rgba(34, 197, 94, 0.13);   --k-good-border: rgba(74, 222, 128, 0.30);
+  --k-bad: #F87171;    --k-bad-bg: rgba(239, 68, 68, 0.13);    --k-bad-border: rgba(248, 113, 113, 0.32);
+  --k-warn: #FBBF24;   --k-warn-bg: rgba(245, 158, 11, 0.13);  --k-warn-border: rgba(251, 191, 36, 0.30);
+  --k-info: #7DB4FF;   --k-info-bg: rgba(59, 130, 246, 0.14);
+  --k-brand-bg: rgba(10, 150, 122, 0.16); --k-brand-border: rgba(63, 208, 170, 0.32);
+}
+"""
+
+# class -> (css property, value)
+bg = lambda v: ('background-color', v)
+fg = lambda v: ('color', v)
+bd = lambda v: ('border-color', v)
+ring = lambda v: ('--tw-ring-color', v)
+
+MAP = {}
+def add(classes, decl):
+    for c in classes.split():
+        MAP[c] = decl
+
+# surfaces
+add('bg-white bg-[#FFFFFF] bg-[#FEFEFE]', bg(T['surface']))
+add('bg-[#F5F6F9] bg-[#F4F6FA] bg-[#F7F8FA] bg-app-bg', bg(T['page']))
+add('bg-slate-50 bg-[#F8FAFC] bg-[#F9FAFB] bg-gray-50', bg(T['subtle']))
+add('bg-slate-100 bg-[#F1F5F9] bg-gray-100 bg-[#EEF1F5]', bg(T['muted-bg']))
+add('bg-slate-200', bg(T['border']))
+add('hover:bg-slate-50 hover:bg-[#F8FAFC] hover:bg-[#F9FAFB] hover:bg-gray-50', bg(T['subtle']))
+add('hover:bg-slate-100 hover:bg-[#F1F5F9] hover:bg-white', bg(T['muted-bg']))
+# translucent surfaces (sticky header, table heads, tinted rows)
+add('bg-white/90', bg('rgba(16, 35, 42, 0.92)'))
+add('bg-slate-50/80 bg-slate-50/70', bg(T['subtle']))
+add('bg-slate-100/80', bg(T['muted-bg']))
+add('bg-[#F0FDF4]/30', bg('var(--k-brand-bg)'))
+add('bg-[#FECACA]/60', bg('var(--k-bad-bg)'))
+# borders / dividers / rings
+add('border-[#E5E7EB] border-[#E6EAF0] border-[#E2E8F0] border-slate-200 border-slate-100 border-[#F1F5F9] border-gray-200 border-white', bd(T['border']))
+add('border-slate-300 border-[#D1D5DB] hover:border-slate-300 hover:border-slate-400 hover:border-[#D1D5DB]', bd(T['border-strong']))
+add('divide-[#F1F5F9] divide-[#E5E7EB] divide-slate-100 divide-slate-200', bd(T['border']))
+add('ring-slate-100 ring-slate-200 ring-white ring-white/10', ring(T['border']))
+# text
+add('text-slate-900 text-slate-800 text-[#0B1F1B] text-[#172B24] text-gray-900 hover:text-slate-900 text-primary-text', fg(T['ink']))
+add('text-slate-700 text-[#475569] text-[#334155] hover:text-slate-700', fg(T['ink2']))
+add('text-slate-600 text-slate-500 text-[#64748B] hover:text-slate-600 text-secondary-text', fg(T['ink3']))
+add('text-slate-400 text-slate-300 text-[#94A3B8] text-[#CBD5E1]', fg(T['ink4']))
+add('placeholder-slate-400 placeholder-[#94A3B8]', None)  # handled below
+# brand tints
+add('bg-brand-50 bg-brand-100 bg-[#F0FDF4] bg-emerald-50 bg-teal-50', bg('var(--k-brand-bg)'))
+add('text-brand-700 text-brand-600 text-brand-800 text-emerald-700 text-teal-700 hover:text-brand-700', fg('var(--k-brand-text)'))
+add('border-brand-200 border-brand-100 border-[#BBF7D0] border-teal-200 border-emerald-200', bd('var(--k-brand-border)'))
+add('ring-brand-100 ring-brand-200 ring-emerald-100 ring-teal-100 ring-teal-200', ring('var(--k-brand-border)'))
+# status: success / error / warning / info
+add('text-[#15803D]', fg('var(--k-good)'))
+add('bg-[#FEF2F2] bg-rose-50 bg-red-50 hover:bg-[#FEF2F2] hover:bg-rose-50', bg('var(--k-bad-bg)'))
+add('text-[#DC2626] text-[#B91C1C] text-[#991B1B] text-rose-700 text-rose-600 text-red-700', fg('var(--k-bad)'))
+add('border-[#FECACA] border-rose-200 border-red-200', bd('var(--k-bad-border)'))
+add('ring-rose-100', ring('var(--k-bad-border)'))
+add('bg-[#FFFBEB] bg-amber-50', bg('var(--k-warn-bg)'))
+add('text-[#92400E] text-[#D97706] text-amber-800 text-amber-700 text-amber-900', fg('var(--k-warn)'))
+add('border-[#FDE68A] border-amber-200 border-amber-300', bd('var(--k-warn-border)'))
+add('ring-amber-100', ring('var(--k-warn-border)'))
+add('bg-[#EFF6FF] bg-sky-50 bg-blue-50 bg-violet-50', bg('var(--k-info-bg)'))
+add('text-[#2563EB] text-sky-700 text-blue-700 text-violet-700', fg('var(--k-info)'))
+
+def esc(cls):
+    return re.sub(r'([\[\]#/:.%])', r'\\\1', cls)
+
+lines = [
+    "/* Dark theme. GENERATED by scripts/gen_dark_theme.py: edit the map there, not this file.",
+    "   Pages use light utility classes; under html.dark this remaps them to dark tokens, so",
+    "   every page (and new ones) switches without per-file dark: variants. html.dark raises",
+    "   specificity above Tailwind's single-class utilities, so no !important is needed. */",
+    ROOT,
+]
+for cls, decl in sorted(MAP.items()):
+    if decl is None:
+        continue
+    prop, val = decl
+    sel = '.' + esc(cls)
+    if cls.startswith('hover:'):
+        sel += ':hover'
+    if cls.startswith('divide-'):
+        lines.append(f":root.dark {sel} > :not([hidden]) ~ :not([hidden]) {{ {prop}: {val}; }}")
+    else:
+        lines.append(f":root.dark {sel} {{ {prop}: {val}; }}")
+
+lines.append("""
+/* Base, components and hand-written classes */
+:root.dark body { background-color: var(--k-page); color: var(--k-ink); }
+:root.dark .bg-gradient-to-b.from-white { background-image: none; background-color: var(--k-page); }
+:root.dark .stat-group { background-color: var(--k-border); border-color: var(--k-border); box-shadow: none; }
+:root.dark .enterprise-panel { background-color: var(--k-surface); border-color: var(--k-border); box-shadow: none; }
+:root.dark .enterprise-input,
+:root.dark input:not([type=checkbox]):not([type=radio]):not([type=range]),
+:root.dark select,
+:root.dark textarea { background-color: var(--k-subtle); color: var(--k-ink); border-color: var(--k-border-strong); }
+:root.dark .enterprise-input::placeholder,
+:root.dark input::placeholder,
+:root.dark textarea::placeholder { color: var(--k-ink-4); }
+:root.dark .shadow-soft, :root.dark .shadow-lift, :root.dark .shadow-card, :root.dark .shadow-sm { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35); }
+:root.dark ::-webkit-scrollbar-track { background: var(--k-page); }
+:root.dark ::-webkit-scrollbar-thumb { background: var(--k-border-strong); }
+:root.dark .animate-pulse.bg-slate-100 { background-color: var(--k-muted-bg); }
+""")
+open(OUT, 'w', encoding='utf-8').write('\n'.join(lines) + '\n')
+print(len(MAP), 'classes mapped')

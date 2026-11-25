@@ -3,6 +3,7 @@ import { useNavigate, useLocation, NavLink } from 'react-router-dom';
 import logoMark from '../logo-mark.png';
 import { teamNavFor, isNavLinkActive } from '../layouts/navConfig';
 import useDisclosure from '../hooks/useDisclosure';
+import ThemeSwitcher from './ThemeSwitcher';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import {
@@ -368,7 +369,7 @@ export const AppHeader = ({ title = 'Overview', variant = 'operations', menuOpen
 
             {showProfileMenu && (
               <div
-                className="absolute right-0 mt-2 w-48 bg-white border border-[#E6EAF0] rounded-xl shadow-soft shadow-dropdown z-50 py-1 text-xs text-slate-900 animate-in fade-in zoom-in-95 duration-100"
+                className="absolute right-0 mt-2 w-60 bg-white border border-[#E6EAF0] rounded-xl shadow-soft shadow-dropdown z-50 py-1 text-xs text-slate-900 animate-in fade-in zoom-in-95 duration-100"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-3 py-2 border-b border-[#E5E7EB]">
@@ -407,6 +408,8 @@ export const AppHeader = ({ title = 'Overview', variant = 'operations', menuOpen
                     <span>Security Center</span>
                   </button>
                 )}
+                <div className="border-t border-[#E5E7EB] my-1" />
+                <ThemeSwitcher className="px-3 py-2" />
                 <div className="border-t border-[#E5E7EB] my-1" />
                 <button
                   onClick={() => {
